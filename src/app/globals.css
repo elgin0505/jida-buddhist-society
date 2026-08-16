@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-warm-white: #faf7f2;
+  --color-warm-cream: #f5efe4;
+  --color-golden-deep: #c9a227;
+  --color-golden-rich: #b8860b;
+  --color-ocher: #e8c872;
+  --color-ocher-light: #f5e6b8;
+  --color-jade: #2d6a4f;
+  --color-jade-light: #40916c;
+  --color-sapphire: #1b4965;
+  --color-sapphire-light: #2e86ab;
+  --color-carmine: #c1121f;
+  --color-carmine-soft: #e07a5f;
+  --color-charcoal: #2c2c2c;
+  --color-muted: #6b6560;
+
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-warm-white text-charcoal antialiased;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(232, 200, 114, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(201, 162, 39, 0.06) 0%, transparent 50%);
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .card {
+    @apply rounded-2xl bg-white/80 backdrop-blur-sm border border-ocher/20 shadow-[0_4px_24px_-4px_rgba(201,162,39,0.12)];
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-[0_8px_32px_-4px_rgba(201,162,39,0.2)] hover:-translate-y-0.5;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-golden-deep px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-golden-rich hover:shadow-lg active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-ocher/40 bg-white/60 px-5 py-2.5 text-sm font-semibold text-charcoal transition-all hover:bg-ocher-light/30 active:scale-[0.98];
+  }
+
+  .btn-jade {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-jade px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-jade-light hover:shadow-lg active:scale-[0.98];
+  }
+
+  .section-title {
+    @apply text-2xl font-bold tracking-tight text-charcoal;
+  }
+
+  .section-subtitle {
+    @apply text-muted text-sm leading-relaxed;
+  }
+}

@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Member {
+  id          String          @id @default(cuid())
+  memberId    String          @unique
+  name        String
+  email       String          @unique
+  photo       String?
+  totalPoints Int             @default(0)
+  attendances AttendanceLog[]
+  redemptions Redemption[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model AttendanceLog {
+  id           String   @id @default(cuid())
+  dateTime     DateTime @default(now())
+  memberId     String
+  member       Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  eventName    String
+  pointsEarned Int      @default(1)
+  createdAt    DateTime @default(now())
+}
+
+model Reward {
+  id             String       @id @default(cuid())
+  name           String
+  pointsRequired Int
+  image          String?
+  description    String?
+  stock          Int          @default(10)
+  redemptions    Redemption[]
+  createdAt      DateTime     @default(now())
+}
+
+model Redemption {
+  id          String   @id @default(cuid())
+  memberId    String
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  rewardId    String
+  reward      Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  pointsSpent Int
+  createdAt   DateTime @default(now())
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  dateTime    DateTime
+  location    String?
+  points      Int      @default(1)
+  createdAt   DateTime @default(now())
+}

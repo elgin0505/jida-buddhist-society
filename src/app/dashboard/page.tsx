@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 import { useMember, MemberSelector } from "@/components/MemberContext";
 import { PageWrapper } from "@/components/PageWrapper";
+import { Leaderboard } from "@/components/Leaderboard";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface AttendanceRecord {
@@ -32,11 +33,12 @@ interface MemberDetail {
 }
 
 export default function DashboardPage() {
-  const { currentMember, loading, refreshMembers } = useMember();
+  const { currentMember, members, loading, refreshMembers } = useMember();
   const [detail, setDetail] = useState<MemberDetail | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"history" | "leaderboard">("history");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -187,7 +189,7 @@ export default function DashboardPage() {
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="mt-2 text-xs text-jade"
+                    className="mt-2 text-xs text-jade font-medium"
                   >
                     {uploadMsg}
                   </motion.p>
@@ -263,63 +265,112 @@ export default function DashboardPage() {
         />
       </motion.div>
 
-      {/* 记录列表 */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.16, ease: "easeOut" }}
-        className="grid gap-6 lg:grid-cols-2"
-      >
-        <Card>
-          <h4 className="mb-4 text-lg font-semibold text-charcoal">最近出勤记录</h4>
-          {detail?.attendances.length ? (
-            <div className="space-y-3">
-              {detail.attendances.map((record, i) => (
-                <motion.div
-                  key={record.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="flex items-center justify-between rounded-xl bg-warm-cream/50 px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-charcoal">{record.eventName}</p>
-                    <p className="text-xs text-muted">{new Date(record.dateTime).toLocaleString("zh-CN")}</p>
-                  </div>
-                  <Badge variant="jade">+{record.pointsEarned}</Badge>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <p className="py-8 text-center text-sm text-muted">暂无出勤记录</p>
-          )}
-        </Card>
+      {/* 视图切换 Tabs: 个人记录 vs 精进功德榜 */}
+      <div className="mb-6 flex justify-center">
+        <div className="inline-flex rounded-2xl bg-white/70 p-1.5 shadow-sm border border-ocher/20 backdrop-blur-md">
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${
+              activeTab === "history"
+                ? "bg-golden-deep text-white shadow-md"
+                : "text-muted hover:text-charcoal"
+            }`}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            个人出勤与兑换
+          </button>
 
-        <Card>
-          <h4 className="mb-4 text-lg font-semibold text-charcoal">兑换历史</h4>
-          {detail?.redemptions.length ? (
-            <div className="space-y-3">
-              {detail.redemptions.map((record, i) => (
-                <motion.div
-                  key={record.id}
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="flex items-center justify-between rounded-xl bg-warm-cream/50 px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-charcoal">{record.reward.name}</p>
-                    <p className="text-xs text-muted">{new Date(record.createdAt).toLocaleString("zh-CN")}</p>
-                  </div>
-                  <Badge variant="carmine">-{record.pointsSpent}</Badge>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <p className="py-8 text-center text-sm text-muted">暂无兑换记录</p>
-          )}
-        </Card>
-      </motion.div>
+          <button
+            onClick={() => setActiveTab("leaderboard")}
+            className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-all ${
+              activeTab === "leaderboard"
+                ? "bg-golden-deep text-white shadow-md"
+                : "text-muted hover:text-charcoal"
+            }`}
+          >
+            <span>🏆</span>
+            精进功德榜
+          </button>
+        </div>
+      </div>
+
+      {/* 切换展示区域 */}
+      <AnimatePresence mode="wait">
+        {activeTab === "history" ? (
+          <motion.div
+            key="history-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.3 }}
+            className="grid gap-6 lg:grid-cols-2"
+          >
+            <Card>
+              <h4 className="mb-4 text-lg font-semibold text-charcoal">最近出勤记录</h4>
+              {detail?.attendances.length ? (
+                <div className="space-y-3">
+                  {detail.attendances.map((record, i) => (
+                    <motion.div
+                      key={record.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="flex items-center justify-between rounded-xl bg-warm-cream/50 px-4 py-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-charcoal">{record.eventName}</p>
+                        <p className="text-xs text-muted">{new Date(record.dateTime).toLocaleString("zh-CN")}</p>
+                      </div>
+                      <Badge variant="jade">+{record.pointsEarned}</Badge>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <p className="py-8 text-center text-sm text-muted">暂无出勤记录</p>
+              )}
+            </Card>
+
+            <Card>
+              <h4 className="mb-4 text-lg font-semibold text-charcoal">兑换历史</h4>
+              {detail?.redemptions.length ? (
+                <div className="space-y-3">
+                  {detail.redemptions.map((record, i) => (
+                    <motion.div
+                      key={record.id}
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="flex items-center justify-between rounded-xl bg-warm-cream/50 px-4 py-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-charcoal">{record.reward.name}</p>
+                        <p className="text-xs text-muted">{new Date(record.createdAt).toLocaleString("zh-CN")}</p>
+                      </div>
+                      <Badge variant="carmine">-{record.pointsSpent}</Badge>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <p className="py-8 text-center text-sm text-muted">暂无兑换记录</p>
+              )}
+            </Card>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="leaderboard-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card>
+              <Leaderboard members={members} currentMemberId={currentMember?.id} />
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PageWrapper>
   );
 }

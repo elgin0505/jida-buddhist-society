@@ -9,13 +9,30 @@ interface PageWrapperProps {
   children: ReactNode;
 }
 
-// 仪表板：曼陀罗莲花水印 + 中心放射光晕
+// 仪表板：佛学会专属合照壁纸 + 曼陀罗光晕
 function DashboardBg() {
   return (
     <div className="page-bg-dashboard" aria-hidden>
-      {/* 曼陀罗放射线 */}
+      {/* 佛学会专属合照大壁纸 (提高清晰度与色彩饱满度) */}
+      <div className="absolute inset-0 overflow-hidden">
+        <img
+          src="/dashboard-wallpaper.jpg"
+          alt="技大佛学会大家庭"
+          className="h-full w-full object-cover object-center opacity-[0.52] filter saturate-[1.25] brightness-[1.03] scale-100"
+        />
+        {/* 细腻的半透明渐变，既让合照清晰，又衬托前景毛玻璃卡片 */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 25%, rgba(250, 247, 242, 0.15) 0%, rgba(245, 237, 224, 0.45) 60%, rgba(240, 230, 214, 0.75) 100%)",
+          }}
+        />
+      </div>
+
+      {/* 曼陀罗放射线水印 */}
       <svg
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.045]"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.035]"
         width="700"
         height="700"
         viewBox="0 0 700 700"
@@ -38,11 +55,9 @@ function DashboardBg() {
             />
           );
         })}
-        {/* 同心圆 */}
         {[80, 150, 220, 290].map((r) => (
           <circle key={r} cx="350" cy="350" r={r} stroke="#c9a227" strokeWidth="0.8" fill="none" />
         ))}
-        {/* 莲花花瓣 */}
         {Array.from({ length: 8 }).map((_, i) => {
           const angle = (i * 360) / 8;
           return (
@@ -52,23 +67,6 @@ function DashboardBg() {
           );
         })}
         <circle cx="350" cy="350" r="32" fill="#c9a227" opacity="0.3" />
-        <circle cx="350" cy="350" r="14" fill="#c9a227" opacity="0.5" />
-      </svg>
-
-      {/* 右上角小莲花 */}
-      <svg
-        className="absolute right-8 top-16 opacity-[0.055]"
-        width="180"
-        height="180"
-        viewBox="0 0 180 180"
-        fill="none"
-      >
-        {Array.from({ length: 6 }).map((_, i) => (
-          <g key={i} transform={`rotate(${i * 60} 90 90)`}>
-            <ellipse cx="90" cy="42" rx="16" ry="44" fill="#c9a227" />
-          </g>
-        ))}
-        <circle cx="90" cy="90" r="20" fill="#c9a227" />
       </svg>
     </div>
   );

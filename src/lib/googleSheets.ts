@@ -37,12 +37,23 @@ export async function testGoogleSheetConnection(customUrl?: string) {
     }
 
     const data = await res.json();
+    
+    // 如果返回的是会员数组，说明 Webhook 已正常运行
+    if (Array.isArray(data)) {
+      return {
+        connected: true,
+        message: `连接成功 (已读取 ${data.length} 条会员数据)`,
+        spreadsheetId: GOOGLE_SHEET_ID,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
     return {
-      connected: data.success === true,
+      connected: data.success === true || Boolean(data.members),
       message: data.message || "连接成功",
       spreadsheetName: data.spreadsheetName,
-      spreadsheetId: data.spreadsheetId,
-      timestamp: data.timestamp,
+      spreadsheetId: data.spreadsheetId || GOOGLE_SHEET_ID,
+      timestamp: data.timestamp || new Date().toISOString(),
     };
   } catch (error: unknown) {
     const errMessage = error instanceof Error ? error.message : String(error);
@@ -128,26 +139,44 @@ export async function syncMembersFromSheet(customUrl?: string) {
   const res = await fetch(fetchUrl, { cache: "no-store" });
   const json = await res.json();
 
-  if (!json.success || !Array.isArray(json.members)) {
-    throw new Error(json.error || "获取会员数据失败");
+  const membersList: Array<{
+    memberId: string;
+    name: string;
+    email?: string;
+    totalPoints?: number;
+    photo?: string;
+  }> = Array.isArray(json)
+    ? json
+    : Array.isArray(json.members)
+    ? json.members
+    : [];
+
+  if (membersList.length === 0 && !Array.isArray(json)) {
+    throw new Error(json.error || "未能获取到有效的会员列表");
   }
 
   let importedCount = 0;
-  for (const item of json.members) {
+  for (const item of membersList) {
     if (!item.memberId || !item.name) continue;
+
+    const email = item.email && item.email.trim()
+      ? item.email.trim()
+      : `${item.memberId.toLowerCase()}@student.utem.edu.my`;
 
     await prisma.member.upsert({
       where: { memberId: item.memberId },
       update: {
         name: item.name,
-        email: item.email || `${item.memberId.toLowerCase()}@student.utem.edu.my`,
+        email,
         totalPoints: item.totalPoints || 0,
+        photo: item.photo || null,
       },
       create: {
         memberId: item.memberId,
         name: item.name,
-        email: item.email || `${item.memberId.toLowerCase()}@student.utem.edu.my`,
+        email,
         totalPoints: item.totalPoints || 0,
+        photo: item.photo || null,
       },
     });
     importedCount++;

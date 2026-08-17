@@ -15,11 +15,13 @@
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",
+    "framer-motion": "^13.1.0",
     "html5-qrcode": "^2.3.8",
     "next": "^15.2.0",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sonner": "^2.0.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.9",

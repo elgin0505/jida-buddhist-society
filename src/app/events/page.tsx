@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Card, PageHeader, Badge, EmptyState } from "@/components/ui";
+import { PageWrapper } from "@/components/PageWrapper";
+import { motion } from "framer-motion";
 
 interface Event {
   id: string;
@@ -31,16 +33,18 @@ export default function EventsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-32 animate-pulse rounded-2xl bg-ocher-light/20" />
-        ))}
-      </div>
+      <PageWrapper page="events">
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-32 animate-pulse rounded-2xl bg-ocher-light/20" />
+          ))}
+        </div>
+      </PageWrapper>
     );
   }
 
   return (
-    <div>
+    <PageWrapper page="events">
       <PageHeader
         title="活动列表"
         subtitle="查看即将举行的佛学会活动，参与活动获取功德积分"
@@ -66,8 +70,15 @@ export default function EventsPage() {
                 即将举行
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
-                {upcoming.map((event) => (
-                  <EventCard key={event.id} event={event} upcoming />
+                {upcoming.map((event, i) => (
+                  <motion.div
+                    key={event.id}
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.07, duration: 0.38 }}
+                  >
+                    <EventCard event={event} upcoming />
+                  </motion.div>
                 ))}
               </div>
             </section>
@@ -75,29 +86,28 @@ export default function EventsPage() {
 
           {past.length > 0 && (
             <section>
-              <h3 className="mb-4 text-lg font-semibold text-muted">
-                往期活动
-              </h3>
+              <h3 className="mb-4 text-lg font-semibold text-muted">往期活动</h3>
               <div className="grid gap-4 sm:grid-cols-2">
-                {past.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                {past.map((event, i) => (
+                  <motion.div
+                    key={event.id}
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.06 + 0.2, duration: 0.38 }}
+                  >
+                    <EventCard event={event} />
+                  </motion.div>
                 ))}
               </div>
             </section>
           )}
         </>
       )}
-    </div>
+    </PageWrapper>
   );
 }
 
-function EventCard({
-  event,
-  upcoming = false,
-}: {
-  event: Event;
-  upcoming?: boolean;
-}) {
+function EventCard({ event, upcoming = false }: { event: Event; upcoming?: boolean }) {
   const date = new Date(event.dateTime);
 
   return (
@@ -122,11 +132,7 @@ function EventCard({
         <div className="min-w-0 flex-1">
           <h4 className="font-semibold text-charcoal">{event.name}</h4>
           <p className="mt-0.5 text-xs text-muted">
-            {date.toLocaleString("zh-CN", {
-              weekday: "long",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+            {date.toLocaleString("zh-CN", { weekday: "long", hour: "2-digit", minute: "2-digit" })}
           </p>
         </div>
       </div>

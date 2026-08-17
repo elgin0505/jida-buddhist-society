@@ -26,39 +26,92 @@
 
   body {
     @apply bg-warm-white text-charcoal antialiased;
+    background-color: #f5ede0;
     background-image:
-      radial-gradient(circle at 20% 20%, rgba(232, 200, 114, 0.08) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(201, 162, 39, 0.06) 0%, transparent 50%);
+      radial-gradient(ellipse at 15% 15%, rgba(201, 162, 39, 0.18) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 80%, rgba(45, 106, 79, 0.10) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(232, 200, 114, 0.10) 0%, transparent 70%),
+      radial-gradient(circle at 70% 10%, rgba(184, 134, 11, 0.08) 0%, transparent 40%);
     min-height: 100vh;
   }
 }
 
 @layer utilities {
+  /* ── 毛玻璃卡片 ── */
   .card {
-    @apply rounded-2xl bg-white/80 backdrop-blur-sm border border-ocher/20 shadow-[0_4px_24px_-4px_rgba(201,162,39,0.12)];
+    @apply rounded-2xl border border-white/60 shadow-[0_8px_32px_-4px_rgba(201,162,39,0.14),0_2px_8px_-2px_rgba(0,0,0,0.06)];
+    background: rgba(255, 251, 243, 0.62);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
   }
 
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-[0_8px_32px_-4px_rgba(201,162,39,0.2)] hover:-translate-y-0.5;
+    @apply transition-all duration-300 hover:shadow-[0_16px_48px_-8px_rgba(201,162,39,0.25),0_4px_16px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-1;
   }
 
+  /* ── 按钮 ── */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-golden-deep px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-golden-rich hover:shadow-lg active:scale-[0.98];
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-ocher/40 bg-white/60 px-5 py-2.5 text-sm font-semibold text-charcoal transition-all hover:bg-ocher-light/30 active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-ocher/40 bg-white/60 px-5 py-2.5 text-sm font-semibold text-charcoal backdrop-blur-sm transition-all hover:bg-ocher-light/30 active:scale-[0.98];
   }
 
   .btn-jade {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-jade px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-jade-light hover:shadow-lg active:scale-[0.98];
   }
 
+  /* ── 排版 ── */
   .section-title {
     @apply text-2xl font-bold tracking-tight text-charcoal;
   }
 
   .section-subtitle {
     @apply text-muted text-sm leading-relaxed;
+  }
+
+  /* ── 禅意背景壁纸 ── */
+  .page-bg-dashboard {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 0%, rgba(201, 162, 39, 0.13) 0%, transparent 80%),
+      radial-gradient(ellipse 50% 60% at 100% 100%, rgba(45, 106, 79, 0.08) 0%, transparent 70%);
+  }
+
+  .page-bg-events {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 80% 40% at 20% 80%, rgba(27, 73, 101, 0.10) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 80% 10%, rgba(201, 162, 39, 0.10) 0%, transparent 60%);
+  }
+
+  .page-bg-rewards {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 60% 60% at 30% 20%, rgba(184, 134, 11, 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 80% 90%, rgba(193, 18, 31, 0.06) 0%, transparent 60%);
+  }
+
+  .page-bg-admin {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 50%, rgba(45, 106, 79, 0.08) 0%, transparent 70%);
   }
 }

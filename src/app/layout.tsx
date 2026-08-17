@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { Navigation } from "@/components/Navigation";
 import { MemberProvider } from "@/components/MemberContext";
+import { LoadingTransition } from "@/components/LoadingTransition";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -27,6 +28,7 @@ export default function RootLayout({
     <html lang="zh-CN" className={plusJakarta.variable}>
       <body className="font-sans">
         <MemberProvider>
+          <LoadingTransition />
           <Navigation />
           <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
         </MemberProvider>

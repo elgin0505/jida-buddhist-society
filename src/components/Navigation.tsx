@@ -9,7 +9,6 @@ const navItems = [
   { href: "/events", label: "活动列表", icon: CalendarIcon },
   { href: "/rewards", label: "积分商城", icon: GiftIcon },
   { href: "/admin/check-in", label: "管理员签到", icon: ScanIcon },
-  { href: "/admin/sheets", label: "Google表格", icon: SheetIcon },
 ];
 
 export function Navigation() {

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, PageHeader, Badge, EmptyState } from "@/components/ui";
+import { Card, PageHeader, EmptyState } from "@/components/ui";
 import { useMember, MemberSelector } from "@/components/MemberContext";
 import { PageWrapper } from "@/components/PageWrapper";
-import { motion, AnimatePresence } from "framer-motion";
+import { LotusLoading } from "@/components/LotusLoading";
+import { motion } from "framer-motion";
+import { RewardsStore } from "@/components/RewardsStore";
 
 interface Reward {
   id: string;
@@ -19,8 +21,6 @@ export default function RewardsPage() {
   const { currentMember, refreshMembers } = useMember();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(true);
-  const [redeeming, setRedeeming] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/rewards")
@@ -32,43 +32,29 @@ export default function RewardsPage() {
   }, []);
 
   const handleRedeem = async (reward: Reward) => {
-    if (!currentMember) return;
+    if (!currentMember) throw new Error("您尚未登录或选择身份");
 
-    setRedeeming(reward.id);
-    setMessage(null);
+    const res = await fetch("/api/rewards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberId: currentMember.id, rewardId: reward.id }),
+    });
 
-    try {
-      const res = await fetch("/api/rewards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ memberId: currentMember.id, rewardId: reward.id }),
-      });
+    const data = await res.json();
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMessage({ type: "error", text: data.error });
-      } else {
-        setMessage({ type: "success", text: `成功兑换「${reward.name}」！` });
-        await refreshMembers();
-        const updated = await fetch("/api/rewards").then((r) => r.json());
-        setRewards(updated);
-      }
-    } catch {
-      setMessage({ type: "error", text: "兑换失败，请稍后重试" });
-    } finally {
-      setRedeeming(null);
+    if (!res.ok) {
+      throw new Error(data.error || "兑换失败，请稍后重试");
     }
+
+    await refreshMembers();
+    const updated = await fetch("/api/rewards").then((r) => r.json());
+    setRewards(updated);
   };
 
   if (loading) {
     return (
       <PageWrapper page="rewards">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-64 animate-pulse rounded-2xl bg-ocher-light/20" />
-          ))}
-        </div>
+        <LotusLoading text="福慧增长 · 正在加载积分商城与结缘品..." />
       </PageWrapper>
     );
   }
@@ -87,9 +73,9 @@ export default function RewardsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
         >
-          <Card className="mb-6 flex items-center justify-between bg-gradient-to-r from-golden-deep/5 to-ocher-light/20">
+          <Card className="mb-6 flex items-center justify-between bg-gradient-to-r from-golden-deep/5 to-ocher-light/20 dark:from-slate-800 dark:to-slate-800/80 dark:border-white/10">
             <div>
-              <p className="text-sm text-muted">当前可用积分</p>
+              <p className="text-sm text-muted dark:text-slate-400">当前可用积分</p>
               <motion.p
                 key={currentMember.totalPoints}
                 initial={{ scale: 1.15, color: "#2d6a4f" }}
@@ -105,23 +91,6 @@ export default function RewardsPage() {
         </motion.div>
       )}
 
-      <AnimatePresence>
-        {message && (
-          <motion.div
-            key="reward-msg"
-            initial={{ opacity: 0, y: -8, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 400, damping: 22 }}
-            className={`mb-6 rounded-xl px-4 py-3 text-sm font-medium ${
-              message.type === "success" ? "bg-jade/10 text-jade" : "bg-carmine/10 text-carmine"
-            }`}
-          >
-            {message.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {rewards.length === 0 ? (
         <EmptyState
           icon={
@@ -133,76 +102,13 @@ export default function RewardsPage() {
           description="积分商城正在筹备中，精彩奖品即将上架"
         />
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {rewards.map((reward, i) => {
-            const canAfford = currentMember && currentMember.totalPoints >= reward.pointsRequired;
-            const inStock = reward.stock > 0;
-
-            return (
-              <motion.div
-                key={reward.id}
-                initial={{ opacity: 0, y: 22 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.07, duration: 0.38 }}
-              >
-                <Card hover className="flex flex-col h-full">
-                  <div className="mb-4 flex h-36 items-center justify-center rounded-xl bg-gradient-to-br from-ocher-light/40 to-warm-cream">
-                    {reward.image ? (
-                      <img
-                        src={reward.image}
-                        alt={reward.name}
-                        className="h-full w-full rounded-xl object-cover"
-                      />
-                    ) : (
-                      <RewardPlaceholderIcon />
-                    )}
-                  </div>
-
-                  <h4 className="text-lg font-semibold text-charcoal">{reward.name}</h4>
-
-                  {reward.description && (
-                    <p className="mt-1 flex-1 text-sm leading-relaxed text-muted line-clamp-2">
-                      {reward.description}
-                    </p>
-                  )}
-
-                  <div className="mt-4 flex items-center justify-between">
-                    <Badge variant="golden">{reward.pointsRequired} 积分</Badge>
-                    <span className="text-xs text-muted">库存 {reward.stock}</span>
-                  </div>
-
-                  <button
-                    onClick={() => handleRedeem(reward)}
-                    disabled={!canAfford || !inStock || redeeming === reward.id}
-                    className={`mt-4 w-full rounded-xl py-2.5 text-sm font-semibold transition-all ${
-                      canAfford && inStock ? "btn-primary" : "cursor-not-allowed bg-ocher-light/30 text-muted"
-                    }`}
-                  >
-                    {redeeming === reward.id
-                      ? "兑换中..."
-                      : !inStock
-                      ? "已兑完"
-                      : !canAfford
-                      ? "积分不足"
-                      : "立即兑换"}
-                  </button>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
+        <RewardsStore 
+          rewards={rewards}
+          userPoints={currentMember?.totalPoints || 0}
+          onRedeem={handleRedeem}
+        />
       )}
     </PageWrapper>
-  );
-}
-
-function RewardPlaceholderIcon() {
-  return (
-    <svg className="h-16 w-16 text-golden-deep/30" viewBox="0 0 64 64" fill="none">
-      <path d="M32 56c-8-4-14-10-14-18 0 0 6-4 14-4s14 4 14 4c0 8-6 14-14 18z" stroke="currentColor" strokeWidth="2" />
-      <path d="M32 30c-4-2-7-6-7-11S28 12 32 12s7 4 7 7-3 9-7 11z" stroke="currentColor" strokeWidth="2" />
-      <circle cx="32" cy="8" r="3" fill="currentColor" opacity="0.4" />
-    </svg>
   );
 }
 

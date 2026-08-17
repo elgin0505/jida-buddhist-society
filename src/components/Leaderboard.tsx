@@ -22,9 +22,9 @@ export function Leaderboard({ members, currentMemberId }: LeaderboardProps) {
 
   // 1st place in center, 2nd place on left, 3rd place on right
   const podium = [
-    { rank: 2, member: top3[1], height: "h-28", color: "from-slate-300 to-slate-400", badgeColor: "bg-slate-200 text-slate-700", medal: "🥈" },
-    { rank: 1, member: top3[0], height: "h-36", color: "from-amber-300 to-amber-500", badgeColor: "bg-amber-100 text-amber-800", medal: "🥇" },
-    { rank: 3, member: top3[2], height: "h-24", color: "from-amber-600 to-amber-800", badgeColor: "bg-orange-100 text-amber-900", medal: "🥉" },
+    { rank: 2, member: top3[1], height: "h-28", color: "from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700", badgeColor: "bg-slate-200 text-slate-700", medal: "🥈" },
+    { rank: 1, member: top3[0], height: "h-36", color: "from-amber-300 to-amber-500 dark:from-slate-600 dark:to-slate-700", badgeColor: "bg-amber-100 text-amber-800", medal: "🥇" },
+    { rank: 3, member: top3[2], height: "h-24", color: "from-amber-600 to-amber-800 dark:from-slate-600 dark:to-slate-700", badgeColor: "bg-orange-100 text-amber-900", medal: "🥉" },
   ];
 
   return (
@@ -33,16 +33,16 @@ export function Leaderboard({ members, currentMemberId }: LeaderboardProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xl">🏆</span>
-          <h4 className="text-lg font-bold text-charcoal">精进功德榜</h4>
+          <h4 className="text-lg font-bold text-charcoal dark:text-white">精进功德榜</h4>
         </div>
 
-        <div className="flex rounded-xl bg-ocher-light/30 p-1 text-xs font-semibold">
+        <div className="flex rounded-xl bg-ocher-light/30 dark:bg-slate-800/80 p-1 text-xs font-semibold">
           <button
             onClick={() => setTab("points")}
             className={`rounded-lg px-3 py-1.5 transition-all ${
               tab === "points"
-                ? "bg-white text-golden-rich shadow-sm"
-                : "text-muted hover:text-charcoal"
+                ? "bg-white dark:bg-slate-700 text-golden-rich shadow-sm"
+                : "text-muted dark:text-slate-400 hover:text-charcoal dark:hover:text-white"
             }`}
           >
             功德榜
@@ -85,16 +85,20 @@ export function Leaderboard({ members, currentMemberId }: LeaderboardProps) {
                 </div>
 
                 {/* 姓名与积分 */}
-                <p className="w-full truncate text-center text-xs font-bold text-charcoal">
+                <p className="w-full truncate text-center text-xs font-bold text-charcoal dark:text-white">
                   {member.name}
                 </p>
                 <p className="text-[11px] font-bold text-golden-rich">
-                  {member.totalPoints} <span className="text-[9px] font-normal text-muted">分</span>
+                  {member.totalPoints} <span className="text-[9px] font-normal text-muted dark:text-slate-400">分</span>
                 </p>
 
                 {/* 领奖台台柱 */}
                 <div
-                  className={`mt-2 flex w-full ${height} flex-col items-center justify-start rounded-t-2xl bg-gradient-to-b ${color} pt-2 shadow-md`}
+                  className={`mt-2 flex w-full ${height} flex-col items-center justify-start rounded-t-2xl bg-gradient-to-b ${color} pt-2 shadow-md ${
+                    rank === 1
+                      ? "ring-2 ring-amber-300 shadow-[0_0_24px_rgba(201,162,39,0.4)]"
+                      : ""
+                  }`}
                 >
                   <span className={`rounded-full px-2 py-0.5 text-[11px] font-black ${badgeColor}`}>
                     NO.{rank}
@@ -122,19 +126,19 @@ export function Leaderboard({ members, currentMemberId }: LeaderboardProps) {
                 className={`flex items-center justify-between rounded-xl px-4 py-3 transition-all ${
                   isCurrent
                     ? "bg-golden-deep/15 border border-golden-deep/40 shadow-sm"
-                    : "bg-warm-cream/40 hover:bg-warm-cream/70"
+                    : "bg-warm-cream/40 dark:bg-slate-800/50 hover:bg-warm-cream/70 dark:hover:bg-slate-800/80"
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocher-light/50 text-xs font-bold text-muted">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocher-light/50 dark:bg-slate-700 text-xs font-bold text-muted dark:text-slate-400">
                     {rank}
                   </span>
                   <MemberAvatar name={member.name} photo={member.photo} size="sm" />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-charcoal">
+                    <p className="truncate text-sm font-semibold text-charcoal dark:text-white">
                       {member.name} {isCurrent && <span className="text-[10px] text-golden-rich">(我)</span>}
                     </p>
-                    <p className="text-[11px] text-muted">{member.memberId}</p>
+                    <p className="text-[11px] text-muted dark:text-slate-400">{member.memberId}</p>
                   </div>
                 </div>
 

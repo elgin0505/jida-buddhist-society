@@ -2,27 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const seedMembers = [
-  {
-    memberId: "JBS-001",
-    name: "李明慧",
-    email: "minghui.li@student.utem.edu.my",
-    photo: null,
-  },
-  {
-    memberId: "JBS-002",
-    name: "陈静怡",
-    email: "jingyi.chen@student.utem.edu.my",
-    photo: null,
-  },
-  {
-    memberId: "JBS-003",
-    name: "王浩然",
-    email: "haoran.wang@student.utem.edu.my",
-    photo: null,
-  },
-];
-
+// 系统初始活动（仅供活动展示与签到使用）
 const seedEvents = [
   {
     name: "晨间禅修",
@@ -54,6 +34,7 @@ const seedEvents = [
   },
 ];
 
+// 系统初始商城奖品
 const seedRewards = [
   {
     name: "禅意香薰蜡烛",
@@ -93,67 +74,26 @@ const seedRewards = [
 ];
 
 async function main() {
+  console.log("🧹 正在彻底清理所有历史与 Mock 数据...");
+  
+  // 清理所有关联记录与用户数据（保持零初始学员状态）
   await prisma.redemption.deleteMany();
   await prisma.attendanceLog.deleteMany();
   await prisma.reward.deleteMany();
   await prisma.event.deleteMany();
   await prisma.member.deleteMany();
+  await prisma.user.deleteMany();
 
-  const members = await Promise.all(
-    seedMembers.map((member) => prisma.member.create({ data: member }))
-  );
-
+  console.log("🌱 正在初始化官方活动与商城法宝列表...");
   await prisma.event.createMany({ data: seedEvents });
   await prisma.reward.createMany({ data: seedRewards });
 
-  const events = await prisma.event.findMany();
-
-  await prisma.attendanceLog.createMany({
-    data: [
-      {
-        memberId: members[0].id,
-        eventName: events[0].name,
-        pointsEarned: events[0].points,
-        dateTime: new Date("2026-08-10T07:05:00+08:00"),
-      },
-      {
-        memberId: members[0].id,
-        eventName: events[1].name,
-        pointsEarned: events[1].points,
-        dateTime: new Date("2026-08-12T19:35:00+08:00"),
-      },
-      {
-        memberId: members[1].id,
-        eventName: events[0].name,
-        pointsEarned: events[0].points,
-        dateTime: new Date("2026-08-10T07:10:00+08:00"),
-      },
-      {
-        memberId: members[2].id,
-        eventName: events[2].name,
-        pointsEarned: events[2].points,
-        dateTime: new Date("2026-08-14T09:15:00+08:00"),
-      },
-    ],
-  });
-
-  for (const member of members) {
-    const earned = await prisma.attendanceLog.aggregate({
-      where: { memberId: member.id },
-      _sum: { pointsEarned: true },
-    });
-    await prisma.member.update({
-      where: { id: member.id },
-      data: { totalPoints: earned._sum.pointsEarned ?? 0 },
-    });
-  }
-
-  console.log("Seed completed successfully.");
+  console.log("✨ 数据重置完成：学员与出勤记录已归零，系统进入纯净待注册状态。");
 }
 
 main()
   .catch((error) => {
-    console.error(error);
+    console.error("❌ Seed 初始化失败:", error);
     process.exit(1);
   })
   .finally(async () => {

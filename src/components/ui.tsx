@@ -33,8 +33,8 @@ export function StatCard({ label, value, icon, accent = "golden" }: StatCardProp
     <Card hover>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-muted">{label}</p>
-          <p className="mt-1 text-3xl font-bold tracking-tight text-charcoal">
+          <p className="text-sm font-medium text-muted dark:text-slate-400">{label}</p>
+          <p className="mt-1 text-3xl font-bold tracking-tight text-charcoal dark:text-white">
             {value}
           </p>
         </div>
@@ -68,24 +68,24 @@ export function PageHeader({
   );
 }
 
-export function Badge({
-  children,
+export function Badge({ 
+  children, 
   variant = "golden",
-}: {
-  children: ReactNode;
+  className = "" 
+}: { 
+  children: React.ReactNode; 
   variant?: "golden" | "jade" | "sapphire" | "carmine";
+  className?: string;
 }) {
-  const variants = {
-    golden: "bg-ocher-light/60 text-golden-rich",
-    jade: "bg-jade/10 text-jade",
-    sapphire: "bg-sapphire/10 text-sapphire",
-    carmine: "bg-carmine-soft/20 text-carmine",
+  const styles = {
+    golden: "bg-golden-deep/10 text-golden-rich border-golden-deep/20",
+    jade: "bg-jade/10 text-jade border-jade/20",
+    sapphire: "bg-sapphire/10 text-sapphire border-sapphire/20",
+    carmine: "bg-carmine/10 text-carmine border-carmine/20",
   };
 
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${variants[variant]}`}
-    >
+    <span className={`inline-flex items-center rounded-lg border px-2.5 py-0.5 text-xs font-semibold ${styles[variant]} ${className}`}>
       {children}
     </span>
   );
@@ -102,11 +102,11 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-ocher-light/40 text-golden-rich">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-ocher-light/40 dark:bg-slate-800 text-golden-rich">
         {icon}
       </div>
-      <h3 className="text-lg font-semibold text-charcoal">{title}</h3>
-      <p className="mt-1 max-w-sm text-sm text-muted">{description}</p>
+      <h3 className="text-lg font-semibold text-charcoal dark:text-white">{title}</h3>
+      <p className="mt-1 max-w-sm text-sm text-muted dark:text-slate-400">{description}</p>
     </div>
   );
 }

@@ -8,6 +8,7 @@ export interface Member {
   name: string;
   email: string;
   photo: string | null;
+  birthday?: string | null;
   totalPoints: number;
 }
 

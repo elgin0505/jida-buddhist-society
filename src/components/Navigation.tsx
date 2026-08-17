@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { LogOut } from "lucide-react";
 
 const navItems = [
   { href: "/dashboard", label: "会员仪表板", icon: LotusIcon },
@@ -13,9 +15,28 @@ const navItems = [
 
 export function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  // 未登录 / 处于登录注册页时，完全隐藏内部导航栏
+  if (pathname === "/auth") {
+    return null;
+  }
+
+  const handleLogout = () => {
+    // 清理全部登录与会话状态
+    localStorage.removeItem("jbs_auth_user");
+    localStorage.removeItem("currentMemberId");
+    localStorage.removeItem("jbs_current_user_id");
+    localStorage.removeItem("jbs_current_user_name");
+    localStorage.removeItem("jbs_current_user_email");
+    localStorage.removeItem("jbs_current_member_id");
+    
+    // 立即跳转至登录页
+    window.location.href = "/auth";
+  };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-ocher/20 bg-warm-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-ocher/20 dark:border-white/10 bg-warm-white/90 dark:bg-[#0b0f19]/90 backdrop-blur-md transition-colors duration-500">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
         <Link href="/dashboard" className="flex items-center gap-3 group">
           <div className="relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-golden-deep/30 transition-all group-hover:ring-golden-deep/60">
@@ -28,37 +49,50 @@ export function Navigation() {
             />
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-charcoal">
+            <h1 className="text-lg font-bold tracking-tight text-charcoal dark:text-white">
               技大佛学会
             </h1>
-            <p className="text-[11px] font-medium text-muted">
+            <p className="text-[11px] font-medium text-muted dark:text-slate-400">
               出勤 · 积分 · 奖励
             </p>
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-golden-deep/10 text-golden-rich"
-                    : "text-muted hover:bg-ocher-light/30 hover:text-charcoal"
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
+        {/* 顶部导航与主题切换 */}
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+
+          <nav className="hidden items-center gap-1 md:flex">
+            {navItems.map(({ href, label, icon: Icon }) => {
+              const isActive = pathname.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                    isActive
+                      ? "bg-golden-deep/10 text-golden-rich dark:bg-golden-deep/20 dark:text-amber-300 dark:shadow-[0_0_12px_rgba(255,193,7,0.25)]"
+                      : "text-muted hover:bg-ocher-light/30 dark:hover:bg-slate-800 hover:text-charcoal dark:hover:text-white"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Link>
+              );
+            })}
+            
+            <button
+              onClick={handleLogout}
+              title="退出登录"
+              className="ml-2 flex items-center justify-center rounded-xl p-2 text-muted hover:bg-carmine/10 hover:text-carmine dark:hover:bg-carmine/20 transition-all"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
+          </nav>
+        </div>
       </div>
 
-      <nav className="flex border-t border-ocher/10 md:hidden">
+      <nav className="flex border-t border-ocher/10 dark:border-white/10 md:hidden pb-safe">
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href);
           return (
@@ -66,7 +100,7 @@ export function Navigation() {
               key={href}
               href={href}
               className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-all ${
-                isActive ? "text-golden-rich" : "text-muted"
+                isActive ? "text-golden-rich dark:text-amber-300" : "text-muted dark:text-slate-400"
               }`}
             >
               <Icon className="h-5 w-5" />
@@ -74,6 +108,13 @@ export function Navigation() {
             </Link>
           );
         })}
+        <button
+          onClick={handleLogout}
+          className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-all text-muted hover:text-carmine dark:text-slate-400 dark:hover:text-red-400"
+        >
+          <LogOut className="h-5 w-5" />
+          登出
+        </button>
       </nav>
     </header>
   );
@@ -112,15 +153,6 @@ function ScanIcon({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
       <rect x="7" y="7" width="10" height="10" rx="1" />
-    </svg>
-  );
-}
-
-function SheetIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M3 9h18M3 15h18M9 9v12M15 9v12" />
     </svg>
   );
 }

@@ -1,230 +1,193 @@
-import { prisma, recalculateMemberPoints } from "@/lib/prisma";
-
-export const GOOGLE_SHEET_ID = "1o98f9BtgMfe2kUb17qzafoXzb7NFJaGzMJ6SGKapayc";
+import { google } from "googleapis";
 
 /**
- * 获取 Google Apps Script Webhook 网址
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ *  Google Sheets 自动同步服务 (Google Sheets Sync Service)
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ *
+ * 📌 【.env.local 环境变量配置指南】：
+ * 请在项目根目录的 `.env.local` 文件中添加以下环境变量：
+ *
+ * 1. GOOGLE_SERVICE_ACCOUNT_EMAIL:
+ *    Google Cloud Service Account 邮箱地址
+ *    例如: jbs-sync-service@your-project-id.iam.gserviceaccount.com
+ *
+ * 2. GOOGLE_PRIVATE_KEY:
+ *    Service Account 的私钥 (JSON 密钥文件中的 "private_key" 字段)
+ *    注意：需保留完整的 -----BEGIN PRIVATE KEY----- 与 -----END PRIVATE KEY-----，
+ *    换行符请使用真实的换行或 \n 转义。
+ *    例如: "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC...\n-----END PRIVATE KEY-----\n"
+ *
+ * 3. GOOGLE_SHEET_ID: (可选，默认已预设)
+ *    目标表格 ID，默认为: 1o98f9BtgMfe2kUb17qzafoXzb7NFJaGzMJ6SGKapayc
+ *
+ * ⚠️【至关重要的授权步骤】：
+ * 请务必在 Google Sheets 网页中打开目标表格，点击右上角「共享 (Share)」，
+ * 将 `GOOGLE_SERVICE_ACCOUNT_EMAIL` 添加为「编辑者 (Editor)」，否则 Google 会返回 403 权限错误。
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  */
-export function getGoogleSheetWebhookUrl(): string {
-  return process.env.GOOGLE_SHEET_WEBHOOK_URL || "";
+
+export const DEFAULT_SHEET_ID = "1o98f9BtgMfe2kUb17qzafoXzb7NFJaGzMJ6SGKapayc";
+
+function getGoogleSheetsClient() {
+  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID || DEFAULT_SHEET_ID;
+
+  if (!clientEmail || !privateKey) {
+    return null;
+  }
+
+  const auth = new google.auth.JWT({
+    email: clientEmail,
+    key: privateKey,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+
+  const sheets = google.sheets({ version: "v4", auth });
+  return { sheets, spreadsheetId };
 }
 
-/**
- * 测试 Webhook 连通性
- */
-export async function testGoogleSheetConnection(customUrl?: string) {
-  const url = customUrl || getGoogleSheetWebhookUrl();
-  if (!url) {
-    return {
-      connected: false,
-      message: "未配置 GOOGLE_SHEET_WEBHOOK_URL。请在设置中配置并部署 Google Apps Script。",
-    };
+/* ─────────────────────────────────────────────────────────────
+ * 1. 注册会员同步 (Register Member)
+ * ───────────────────────────────────────────────────────────── */
+export interface NewMemberSheetPayload {
+  memberId: string;
+  name: string;
+  email: string;
+  birthday?: string | Date | null;
+  createdAt?: string | Date;
+  totalPoints?: number;
+}
+
+export async function appendMemberToGoogleSheet(payload: NewMemberSheetPayload) {
+  const client = getGoogleSheetsClient();
+  if (!client) {
+    console.warn("⚠️ [GoogleSheets] 未检测到 Google API 凭据，跳过新会员注册同步。");
+    return { success: false, skipped: true };
   }
 
   try {
-    const pingUrl = `${url}${url.includes("?") ? "&" : "?"}action=ping`;
-    const res = await fetch(pingUrl, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
+    const registerTimeStr = payload.createdAt
+      ? new Date(payload.createdAt).toLocaleString("zh-CN", { timeZone: "Asia/Kuala_Lumpur" })
+      : new Date().toLocaleString("zh-CN", { timeZone: "Asia/Kuala_Lumpur" });
+
+    let birthdayStr = "未填写";
+    if (payload.birthday) {
+      const bDate = new Date(payload.birthday);
+      birthdayStr = `${bDate.getFullYear()}-${String(bDate.getMonth() + 1).padStart(2, "0")}-${String(
+        bDate.getDate()
+      ).padStart(2, "0")}`;
+    }
+
+    // 格式: [注册时间, 会员编号, 姓名, 电子邮箱, 生日, 初始功德积分]
+    const rowValues = [
+      registerTimeStr,
+      payload.memberId,
+      payload.name,
+      payload.email,
+      birthdayStr,
+      payload.totalPoints ?? 0,
+    ];
+
+    const response = await client.sheets.spreadsheets.values.append({
+      spreadsheetId: client.spreadsheetId,
+      range: "A:F",
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: {
+        values: [rowValues],
+      },
     });
 
-    if (!res.ok) {
-      return {
-        connected: false,
-        message: `HTTP 响应错误 (${res.status}): ${res.statusText}`,
-      };
-    }
-
-    const data = await res.json();
-    
-    // 如果返回的是会员数组，说明 Webhook 已正常运行
-    if (Array.isArray(data)) {
-      return {
-        connected: true,
-        message: `连接成功 (已读取 ${data.length} 条会员数据)`,
-        spreadsheetId: GOOGLE_SHEET_ID,
-        timestamp: new Date().toISOString(),
-      };
-    }
-
-    return {
-      connected: data.success === true || Boolean(data.members),
-      message: data.message || "连接成功",
-      spreadsheetName: data.spreadsheetName,
-      spreadsheetId: data.spreadsheetId || GOOGLE_SHEET_ID,
-      timestamp: data.timestamp || new Date().toISOString(),
-    };
-  } catch (error: unknown) {
-    const errMessage = error instanceof Error ? error.message : String(error);
-    return {
-      connected: false,
-      message: `无法连接到 Webhook: ${errMessage}`,
-    };
+    console.log(`✅ [GoogleSheets] 成功同步新学员 [${payload.memberId}] ${payload.name} 至 Google Sheet`);
+    return { success: true, updatedRange: response.data.updates?.updatedRange };
+  } catch (error: any) {
+    console.error("❌ [GoogleSheets] 会员同步失败:", error?.message || error);
+    return { success: false, error: error?.message };
   }
 }
 
-/**
- * 异步记录签到至 Google 表格
- */
-export async function logAttendanceToGoogleSheet(data: {
+/* ─────────────────────────────────────────────────────────────
+ * 2. 签到出勤同步 (Attendance Log)
+ * ───────────────────────────────────────────────────────────── */
+export interface AttendanceSheetPayload {
   memberId: string;
   memberName: string;
   eventName: string;
   pointsEarned: number;
-  timestamp?: string;
-}) {
-  const url = getGoogleSheetWebhookUrl();
-  if (!url) return;
+  timestamp: string;
+}
+
+export async function logAttendanceToGoogleSheet(payload: AttendanceSheetPayload) {
+  const client = getGoogleSheetsClient();
+  if (!client) return { success: false, skipped: true };
 
   try {
-    fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        action: "logAttendance",
-        data: {
-          ...data,
-          timestamp: data.timestamp || new Date().toISOString(),
-        },
-      }),
-    }).catch((err) => {
-      console.error("[GoogleSheets] Log attendance error:", err);
+    const timeStr = new Date(payload.timestamp).toLocaleString("zh-CN", { timeZone: "Asia/Kuala_Lumpur" });
+    const rowValues = [
+      timeStr,
+      payload.memberId,
+      payload.memberName,
+      payload.eventName,
+      `+${payload.pointsEarned}`,
+      "活动签到",
+    ];
+
+    await client.sheets.spreadsheets.values.append({
+      spreadsheetId: client.spreadsheetId,
+      range: "A:F",
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: {
+        values: [rowValues],
+      },
     });
-  } catch (err) {
-    console.error("[GoogleSheets] Failed to send attendance to Google Sheet:", err);
+    return { success: true };
+  } catch (error: any) {
+    console.error("❌ [GoogleSheets] 签到记录同步失败:", error?.message || error);
+    return { success: false, error: error?.message };
   }
 }
 
-/**
- * 异步记录兑换至 Google 表格
- */
-export async function logRedemptionToGoogleSheet(data: {
+/* ─────────────────────────────────────────────────────────────
+ * 3. 奖品兑换记录同步 (Redemption Log)
+ * ───────────────────────────────────────────────────────────── */
+export interface RedemptionSheetPayload {
   memberId: string;
   memberName: string;
   rewardName: string;
   pointsSpent: number;
-  timestamp?: string;
-}) {
-  const url = getGoogleSheetWebhookUrl();
-  if (!url) return;
+  timestamp: string;
+}
+
+export async function logRedemptionToGoogleSheet(payload: RedemptionSheetPayload) {
+  const client = getGoogleSheetsClient();
+  if (!client) return { success: false, skipped: true };
 
   try {
-    fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        action: "logRedemption",
-        data: {
-          ...data,
-          timestamp: data.timestamp || new Date().toISOString(),
-        },
-      }),
-    }).catch((err) => {
-      console.error("[GoogleSheets] Log redemption error:", err);
-    });
-  } catch (err) {
-    console.error("[GoogleSheets] Failed to send redemption to Google Sheet:", err);
-  }
-}
+    const timeStr = new Date(payload.timestamp).toLocaleString("zh-CN", { timeZone: "Asia/Kuala_Lumpur" });
+    const rowValues = [
+      timeStr,
+      payload.memberId,
+      payload.memberName,
+      payload.rewardName,
+      `-${payload.pointsSpent}`,
+      "奖品兑换",
+    ];
 
-/**
- * 从 Google Sheet 拉取会员数据并同步到本地数据库
- */
-export async function syncMembersFromSheet(customUrl?: string) {
-  const url = customUrl || getGoogleSheetWebhookUrl();
-  if (!url) throw new Error("未配置 Google Sheet Webhook URL");
-
-  const fetchUrl = `${url}${url.includes("?") ? "&" : "?"}action=getMembers`;
-  const res = await fetch(fetchUrl, { cache: "no-store" });
-  const json = await res.json();
-
-  const membersList: Array<{
-    memberId: string;
-    name: string;
-    email?: string;
-    totalPoints?: number;
-    photo?: string;
-  }> = Array.isArray(json)
-    ? json
-    : Array.isArray(json.members)
-    ? json.members
-    : [];
-
-  if (membersList.length === 0 && !Array.isArray(json)) {
-    throw new Error(json.error || "未能获取到有效的会员列表");
-  }
-
-  let importedCount = 0;
-  for (const item of membersList) {
-    if (!item.memberId || !item.name) continue;
-
-    const email = item.email && item.email.trim()
-      ? item.email.trim()
-      : `${item.memberId.toLowerCase()}@student.utem.edu.my`;
-
-    await prisma.member.upsert({
-      where: { memberId: item.memberId },
-      update: {
-        name: item.name,
-        email,
-        totalPoints: item.totalPoints || 0,
-        photo: item.photo || null,
-      },
-      create: {
-        memberId: item.memberId,
-        name: item.name,
-        email,
-        totalPoints: item.totalPoints || 0,
-        photo: item.photo || null,
+    await client.sheets.spreadsheets.values.append({
+      spreadsheetId: client.spreadsheetId,
+      range: "A:F",
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: {
+        values: [rowValues],
       },
     });
-    importedCount++;
+    return { success: true };
+  } catch (error: any) {
+    console.error("❌ [GoogleSheets] 兑换记录同步失败:", error?.message || error);
+    return { success: false, error: error?.message };
   }
-
-  return { count: importedCount };
-}
-
-/**
- * 将本地数据库数据推送到 Google Sheet
- */
-export async function pushAllToGoogleSheet(customUrl?: string) {
-  const url = customUrl || getGoogleSheetWebhookUrl();
-  if (!url) throw new Error("未配置 Google Sheet Webhook URL");
-
-  const [members, events, rewards] = await Promise.all([
-    prisma.member.findMany({ orderBy: { memberId: "asc" } }),
-    prisma.event.findMany({ orderBy: { dateTime: "asc" } }),
-    prisma.reward.findMany({ orderBy: { pointsRequired: "asc" } }),
-  ]);
-
-  // 1. 推送会员
-  const resMembers = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "syncMembers", members }),
-  });
-  const resJsonMembers = await resMembers.json();
-
-  // 2. 推送活动
-  const resEvents = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "syncEvents", events }),
-  });
-  const resJsonEvents = await resEvents.json();
-
-  // 3. 推送奖品
-  const resRewards = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "syncRewards", rewards }),
-  });
-  const resJsonRewards = await resRewards.json();
-
-  return {
-    membersCount: resJsonMembers.count ?? members.length,
-    eventsCount: resJsonEvents.count ?? events.length,
-    rewardsCount: resJsonRewards.count ?? rewards.length,
-  };
 }

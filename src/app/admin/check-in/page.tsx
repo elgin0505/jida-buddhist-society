@@ -157,11 +157,11 @@ export default function AdminCheckInPage() {
             transition={{ duration: 0.35 }}
           >
             <Card>
-              <h4 className="mb-4 text-lg font-semibold text-charcoal">签到操作</h4>
+              <h4 className="mb-4 text-lg font-semibold text-charcoal dark:text-white">签到操作</h4>
 
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-charcoal">选择活动</label>
+                  <label className="mb-1.5 block text-sm font-medium text-charcoal dark:text-slate-300">选择活动</label>
                   <select
                     value={selectedEvent}
                     onChange={(e) => {
@@ -169,7 +169,7 @@ export default function AdminCheckInPage() {
                       const event = events.find((ev) => ev.name === e.target.value);
                       if (event) setCustomPoints(event.points);
                     }}
-                    className="w-full rounded-xl border border-ocher/30 bg-white/80 px-4 py-2.5 text-sm focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
+                    className="w-full rounded-xl border border-ocher/30 dark:border-white/10 bg-white/80 dark:bg-slate-800/80 px-4 py-2.5 text-sm dark:text-white focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
                   >
                     {events.map((event) => (
                       <option key={event.id} value={event.name}>
@@ -180,13 +180,13 @@ export default function AdminCheckInPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-charcoal">获得积分</label>
+                  <label className="mb-1.5 block text-sm font-medium text-charcoal dark:text-slate-300">获得积分</label>
                   <input
                     type="number"
                     min={1}
                     value={customPoints}
                     onChange={(e) => setCustomPoints(e.target.value ? Number(e.target.value) : "")}
-                    className="w-full rounded-xl border border-ocher/30 bg-white/80 px-4 py-2.5 text-sm focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
+                    className="w-full rounded-xl border border-ocher/30 dark:border-white/10 bg-white/80 dark:bg-slate-800/80 px-4 py-2.5 text-sm dark:text-white focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
                   />
                 </div>
 
@@ -220,7 +220,7 @@ export default function AdminCheckInPage() {
             transition={{ duration: 0.35, delay: 0.08 }}
           >
             <Card>
-              <h4 className="mb-4 text-lg font-semibold text-charcoal">会员信息</h4>
+              <h4 className="mb-4 text-lg font-semibold text-charcoal dark:text-white">会员信息</h4>
 
               {scannedMember ? (
                 <div className="space-y-4">
@@ -233,8 +233,8 @@ export default function AdminCheckInPage() {
                   >
                     <MemberAvatar name={scannedMember.name} photo={scannedMember.photo} size="md" />
                     <div>
-                      <p className="text-lg font-semibold text-charcoal">{scannedMember.name}</p>
-                      <p className="text-sm text-muted">{scannedMember.email}</p>
+                      <p className="text-lg font-semibold text-charcoal dark:text-white">{scannedMember.name}</p>
+                      <p className="text-sm text-muted dark:text-slate-400">{scannedMember.email}</p>
                       <div className="mt-1 flex gap-2">
                         <Badge variant="golden">{scannedMember.memberId}</Badge>
                         <Badge variant="jade">{scannedMember.totalPoints} 积分</Badge>
@@ -262,7 +262,7 @@ export default function AdminCheckInPage() {
                       <rect x="7" y="7" width="10" height="10" rx="1" />
                     </svg>
                   </div>
-                  <p className="text-sm text-muted">扫描会员二维码或手动查找会员</p>
+                  <p className="text-sm text-muted dark:text-slate-400">扫描会员二维码或手动查找会员</p>
                 </div>
               )}
             </Card>
@@ -276,12 +276,12 @@ export default function AdminCheckInPage() {
           transition={{ duration: 0.4, delay: 0.16 }}
         >
           <Card className="mt-6">
-            <h4 className="mb-4 text-lg font-semibold text-charcoal">最近签到记录</h4>
+            <h4 className="mb-4 text-lg font-semibold text-charcoal dark:text-white">最近签到记录</h4>
             {recentCheckIns.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-ocher/20 text-muted">
+                    <tr className="border-b border-ocher/20 dark:border-white/10 text-muted dark:text-slate-400">
                       <th className="pb-3 pr-4 font-medium">会员</th>
                       <th className="pb-3 pr-4 font-medium">活动</th>
                       <th className="pb-3 pr-4 font-medium">时间</th>
@@ -289,18 +289,18 @@ export default function AdminCheckInPage() {
                     </tr>
                   </thead>
                   <thead>
-                    <tr className="border-b border-ocher/20 text-muted">
+                    <tr className="border-b border-ocher/20 dark:border-white/10 text-muted dark:text-slate-400">
                     </tr>
                   </thead>
                   <tbody>
                     {recentCheckIns.slice(0, 10).map((log) => (
-                      <tr key={log.id} className="border-b border-ocher/10">
+                      <tr key={log.id} className="border-b border-ocher/10 dark:border-white/5">
                         <td className="py-3 pr-4">
-                          <span className="font-medium text-charcoal">{log.member.name}</span>
-                          <span className="ml-1 text-xs text-muted">({log.member.memberId})</span>
+                          <span className="font-medium text-charcoal dark:text-white">{log.member.name}</span>
+                          <span className="ml-1 text-xs text-muted dark:text-slate-500">({log.member.memberId})</span>
                         </td>
-                        <td className="py-3 pr-4 text-muted">{log.eventName}</td>
-                        <td className="py-3 pr-4 text-muted">{new Date(log.dateTime).toLocaleString("zh-CN")}</td>
+                        <td className="py-3 pr-4 text-muted dark:text-slate-400">{log.eventName}</td>
+                        <td className="py-3 pr-4 text-muted dark:text-slate-400">{new Date(log.dateTime).toLocaleString("zh-CN")}</td>
                         <td className="py-3">
                           <Badge variant="jade">+{log.pointsEarned}</Badge>
                         </td>
@@ -310,7 +310,7 @@ export default function AdminCheckInPage() {
                 </table>
               </div>
             ) : (
-              <p className="py-8 text-center text-sm text-muted">暂无签到记录</p>
+              <p className="py-8 text-center text-sm text-muted dark:text-slate-400">暂无签到记录</p>
             )}
           </Card>
         </motion.div>
@@ -342,14 +342,14 @@ function ManualLookup({ onLookup }: { onLookup: (query: string) => void }) {
 
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-charcoal">手动查找会员</label>
+      <label className="mb-1.5 block text-sm font-medium text-charcoal dark:text-slate-300">手动查找会员</label>
       <div className="flex gap-2">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="输入会员ID或姓名"
-          className="flex-1 rounded-xl border border-ocher/30 bg-white/80 px-4 py-2.5 text-sm focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
+          className="flex-1 rounded-xl border border-ocher/30 dark:border-white/10 bg-white/80 dark:bg-slate-800/80 px-4 py-2.5 text-sm dark:text-white focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
           onKeyDown={(e) => e.key === "Enter" && query && onLookup(query)}
         />
         <button onClick={() => query && onLookup(query)} className="btn-secondary shrink-0">

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma, recalculateMemberPoints } from "@/lib/prisma";
+import { logRedemptionToGoogleSheet } from "@/lib/googleSheets";
 
 export async function GET() {
   const rewards = await prisma.reward.findMany({
@@ -61,6 +62,15 @@ export async function POST(request: Request) {
   ]);
 
   await recalculateMemberPoints(memberId);
+
+  // 异步同步到 Google Sheet
+  logRedemptionToGoogleSheet({
+    memberId: member.memberId,
+    memberName: member.name,
+    rewardName: reward.name,
+    pointsSpent: reward.pointsRequired,
+    timestamp: redemption.createdAt.toISOString(),
+  });
 
   return NextResponse.json(
     { redemption, member: updatedMember },

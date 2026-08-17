@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma, recalculateMemberPoints } from "@/lib/prisma";
+import { logAttendanceToGoogleSheet } from "@/lib/googleSheets";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -69,6 +70,15 @@ export async function POST(request: Request) {
   });
 
   const updatedMember = await recalculateMemberPoints(member.id);
+
+  // 异步同步到 Google Sheet
+  logAttendanceToGoogleSheet({
+    memberId: member.memberId,
+    memberName: member.name,
+    eventName,
+    pointsEarned,
+    timestamp: log.dateTime.toISOString(),
+  });
 
   return NextResponse.json(
     { log, member: updatedMember },

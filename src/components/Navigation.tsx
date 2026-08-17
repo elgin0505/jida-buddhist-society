@@ -9,6 +9,7 @@ const navItems = [
   { href: "/events", label: "活动列表", icon: CalendarIcon },
   { href: "/rewards", label: "积分商城", icon: GiftIcon },
   { href: "/admin/check-in", label: "管理员签到", icon: ScanIcon },
+  { href: "/admin/sheets", label: "Google表格", icon: SheetIcon },
 ];
 
 export function Navigation() {
@@ -112,6 +113,15 @@ function ScanIcon({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
       <rect x="7" y="7" width="10" height="10" rx="1" />
+    </svg>
+  );
+}
+
+function SheetIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M3 9h18M3 15h18M9 9v12M15 9v12" />
     </svg>
   );
 }

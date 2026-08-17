@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import { Navigation } from "@/components/Navigation";
 import { MemberProvider } from "@/components/MemberContext";
 import { LoadingTransition } from "@/components/LoadingTransition";
+import { ZenWoodenFish } from "@/components/ZenWoodenFish";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -31,6 +32,7 @@ export default function RootLayout({
           <LoadingTransition />
           <Navigation />
           <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+          <ZenWoodenFish />
         </MemberProvider>
       </body>
     </html>

@@ -11,7 +11,7 @@ function petalPath(index: number) {
   return { rotate: angle };
 }
 
-function LotusFlower({ progress }: { progress: number }) {
+export function LotusFlower({ progress = 1 }: { progress?: number }) {
   const petals = Array.from({ length: PETAL_COUNT });
 
   return (

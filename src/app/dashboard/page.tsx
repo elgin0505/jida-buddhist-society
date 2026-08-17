@@ -13,6 +13,8 @@ import {
 import { useMember, MemberSelector } from "@/components/MemberContext";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Leaderboard } from "@/components/Leaderboard";
+import { LotusFlower } from "@/components/LoadingTransition";
+import { QRModal } from "@/components/QRModal";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface AttendanceRecord {
@@ -39,6 +41,7 @@ export default function DashboardPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"history" | "leaderboard">("history");
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -96,9 +99,9 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <PageWrapper page="dashboard">
-        <div className="space-y-6">
-          <div className="h-10 w-64 animate-pulse rounded-xl bg-ocher-light/30" />
-          <div className="h-48 animate-pulse rounded-2xl bg-ocher-light/20" />
+        <div className="flex h-64 flex-col items-center justify-center">
+          <LotusFlower progress={1} />
+          <p className="mt-4 text-sm tracking-widest text-golden-rich/80">加载中...</p>
         </div>
       </PageWrapper>
     );
@@ -214,12 +217,23 @@ export default function DashboardPage() {
 
             {qrCode && (
               <div className="flex flex-col items-center">
-                <img
-                  src={qrCode}
-                  alt="会员二维码"
-                  className="h-28 w-28 rounded-xl ring-2 ring-ocher/30"
-                />
-                <p className="mt-2 text-[10px] text-muted">签到二维码</p>
+                <div 
+                  className="group relative cursor-pointer"
+                  onClick={() => setIsQrModalOpen(true)}
+                  title="点击放大与下载"
+                >
+                  <img
+                    src={qrCode}
+                    alt="会员二维码"
+                    className="h-28 w-28 rounded-xl ring-2 ring-ocher/30 transition-transform group-hover:scale-105 group-hover:ring-golden-deep"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/60 opacity-0 backdrop-blur-[2px] transition-opacity group-hover:opacity-100">
+                    <svg className="h-8 w-8 text-charcoal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="mt-2 text-[10px] font-medium text-muted/80">点击放大扫描 / 存为 PDF</p>
               </div>
             )}
           </div>
@@ -371,6 +385,14 @@ export default function DashboardPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      <QRModal 
+        isOpen={isQrModalOpen}
+        onClose={() => setIsQrModalOpen(false)}
+        qrCodeUrl={qrCode}
+        memberName={currentMember?.name || ""}
+        memberId={currentMember?.memberId || ""}
+      />
     </PageWrapper>
   );
 }

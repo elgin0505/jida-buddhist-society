@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock, User, Loader2, Sparkles, Calendar } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Loader2, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { ZenLogo3D } from "@/components/ZenLogo3D";
+
+// Lazy-load 3D background to avoid SSR issues with Three.js
+const ZenBackground3D = dynamic(
+  () => import("@/components/ZenBackground3D").then((mod) => ({ default: mod.ZenBackground3D })),
+  { ssr: false }
+);
 
 type Mode = "login" | "register";
 
@@ -12,94 +20,15 @@ export default function AuthPage() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12">
-      {/* ── 禅意背景层 ── */}
-      <div className="pointer-events-none fixed inset-0 z-0">
-        {/* 暖色光晕底纹 */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `
-              radial-gradient(ellipse 70% 50% at 50% 0%, rgba(201, 162, 39, 0.15) 0%, transparent 80%),
-              radial-gradient(ellipse 50% 60% at 100% 100%, rgba(45, 106, 79, 0.08) 0%, transparent 70%),
-              radial-gradient(ellipse 50% 50% at 0% 50%, rgba(232, 200, 114, 0.10) 0%, transparent 70%)
-            `,
-          }}
-        />
-        {/* 金色莲花 SVG 水印 */}
-        <svg
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.035]"
-          width="680"
-          height="680"
-          viewBox="0 0 200 200"
-          fill="none"
-        >
-          <path
-            d="M100 20 C100 20, 120 55, 120 80 C120 95, 110 105, 100 110 C90 105, 80 95, 80 80 C80 55, 100 20, 100 20Z"
-            fill="#c9a227"
-          />
-          <path
-            d="M100 20 C100 20, 140 45, 150 70 C155 85, 145 100, 130 108 C120 100, 115 85, 115 75 C115 50, 100 20, 100 20Z"
-            fill="#c9a227"
-            opacity="0.8"
-          />
-          <path
-            d="M100 20 C100 20, 60 45, 50 70 C45 85, 55 100, 70 108 C80 100, 85 85, 85 75 C85 50, 100 20, 100 20Z"
-            fill="#c9a227"
-            opacity="0.8"
-          />
-          <path
-            d="M100 20 C100 20, 155 35, 170 60 C180 78, 165 98, 150 105 C140 95, 135 78, 135 68 C135 45, 100 20, 100 20Z"
-            fill="#c9a227"
-            opacity="0.55"
-          />
-          <path
-            d="M100 20 C100 20, 45 35, 30 60 C20 78, 35 98, 50 105 C60 95, 65 78, 65 68 C65 45, 100 20, 100 20Z"
-            fill="#c9a227"
-            opacity="0.55"
-          />
-          <circle cx="100" cy="85" r="8" fill="#c9a227" opacity="0.3" />
-          <path
-            d="M100 110 L100 180"
-            stroke="#c9a227"
-            strokeWidth="3"
-            opacity="0.25"
-          />
-          <path
-            d="M100 140 C100 140, 85 150, 80 160"
-            stroke="#c9a227"
-            strokeWidth="2"
-            opacity="0.2"
-            fill="none"
-          />
-          <path
-            d="M100 155 C100 155, 115 162, 120 170"
-            stroke="#c9a227"
-            strokeWidth="2"
-            opacity="0.2"
-            fill="none"
-          />
-        </svg>
-      </div>
+      {/* ── 1. 3D 动态粒子壁纸背景 ── */}
+      <Suspense fallback={null}>
+        <ZenBackground3D />
+      </Suspense>
 
-      {/* ── 顶部标题区 ── */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 mb-8 text-center"
-      >
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-golden-deep to-ocher shadow-lg shadow-golden-deep/20">
-          <Sparkles className="h-8 w-8 text-white" />
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-charcoal dark:text-white sm:text-3xl">
-          技大佛学会
-        </h1>
-        <p className="mt-1.5 text-sm text-muted dark:text-slate-400">
-          出勤与积分追踪 · 会员系统
-        </p>
-      </motion.div>
+      {/* ── 2. 3D 悬浮 Logo ── */}
+      <ZenLogo3D />
 
-      {/* ── 表单卡片（登录 / 注册 切换） ── */}
+      {/* ── 3. 极致玻璃态前景表单卡片 ── */}
       <div className="relative z-10 w-full max-w-[420px]">
         <AnimatePresence mode="wait">
           {mode === "login" ? (
@@ -128,18 +57,53 @@ export default function AuthPage() {
         </AnimatePresence>
       </div>
 
-      {/* ── 底部装饰文字 ── */}
+      {/* ── 4. 底部装饰文字 ── */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="relative z-10 mt-10 text-center text-xs text-muted/60"
+        transition={{ delay: 0.8 }}
+        className="relative z-10 mt-10 text-center text-xs text-black/60 dark:text-black/40 dark:text-white/30 drop-shadow-sm"
       >
         🪷 以慈悲心行善，以智慧心修行
       </motion.p>
     </div>
   );
 }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ *  玻璃态卡片样式 (共用)
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+const GLASS_CARD_CLASS =
+  "rounded-3xl border border-white/20 dark:border-white/[0.08] " +
+  "bg-white/[0.12] dark:bg-black/20 " +
+  "p-8 " +
+  "shadow-[0_16px_64px_-12px_rgba(0,0,0,0.25),0_4px_24px_-4px_rgba(0,0,0,0.15)] " +
+  "ring-1 ring-white/10 " +
+  "backdrop-blur-2xl";
+
+const INPUT_CLASS =
+  "h-12 w-full rounded-xl " +
+  "border border-black/10 dark:border-white/10 dark:border-white/10 " +
+  "bg-black/[0.04] dark:bg-white/[0.06] " +
+  "pl-11 pr-4 text-sm text-black dark:text-white " +
+  "shadow-inner shadow-black/10 " +
+  "outline-none transition-all " +
+  "placeholder:text-black/40 dark:text-white/30 " +
+  "focus:border-golden-deep/60 focus:ring-2 focus:ring-golden-deep/25 focus:bg-black/[0.06] dark:focus:bg-white/15 " +
+  "backdrop-blur-sm";
+
+const INPUT_PW_CLASS =
+  "h-12 w-full rounded-xl " +
+  "border border-black/10 dark:border-white/10 dark:border-white/10 " +
+  "bg-black/[0.04] dark:bg-white/[0.06] " +
+  "pl-11 pr-12 text-sm text-black dark:text-white " +
+  "shadow-inner shadow-black/10 " +
+  "outline-none transition-all " +
+  "placeholder:text-black/40 dark:text-white/30 " +
+  "focus:border-golden-deep/60 focus:ring-2 focus:ring-golden-deep/25 focus:bg-black/[0.06] dark:focus:bg-white/15 " +
+  "backdrop-blur-sm";
+
+const LABEL_CLASS = "mb-1.5 block text-xs font-semibold text-black/70 dark:text-white/70";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  *  登录卡片
@@ -197,19 +161,19 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} autoComplete="on">
-      <div className="rounded-3xl border border-white/50 dark:border-white/10 bg-white/70 dark:bg-slate-800/80 p-8 shadow-[0_16px_64px_-12px_rgba(201,162,39,0.18),0_4px_24px_-4px_rgba(0,0,0,0.06)] ring-1 ring-white/50 dark:ring-white/5 backdrop-blur-xl">
-        <h2 className="mb-1 text-xl font-bold text-charcoal dark:text-white">登录您的账户</h2>
-        <p className="mb-7 text-sm text-muted dark:text-slate-400">
+      <div className={GLASS_CARD_CLASS}>
+        <h2 className="mb-1 text-xl font-bold text-black dark:text-white">登录您的账户</h2>
+        <p className="mb-7 text-sm text-black/60 dark:text-white/50">
           输入您的邮箱和密码，继续您的修行之旅
         </p>
 
         {/* 邮箱 */}
         <div className="mb-5">
-          <label htmlFor="login-email" className="mb-1.5 block text-xs font-semibold text-charcoal/70 dark:text-slate-300">
+          <label htmlFor="login-email" className={LABEL_CLASS}>
             电子邮箱
           </label>
           <div className="relative">
-            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted/50" />
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/35" />
             <input
               id="login-email"
               name="email"
@@ -219,18 +183,18 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-12 w-full rounded-xl border border-ocher/25 dark:border-white/10 bg-white/80 dark:bg-slate-800/80 pl-11 pr-4 text-sm text-charcoal dark:text-white shadow-inner shadow-white/50 dark:shadow-none outline-none transition-all placeholder:text-muted/40 focus:border-golden-deep/50 focus:ring-2 focus:ring-golden-deep/15"
+              className={INPUT_CLASS}
             />
           </div>
         </div>
 
         {/* 密码 */}
         <div className="mb-7">
-          <label htmlFor="login-password" className="mb-1.5 block text-xs font-semibold text-charcoal/70 dark:text-slate-300">
+          <label htmlFor="login-password" className={LABEL_CLASS}>
             密码
           </label>
           <div className="relative">
-            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted/50" />
+            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/35" />
             <input
               id="login-password"
               name="password"
@@ -240,13 +204,13 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-12 w-full rounded-xl border border-ocher/25 dark:border-white/10 bg-white/80 dark:bg-slate-800/80 pl-11 pr-12 text-sm text-charcoal dark:text-white shadow-inner shadow-white/50 dark:shadow-none outline-none transition-all placeholder:text-muted/40 focus:border-golden-deep/50 focus:ring-2 focus:ring-golden-deep/15"
+              className={INPUT_PW_CLASS}
             />
             <button
               type="button"
               tabIndex={-1}
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-muted/40 transition-colors hover:text-golden-rich"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-black/40 dark:text-white/30 transition-colors hover:text-golden-deep"
               aria-label={showPassword ? "隐藏密码" : "显示密码"}
             >
               {showPassword ? (
@@ -264,7 +228,7 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
           disabled={loading}
           whileHover={{ scale: loading ? 1 : 1.01 }}
           whileTap={{ scale: loading ? 1 : 0.98 }}
-          className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-golden-deep to-golden-rich py-3 text-sm font-bold text-white shadow-lg shadow-golden-deep/25 transition-all disabled:opacity-60"
+          className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-golden-deep to-golden-rich py-3 text-sm font-bold text-white shadow-lg shadow-golden-deep/30 transition-all disabled:opacity-60 dark:shadow-[0_0_24px_rgba(255,193,7,0.3)]"
         >
           <span className="relative z-10 flex items-center justify-center gap-2">
             {loading ? (
@@ -287,12 +251,12 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
         </motion.button>
 
         {/* 切换至注册 */}
-        <p className="mt-6 text-center text-sm text-muted dark:text-slate-400">
+        <p className="mt-6 text-center text-sm text-black/60 dark:text-white/45">
           还没有账号？{" "}
           <button
             type="button"
             onClick={onSwitch}
-            className="font-semibold text-golden-rich underline-offset-2 transition-colors hover:text-golden-deep hover:underline"
+            className="font-semibold text-golden-deep underline-offset-2 transition-colors hover:text-ocher hover:underline"
           >
             立即注册
           </button>
@@ -308,7 +272,9 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
 function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [birthday, setBirthday] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -334,7 +300,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, birthday: birthday || undefined }),
+        body: JSON.stringify({ name, email, password, birthday: (birthYear && birthMonth && birthDay) ? `${birthYear}-${birthMonth}-${birthDay}` : undefined }),
       });
 
       const data = await res.json();
@@ -369,19 +335,19 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} autoComplete="on">
-      <div className="rounded-3xl border border-white/50 dark:border-white/10 bg-white/70 dark:bg-slate-800/80 p-8 shadow-[0_16px_64px_-12px_rgba(201,162,39,0.18),0_4px_24px_-4px_rgba(0,0,0,0.06)] ring-1 ring-white/50 dark:ring-white/5 backdrop-blur-xl">
-        <h2 className="mb-1 text-xl font-bold text-charcoal dark:text-white">创建新账户</h2>
-        <p className="mb-7 text-sm text-muted dark:text-slate-400">
+      <div className={GLASS_CARD_CLASS}>
+        <h2 className="mb-1 text-xl font-bold text-black dark:text-white">创建新账户</h2>
+        <p className="mb-7 text-sm text-black/60 dark:text-white/50">
           加入技大佛学会，开启功德积分之旅
         </p>
 
         {/* 姓名 */}
         <div className="mb-5">
-          <label htmlFor="register-name" className="mb-1.5 block text-xs font-semibold text-charcoal/70 dark:text-slate-300">
+          <label htmlFor="register-name" className={LABEL_CLASS}>
             姓名
           </label>
           <div className="relative">
-            <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted/50" />
+            <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/35" />
             <input
               id="register-name"
               name="name"
@@ -391,18 +357,18 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
               placeholder="您的法名或本名"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-12 w-full rounded-xl border border-ocher/25 dark:border-white/10 bg-white/80 dark:bg-slate-800/80 pl-11 pr-4 text-sm text-charcoal dark:text-white shadow-inner shadow-white/50 dark:shadow-none outline-none transition-all placeholder:text-muted/40 focus:border-golden-deep/50 focus:ring-2 focus:ring-golden-deep/15"
+              className={INPUT_CLASS}
             />
           </div>
         </div>
 
         {/* 邮箱 */}
         <div className="mb-5">
-          <label htmlFor="register-email" className="mb-1.5 block text-xs font-semibold text-charcoal/70 dark:text-slate-300">
+          <label htmlFor="register-email" className={LABEL_CLASS}>
             电子邮箱
           </label>
           <div className="relative">
-            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted/50" />
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/35" />
             <input
               id="register-email"
               name="email"
@@ -412,37 +378,59 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-12 w-full rounded-xl border border-ocher/25 bg-white/80 pl-11 pr-4 text-sm text-charcoal shadow-inner shadow-white/50 outline-none transition-all placeholder:text-muted/40 focus:border-golden-deep/50 focus:ring-2 focus:ring-golden-deep/15 dark:border-white/10 dark:bg-slate-800/80 dark:text-white"
+              className={INPUT_CLASS}
             />
           </div>
         </div>
 
         {/* 生日 */}
         <div className="mb-5">
-          <label htmlFor="register-birthday" className="mb-1.5 flex items-center justify-between text-xs font-semibold text-charcoal/70 dark:text-slate-300">
+          <label className="mb-1.5 flex items-center justify-between text-xs font-semibold text-black/70 dark:text-white/70">
             <span>出生日期 (选填)</span>
-            <span className="text-[10px] font-normal text-golden-rich">✨ 生日当天有惊喜</span>
+            <span className="text-[10px] font-normal text-golden-deep">✨ 生日当天有惊喜</span>
           </label>
-          <div className="relative">
-            <Calendar className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted/50" />
-            <input
-              id="register-birthday"
-              name="birthday"
-              type="date"
-              value={birthday}
-              onChange={(e) => setBirthday(e.target.value)}
-              className="h-12 w-full rounded-xl border border-ocher/25 bg-white/80 pl-11 pr-4 text-sm text-charcoal shadow-inner shadow-white/50 outline-none transition-all focus:border-golden-deep/50 focus:ring-2 focus:ring-golden-deep/15 dark:border-white/10 dark:bg-slate-800/80 dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
-            />
+          <div className="flex gap-2 relative">
+            <Calendar className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/35 z-10" />
+            <select
+              value={birthYear}
+              onChange={(e) => setBirthYear(e.target.value)}
+              className={`${INPUT_CLASS} !pl-9 !pr-2 w-1/3 text-center appearance-none cursor-pointer bg-no-repeat bg-[right_0.2rem_center] bg-[url('data:image/svg+xml;utf8,<svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')]`}
+            >
+              <option value="" className="text-black">年</option>
+              {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                <option key={y} value={y} className="text-black">{y}</option>
+              ))}
+            </select>
+            <select
+              value={birthMonth}
+              onChange={(e) => setBirthMonth(e.target.value)}
+              className={`${INPUT_CLASS} !pl-2 !pr-2 w-1/3 text-center appearance-none cursor-pointer bg-no-repeat bg-[right_0.2rem_center] bg-[url('data:image/svg+xml;utf8,<svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')]`}
+            >
+              <option value="" className="text-black">月</option>
+              {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => (
+                <option key={m} value={m} className="text-black">{m}月</option>
+              ))}
+            </select>
+            <select
+              value={birthDay}
+              onChange={(e) => setBirthDay(e.target.value)}
+              className={`${INPUT_CLASS} !pl-2 !pr-2 w-1/3 text-center appearance-none cursor-pointer bg-no-repeat bg-[right_0.2rem_center] bg-[url('data:image/svg+xml;utf8,<svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')]`}
+            >
+              <option value="" className="text-black">日</option>
+              {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0")).map((d) => (
+                <option key={d} value={d} className="text-black">{d}日</option>
+              ))}
+            </select>
           </div>
         </div>
 
         {/* 密码 */}
         <div className="mb-3">
-          <label htmlFor="register-password" className="mb-1.5 block text-xs font-semibold text-charcoal/70 dark:text-slate-300">
+          <label htmlFor="register-password" className={LABEL_CLASS}>
             设置密码
           </label>
           <div className="relative">
-            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted/50" />
+            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/35" />
             <input
               id="register-password"
               name="new-password"
@@ -453,13 +441,13 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
               placeholder="至少 6 个字符"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-12 w-full rounded-xl border border-ocher/25 dark:border-white/10 bg-white/80 dark:bg-slate-800/80 pl-11 pr-12 text-sm text-charcoal dark:text-white shadow-inner shadow-white/50 dark:shadow-none outline-none transition-all placeholder:text-muted/40 focus:border-golden-deep/50 focus:ring-2 focus:ring-golden-deep/15"
+              className={INPUT_PW_CLASS}
             />
             <button
               type="button"
               tabIndex={-1}
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-muted/40 transition-colors hover:text-golden-rich"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-black/40 dark:text-white/30 transition-colors hover:text-golden-deep"
               aria-label={showPassword ? "隐藏密码" : "显示密码"}
             >
               {showPassword ? (
@@ -490,7 +478,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
                         : passwordStrength <= 3
                         ? "#c9a227"
                         : "#2d6a4f"
-                      : "#e5e0d8",
+                      : "rgba(255,255,255,0.12)",
                 }}
                 transition={{ duration: 0.3, delay: level * 0.05 }}
                 style={{ originX: 0 }}
@@ -530,7 +518,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
           disabled={loading}
           whileHover={{ scale: loading ? 1 : 1.01 }}
           whileTap={{ scale: loading ? 1 : 0.98 }}
-          className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-golden-deep to-golden-rich py-3 text-sm font-bold text-white shadow-lg shadow-golden-deep/25 transition-all disabled:opacity-60"
+          className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-golden-deep to-golden-rich py-3 text-sm font-bold text-white shadow-lg shadow-golden-deep/30 transition-all disabled:opacity-60 dark:shadow-[0_0_24px_rgba(255,193,7,0.3)]"
         >
           <span className="relative z-10 flex items-center justify-center gap-2">
             {loading ? (
@@ -553,12 +541,12 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
         </motion.button>
 
         {/* 切换至登录 */}
-        <p className="mt-6 text-center text-sm text-muted dark:text-slate-400">
+        <p className="mt-6 text-center text-sm text-black/60 dark:text-white/45">
           已有账号？{" "}
           <button
             type="button"
             onClick={onSwitch}
-            className="font-semibold text-golden-rich underline-offset-2 transition-colors hover:text-golden-deep hover:underline"
+            className="font-semibold text-golden-deep underline-offset-2 transition-colors hover:text-ocher hover:underline"
           >
             立即登录
           </button>

@@ -30,8 +30,9 @@ import { google } from "googleapis";
 export const DEFAULT_SHEET_ID = "1o98f9BtgMfe2kUb17qzafoXzb7NFJaGzMJ6SGKapayc";
 
 function getGoogleSheetsClient() {
-  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_CLIENT_EMAIL;
+  const rawKey = process.env.GOOGLE_PRIVATE_KEY;
+  const privateKey = rawKey ? (rawKey.includes("\\n") ? rawKey.replace(/\\n/g, "\n") : rawKey) : undefined;
   const spreadsheetId = process.env.GOOGLE_SHEET_ID || DEFAULT_SHEET_ID;
 
   if (!clientEmail || !privateKey) {
@@ -48,6 +49,10 @@ function getGoogleSheetsClient() {
   return { sheets, spreadsheetId };
 }
 
+function getWebhookUrl(): string | null {
+  return process.env.GOOGLE_SHEETS_API_URL || process.env.GOOGLE_SHEET_WEBHOOK_URL || null;
+}
+
 /* ─────────────────────────────────────────────────────────────
  * 1. 注册会员同步 (Register Member)
  * ───────────────────────────────────────────────────────────── */
@@ -62,8 +67,10 @@ export interface NewMemberSheetPayload {
 
 export async function appendMemberToGoogleSheet(payload: NewMemberSheetPayload) {
   const client = getGoogleSheetsClient();
-  if (!client) {
-    console.warn("⚠️ [GoogleSheets] 未检测到 Google API 凭据，跳过新会员注册同步。");
+  const webhookUrl = getWebhookUrl();
+
+  if (!client && !webhookUrl) {
+    console.warn("⚠️ [GoogleSheets] 未检测到 Google API 凭据或 Webhook URL，跳过新会员注册同步。");
     return { success: false, skipped: true };
   }
 
@@ -90,18 +97,37 @@ export async function appendMemberToGoogleSheet(payload: NewMemberSheetPayload) 
       payload.totalPoints ?? 0,
     ];
 
-    const response = await client.sheets.spreadsheets.values.append({
-      spreadsheetId: client.spreadsheetId,
-      range: "A:F",
-      valueInputOption: "USER_ENTERED",
-      insertDataOption: "INSERT_ROWS",
-      requestBody: {
-        values: [rowValues],
-      },
-    });
-
-    console.log(`✅ [GoogleSheets] 成功同步新学员 [${payload.memberId}] ${payload.name} 至 Google Sheet`);
-    return { success: true, updatedRange: response.data.updates?.updatedRange };
+    if (client) {
+      const response = await client!.sheets.spreadsheets.values.append({
+        spreadsheetId: client!.spreadsheetId,
+        range: "A:F",
+        valueInputOption: "USER_ENTERED",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: {
+          values: [rowValues],
+        },
+      });
+      console.log(`✅ [GoogleSheets] 成功通过 Service Account 同步新学员 [${payload.memberId}] ${payload.name} 至 Google Sheet`);
+      return { success: true, updatedRange: response.data.updates?.updatedRange };
+    } else if (webhookUrl) {
+      await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "registerMember",
+          data: {
+            memberId: payload.memberId,
+            name: payload.name,
+            email: payload.email,
+            birthday: birthdayStr,
+            createdAt: registerTimeStr,
+            totalPoints: payload.totalPoints ?? 0,
+          },
+        }),
+      });
+      console.log(`✅ [GoogleSheets] 成功通过 Webhook 同步新学员 [${payload.memberId}] ${payload.name} 至 Google Sheet`);
+      return { success: true, viaWebhook: true };
+    }
   } catch (error: any) {
     console.error("❌ [GoogleSheets] 会员同步失败:", error?.message || error);
     return { success: false, error: error?.message };
@@ -121,7 +147,8 @@ export interface AttendanceSheetPayload {
 
 export async function logAttendanceToGoogleSheet(payload: AttendanceSheetPayload) {
   const client = getGoogleSheetsClient();
-  if (!client) return { success: false, skipped: true };
+  const webhookUrl = getWebhookUrl();
+  if (!client && !webhookUrl) return { success: false, skipped: true };
 
   try {
     const timeStr = new Date(payload.timestamp).toLocaleString("zh-CN", { timeZone: "Asia/Kuala_Lumpur" });
@@ -134,15 +161,23 @@ export async function logAttendanceToGoogleSheet(payload: AttendanceSheetPayload
       "活动签到",
     ];
 
-    await client.sheets.spreadsheets.values.append({
-      spreadsheetId: client.spreadsheetId,
-      range: "A:F",
-      valueInputOption: "USER_ENTERED",
-      insertDataOption: "INSERT_ROWS",
-      requestBody: {
-        values: [rowValues],
-      },
-    });
+    if (client) {
+      await client!.sheets.spreadsheets.values.append({
+        spreadsheetId: client!.spreadsheetId,
+        range: "A:F",
+        valueInputOption: "USER_ENTERED",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: {
+          values: [rowValues],
+        },
+      });
+    } else if (webhookUrl) {
+      await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "logAttendance", data: payload }),
+      });
+    }
     return { success: true };
   } catch (error: any) {
     console.error("❌ [GoogleSheets] 签到记录同步失败:", error?.message || error);
@@ -163,7 +198,8 @@ export interface RedemptionSheetPayload {
 
 export async function logRedemptionToGoogleSheet(payload: RedemptionSheetPayload) {
   const client = getGoogleSheetsClient();
-  if (!client) return { success: false, skipped: true };
+  const webhookUrl = getWebhookUrl();
+  if (!client && !webhookUrl) return { success: false, skipped: true };
 
   try {
     const timeStr = new Date(payload.timestamp).toLocaleString("zh-CN", { timeZone: "Asia/Kuala_Lumpur" });
@@ -176,15 +212,23 @@ export async function logRedemptionToGoogleSheet(payload: RedemptionSheetPayload
       "奖品兑换",
     ];
 
-    await client.sheets.spreadsheets.values.append({
-      spreadsheetId: client.spreadsheetId,
-      range: "A:F",
-      valueInputOption: "USER_ENTERED",
-      insertDataOption: "INSERT_ROWS",
-      requestBody: {
-        values: [rowValues],
-      },
-    });
+    if (client) {
+      await client!.sheets.spreadsheets.values.append({
+        spreadsheetId: client!.spreadsheetId,
+        range: "A:F",
+        valueInputOption: "USER_ENTERED",
+        insertDataOption: "INSERT_ROWS",
+        requestBody: {
+          values: [rowValues],
+        },
+      });
+    } else if (webhookUrl) {
+      await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "logRedemption", data: payload }),
+      });
+    }
     return { success: true };
   } catch (error: any) {
     console.error("❌ [GoogleSheets] 兑换记录同步失败:", error?.message || error);

@@ -96,6 +96,17 @@ function doPost(e) {
     const action = payload.action;
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
+    // 0. 单个新会员注册追加
+    if (action === 'registerMember' || action === 'appendMember') {
+      const data = payload.data || {};
+      const sheet = getOrCreateSheet(ss, 'Members', [
+        '注册时间 (Registered At)', '会员编号 (Member ID)', '姓名 (Name)', '邮箱 (Email)', '生日 (Birthday)', '总积分 (Total Points)'
+      ]);
+      const registerTimeStr = data.createdAt ? new Date(data.createdAt).toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur' }) : new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur' });
+      sheet.appendRow([registerTimeStr, data.memberId || '', data.name || '', data.email || '', data.birthday || '未填写', data.totalPoints || 0]);
+      return jsonResponse({ success: true, message: '新会员已同步至 Google Sheet' });
+    }
+
     // 1. 记录签到
     if (action === 'logAttendance') {
       const { memberId, memberName, eventName, pointsEarned, timestamp } = payload.data;

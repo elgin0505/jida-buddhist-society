@@ -8,9 +8,9 @@ import { toast } from "sonner";
 import { ZenLogo3D } from "@/components/ZenLogo3D";
 import { InkRippleButton } from "@/components/InkRippleButton";
 
-// Lazy-load 3D background to avoid SSR issues with Three.js
-const ZenBackground3D = dynamic(
-  () => import("@/components/ZenBackground3D").then((mod) => ({ default: mod.ZenBackground3D })),
+// Dynamic import AnimatedJourneyBackground (Time-Aware Parallax + Walking Monk + Interactive Boat)
+const AnimatedJourneyBackground = dynamic(
+  () => import("@/components/AnimatedJourneyBackground").then((mod) => ({ default: mod.AnimatedJourneyBackground })),
   { ssr: false }
 );
 
@@ -21,9 +21,9 @@ export default function AuthPage() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12">
-      {/* ── 1. 3D 动态粒子壁纸背景 ── */}
+      {/* ── 1. 漫漫求学与苦海慈航 · 3D 视差互动背景 ── */}
       <Suspense fallback={null}>
-        <ZenBackground3D />
+        <AnimatedJourneyBackground />
       </Suspense>
 
       {/* ── 2. 3D 悬浮 Logo ── */}

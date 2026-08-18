@@ -1,389 +1,520 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useMemo } from "react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { InteractiveZenBoat } from "@/components/InteractiveZenBoat";
+import { Sun, Sunset, Moon } from "lucide-react";
 
-type TimePhase = "morning" | "day" | "dusk" | "night";
+export type TimeOfDay = "day" | "dusk" | "night";
 
-export function AnimatedJourneyBackground() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  
-  const [timePhase, setTimePhase] = useState<TimePhase>("day");
-  const [isClient, setIsClient] = useState(false);
+interface AnimatedJourneyBackgroundProps {
+  forcedTimeMode?: TimeOfDay;
+  showTimeSwitcher?: boolean;
+}
 
-  // Determine initial time phase on mount
+export function AnimatedJourneyBackground({
+  forcedTimeMode,
+  showTimeSwitcher = true,
+}: AnimatedJourneyBackgroundProps) {
+  // System time auto-detection
+  const [detectedTime, setDetectedTime] = useState<TimeOfDay>("day");
+  const [manualTime, setManualTime] = useState<TimeOfDay | null>(null);
+
   useEffect(() => {
-    setIsClient(true);
-    const updateTime = () => {
-      const hour = new Date().getHours();
-      if (hour >= 5 && hour < 9) setTimePhase("morning");
-      else if (hour >= 9 && hour < 17) setTimePhase("day");
-      else if (hour >= 17 && hour < 20) setTimePhase("dusk");
-      else setTimePhase("night");
-    };
-    updateTime();
-    // Check every minute just in case they leave the page open
-    const interval = setInterval(updateTime, 60000);
-    return () => clearInterval(interval);
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 17) {
+      setDetectedTime("day");
+    } else if (hour >= 17 && hour < 19.5) {
+      setDetectedTime("dusk");
+    } else {
+      setDetectedTime("night");
+    }
   }, []);
 
-  // Smooth springs for mouse parallax
-  const springX = useSpring(mouseX, { stiffness: 40, damping: 20 });
-  const springY = useSpring(mouseY, { stiffness: 40, damping: 20 });
+  const timeMode: TimeOfDay = forcedTimeMode || manualTime || detectedTime;
 
-  // Parallax transforms for different depth layers
-  const celestialX = useTransform(springX, [-1, 1], [-10, 10]);
-  const celestialY = useTransform(springY, [-1, 1], [-10, 10]);
-  
-  const mountainFarX = useTransform(springX, [-1, 1], [-30, 30]);
-  const mountainFarY = useTransform(springY, [-1, 1], [-10, 10]);
-  
-  const mountainNearX = useTransform(springX, [-1, 1], [-60, 60]);
-  const mountainNearY = useTransform(springY, [-1, 1], [-20, 20]);
-  
-  const waterX = useTransform(springX, [-1, 1], [-90, 90]);
-  const waterY = useTransform(springY, [-1, 1], [-5, 5]);
+  // ── Framer Motion Mouse Parallax Tracking ──
+  const rawMouseX = useMotionValue(0);
+  const rawMouseY = useMotionValue(0);
 
-  const foregroundX = useTransform(springX, [-1, 1], [-120, 120]);
-  const foregroundY = useTransform(springY, [-1, 1], [-30, 30]);
+  const springX = useSpring(rawMouseX, { stiffness: 45, damping: 25 });
+  const springY = useSpring(rawMouseY, { stiffness: 45, damping: 25 });
+
+  // Parallax multipliers for each visual depth layer
+  const skyX = useTransform(springX, (v) => v * 0.015);
+  const skyY = useTransform(springY, (v) => v * 0.012);
+
+  const celestialX = useTransform(springX, (v) => v * 0.025);
+  const celestialY = useTransform(springY, (v) => v * 0.02);
+
+  const mountainX = useTransform(springX, (v) => v * 0.045);
+  const mountainY = useTransform(springY, (v) => v * 0.025);
+
+  const midgroundX = useTransform(springX, (v) => v * 0.07);
+  const midgroundY = useTransform(springY, (v) => v * 0.035);
+
+  const foregroundX = useTransform(springX, (v) => v * 0.11);
+  const foregroundY = useTransform(springY, (v) => v * 0.05);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      const x = (e.clientX / window.innerWidth) * 2 - 1;
-      const y = (e.clientY / window.innerHeight) * 2 - 1;
-      mouseX.set(x);
-      mouseY.set(y);
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      rawMouseX.set(e.clientX - centerX);
+      rawMouseY.set(e.clientY - centerY);
     };
-    window.addEventListener("mousemove", handleMouseMove);
+
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
     return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [mouseX, mouseY]);
+  }, [rawMouseX, rawMouseY]);
 
-  // Color mapping based on time phase
-  const getSkyClass = () => {
-    switch (timePhase) {
-      case "morning": return "bg-gradient-to-b from-indigo-200 via-sky-100 to-rose-100 dark:from-slate-800 dark:to-slate-700";
-      case "day": return "bg-gradient-to-b from-sky-300 to-sky-100 dark:from-slate-900 dark:to-slate-800";
-      case "dusk": return "bg-gradient-to-b from-orange-400 via-rose-300 to-purple-400 dark:from-amber-950 dark:to-purple-950";
-      case "night": return "bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-900 dark:from-black dark:to-slate-950";
+  // Dynamic Theme Gradients and Palettes
+  const theme = useMemo(() => {
+    switch (timeMode) {
+      case "dusk":
+        return {
+          sky: "bg-gradient-to-b from-[#2E1065] via-[#7C2D12] via-[#C2410C] to-[#FED7AA]",
+          sunMoon: "from-[#FEF08A] via-[#F97316] to-[#DC2626]",
+          sunHalo: "rgba(249, 115, 22, 0.28)",
+          farMountain: "#581C87",
+          midMountain: "#701A75",
+          nearHills: "#831843",
+          waterGradStart: "#9A3412",
+          waterGradMid: "#C2410C",
+          waterGradEnd: "#431407",
+          waveColor1: "rgba(254, 215, 170, 0.25)",
+          waveColor2: "rgba(251, 146, 60, 0.2)",
+          ground1: "#431407",
+          ground2: "#78350F",
+          pathColor: "#D97706",
+          lanternGlow: true,
+        };
+      case "night":
+        return {
+          sky: "bg-gradient-to-b from-[#030712] via-[#0B0F19] via-[#0F172A] to-[#1E293B]",
+          sunMoon: "from-[#FEF9C3] via-[#FEF08A] to-[#E2E8F0]",
+          sunHalo: "rgba(254, 240, 138, 0.18)",
+          farMountain: "#0B1329",
+          midMountain: "#0F1E36",
+          nearHills: "#162B4D",
+          waterGradStart: "#0F172A",
+          waterGradMid: "#1E293B",
+          waterGradEnd: "#090D16",
+          waveColor1: "rgba(186, 230, 253, 0.15)",
+          waveColor2: "rgba(147, 197, 253, 0.1)",
+          ground1: "#0F172A",
+          ground2: "#1E293B",
+          pathColor: "#475569",
+          lanternGlow: true,
+        };
+      case "day":
+      default:
+        return {
+          sky: "bg-gradient-to-b from-[#38BDF8] via-[#7DD3FC] via-[#BAE6FD] to-[#E0F2FE]",
+          sunMoon: "from-[#FEF08A] via-[#FDE047] to-[#F59E0B]",
+          sunHalo: "rgba(253, 224, 71, 0.35)",
+          farMountain: "#047857",
+          midMountain: "#065F46",
+          nearHills: "#064E3B",
+          waterGradStart: "#0284C7",
+          waterGradMid: "#0EA5E9",
+          waterGradEnd: "#0369A1",
+          waveColor1: "rgba(255, 255, 255, 0.4)",
+          waveColor2: "rgba(224, 242, 254, 0.3)",
+          ground1: "#14532D",
+          ground2: "#166534",
+          pathColor: "#D97706",
+          lanternGlow: false,
+        };
     }
-  };
-
-  const getWaterColors = () => {
-    switch (timePhase) {
-      case "morning": return { top: "#7dd3fc", bottom: "#38bdf8" }; // sky-300 to sky-400
-      case "day": return { top: "#38bdf8", bottom: "#0284c7" }; // sky-400 to sky-600
-      case "dusk": return { top: "#fb923c", bottom: "#c026d3" }; // orange-400 to fuchsia-600
-      case "night": return { top: "#1e1b4b", bottom: "#0f172a" }; // indigo-950 to slate-900
-    }
-  };
-
-  const getMountainColors = () => {
-    switch (timePhase) {
-      case "morning": return { far: "fill-emerald-200 dark:fill-slate-700", near: "fill-emerald-300 dark:fill-slate-800" };
-      case "day": return { far: "fill-emerald-300 dark:fill-slate-700", near: "fill-emerald-500 dark:fill-slate-800" };
-      case "dusk": return { far: "fill-rose-900/60 dark:fill-slate-800", near: "fill-rose-950/80 dark:fill-slate-900" };
-      case "night": return { far: "fill-slate-800 dark:fill-slate-800", near: "fill-slate-900 dark:fill-slate-900" };
-    }
-  };
-
-  const getForegroundColors = () => {
-    switch (timePhase) {
-      case "morning": return "fill-emerald-500 dark:fill-emerald-900";
-      case "day": return "fill-emerald-600 dark:fill-emerald-900";
-      case "dusk": return "fill-amber-950 dark:fill-amber-950";
-      case "night": return "fill-slate-950 dark:fill-slate-950";
-    }
-  };
-
-  if (!isClient) return null; // Avoid hydration mismatch
-
-  const waterColors = getWaterColors();
-  const mountainColors = getMountainColors();
-  const foregroundColor = getForegroundColors();
+  }, [timeMode]);
 
   return (
-    <div 
-      ref={containerRef}
-      className={`fixed inset-0 -z-10 overflow-hidden transition-colors duration-1000 ${getSkyClass()}`}
-    >
-      {/* Dev Time Switcher (visible in dev mode only or bottom corner) */}
-      <div className="absolute bottom-4 right-4 z-50 flex gap-2 rounded-full bg-white/10 p-1 backdrop-blur-md">
-        {(["morning", "day", "dusk", "night"] as TimePhase[]).map((phase) => (
-          <button
-            key={phase}
-            onClick={() => setTimePhase(phase)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-all ${
-              timePhase === phase ? "bg-white/30 text-white" : "text-white/50 hover:bg-white/20 hover:text-white"
-            }`}
-          >
-            {phase}
-          </button>
-        ))}
-      </div>
+    <div className="fixed inset-0 z-0 select-none overflow-hidden transition-colors duration-1000">
+      {/* ── 1. 天空渐变层 (Sky Gradient) ── */}
+      <div className={`absolute inset-0 ${theme.sky} transition-all duration-1000`} />
 
-      <svg
-        className="absolute h-full w-full object-cover"
-        viewBox="0 0 1920 1080"
-        preserveAspectRatio="xMidYMid slice"
-        xmlns="http://www.w3.org/2000/svg"
+      {/* 夜空闪烁星光粒子 (Stars on Night mode) */}
+      {timeMode === "night" && (
+        <div className="pointer-events-none absolute inset-0">
+          {[...Array(35)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full bg-white"
+              style={{
+                top: `${(i * 17) % 55}%`,
+                left: `${(i * 23) % 98}%`,
+                width: i % 3 === 0 ? "3px" : "2px",
+                height: i % 3 === 0 ? "3px" : "2px",
+                boxShadow: "0 0 6px 1px rgba(255, 255, 255, 0.8)",
+              }}
+              animate={{
+                opacity: [0.2, 1, 0.2],
+                scale: [0.8, 1.2, 0.8],
+              }}
+              transition={{
+                duration: 2 + (i % 4),
+                repeat: Infinity,
+                delay: (i % 5) * 0.5,
+                ease: "easeInOut",
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ── 2. 天体层 (Sun / Moon with Parallax) ── */}
+      <motion.div
+        style={{ x: celestialX, y: celestialY }}
+        className="pointer-events-none absolute top-[8%] left-[12%] md:left-[18%]"
       >
-        <defs>
-          <radialGradient id="sunGradientDay" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#fbbf24" />
-            <stop offset="60%" stopColor="#f59e0b" />
-            <stop offset="100%" stopColor="#b45309" />
-          </radialGradient>
-          <radialGradient id="sunGlowDay" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#fcd34d" stopOpacity="0.8" />
-            <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#b45309" stopOpacity="0" />
-          </radialGradient>
+        <div className="relative flex items-center justify-center">
+          {/* 大气辉光光晕 */}
+          <motion.div
+            animate={{ scale: [1, 1.08, 1], opacity: [0.7, 0.9, 0.7] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute h-44 w-44 rounded-full blur-2xl"
+            style={{ background: theme.sunHalo }}
+          />
 
-          <radialGradient id="sunGradientDusk" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#f87171" />
-            <stop offset="60%" stopColor="#ef4444" />
-            <stop offset="100%" stopColor="#991b1b" />
-          </radialGradient>
-          <radialGradient id="sunGlowDusk" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#fca5a5" stopOpacity="0.8" />
-            <stop offset="50%" stopColor="#ef4444" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#991b1b" stopOpacity="0" />
-          </radialGradient>
+          {timeMode === "night" ? (
+            /* 禅意明月 (Moon) */
+            <div className="relative h-20 w-20 rounded-full bg-gradient-to-tr from-amber-100 via-amber-50 to-white shadow-[0_0_35px_rgba(254,240,138,0.6)]">
+              <div className="absolute right-1 top-2 h-16 w-16 rounded-full bg-transparent shadow-[-4px_3px_0_0_rgba(15,23,42,0.15)]" />
+            </div>
+          ) : (
+            /* 金乌红日 (Radiant Sun) */
+            <div
+              className={`h-24 w-24 rounded-full bg-gradient-to-tr ${theme.sunMoon} shadow-[0_0_45px_rgba(245,158,11,0.6)]`}
+            />
+          )}
+        </div>
+      </motion.div>
 
-          <radialGradient id="moonGradient" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#f8fafc" />
-            <stop offset="70%" stopColor="#e2e8f0" />
-            <stop offset="100%" stopColor="#cbd5e1" />
-          </radialGradient>
-          <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.6" />
-            <stop offset="50%" stopColor="#e2e8f0" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#cbd5e1" stopOpacity="0" />
-          </radialGradient>
+      {/* ── 3. 远天浮云 (Floating Zen Clouds) ── */}
+      <motion.div
+        style={{ x: skyX, y: skyY }}
+        className="pointer-events-none absolute inset-x-0 top-[14%] flex justify-between px-10 opacity-70"
+      >
+        <motion.svg
+          animate={{ x: [-20, 20, -20] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+          width="240"
+          height="80"
+          viewBox="0 0 240 80"
+          fill="none"
+          className="opacity-60"
+        >
+          <path
+            d="M20 55 C 30 35, 60 30, 80 40 C 95 25, 135 25, 155 45 C 175 35, 205 40, 215 55 C 225 65, 20 65, 20 55 Z"
+            fill={timeMode === "night" ? "#1E293B" : "#FFFFFF"}
+            opacity={timeMode === "night" ? 0.35 : 0.75}
+          />
+        </motion.svg>
 
-          <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={waterColors.top} style={{ transition: "all 1s" }} />
-            <stop offset="100%" stopColor={waterColors.bottom} style={{ transition: "all 1s" }} />
-          </linearGradient>
-        </defs>
+        <motion.svg
+          animate={{ x: [20, -20, 20] }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+          width="280"
+          height="90"
+          viewBox="0 0 280 90"
+          fill="none"
+          className="hidden md:block opacity-50"
+        >
+          <path
+            d="M30 60 C 45 40, 85 35, 110 48 C 130 30, 175 30, 200 50 C 225 40, 255 45, 265 60 C 275 70, 30 70, 30 60 Z"
+            fill={timeMode === "night" ? "#334155" : "#FFFFFF"}
+            opacity={timeMode === "night" ? 0.3 : 0.65}
+          />
+        </motion.svg>
+      </motion.div>
 
-        {/* --- SKY LAYER --- */}
-        {timePhase === "night" && (
-          <g>
-            {/* Stars */}
-            {Array.from({ length: 50 }).map((_, i) => (
-              <motion.circle
-                key={`star-${i}`}
-                cx={Math.random() * 1920}
-                cy={Math.random() * 600}
-                r={Math.random() * 1.5 + 0.5}
-                fill="#ffffff"
-                animate={{ opacity: [0.2, 1, 0.2] }}
-                transition={{ duration: Math.random() * 3 + 2, repeat: Infinity, delay: Math.random() * 2 }}
+      {/* ── 4. 远山叠嶂 (Distant Mountains Layer) ── */}
+      <motion.div
+        style={{ x: mountainX, y: mountainY }}
+        className="pointer-events-none absolute inset-x-0 top-[28%] md:top-[22%] bottom-0"
+      >
+        <svg
+          viewBox="0 0 1440 600"
+          fill="none"
+          preserveAspectRatio="none"
+          className="h-full w-full"
+        >
+          {/* 最远景山峦 (Far Distant Peaks) */}
+          <path
+            d="M0 320 Q 220 180, 480 270 T 960 210 Q 1200 160, 1440 300 L 1440 600 L 0 600 Z"
+            fill={theme.farMountain}
+            opacity="0.55"
+          />
+          {/* 中景山峰与宝塔剪影 (Mid Mountain & Pagoda) */}
+          <path
+            d="M0 370 Q 300 240, 620 340 T 1180 280 Q 1340 290, 1440 380 L 1440 600 L 0 600 Z"
+            fill={theme.midMountain}
+            opacity="0.8"
+          />
+          {/* 远山上的佛寺宝塔剪影 (Zen Pagoda on mountain peak) */}
+          <g transform="translate(480, 200) scale(0.65)" fill={theme.midMountain} opacity="0.9">
+            <rect x="22" y="55" width="16" height="35" rx="1" />
+            <polygon points="10,55 50,55 30,42" />
+            <rect x="24" y="30" width="12" height="15" />
+            <polygon points="14,30 46,30 30,20" />
+            <rect x="26" y="12" width="8" height="10" />
+            <polygon points="18,12 42,12 30,5" />
+            <line x1="30" y1="5" x2="30" y2="-8" stroke={theme.midMountain} strokeWidth="2" />
+            <circle cx="30" cy="-8" r="2.5" fill="#F59E0B" />
+          </g>
+        </svg>
+      </motion.div>
+
+      {/* ── 5. 水波纹湖面层 (Lake / River Surface Layer) ── */}
+      <motion.div
+        style={{ x: midgroundX, y: midgroundY }}
+        className="pointer-events-none absolute inset-x-0 top-[52%] bottom-0"
+      >
+        {/* 水面底色渐变 */}
+        <div
+          className="absolute inset-0 transition-all duration-1000"
+          style={{
+            background: `linear-gradient(180deg, ${theme.waterGradStart} 0%, ${theme.waterGradMid} 45%, ${theme.waterGradEnd} 100%)`,
+          }}
+        />
+
+        {/* 动态滚动 SVG 水波纹 (Animated Wave Ripples) */}
+        <svg
+          viewBox="0 0 1440 380"
+          fill="none"
+          preserveAspectRatio="none"
+          className="absolute inset-0 h-full w-full"
+        >
+          {/* 水波纹第 1 层 */}
+          <motion.path
+            animate={{ d: [
+              "M0 40 Q 360 65, 720 40 T 1440 40 L 1440 380 L 0 380 Z",
+              "M0 50 Q 360 25, 720 50 T 1440 50 L 1440 380 L 0 380 Z",
+              "M0 40 Q 360 65, 720 40 T 1440 40 L 1440 380 L 0 380 Z",
+            ]}}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            fill={theme.waveColor1}
+          />
+          {/* 水波纹第 2 层 */}
+          <motion.path
+            animate={{ d: [
+              "M0 90 Q 320 70, 720 90 T 1440 90 L 1440 380 L 0 380 Z",
+              "M0 75 Q 320 105, 720 75 T 1440 75 L 1440 380 L 0 380 Z",
+              "M0 90 Q 320 70, 720 90 T 1440 90 L 1440 380 L 0 380 Z",
+            ]}}
+            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+            fill={theme.waveColor2}
+          />
+          {/* 金色水光倒影条纹 (Gleaming reflection lines) */}
+          <g opacity={timeMode === "night" ? 0.25 : 0.45}>
+            {[130, 190, 250, 310].map((yPos, i) => (
+              <motion.line
+                key={i}
+                x1={200 + i * 40}
+                y1={yPos}
+                x2={500 + i * 60}
+                y2={yPos}
+                stroke={timeMode === "dusk" ? "#FDBA74" : timeMode === "night" ? "#BAE6FD" : "#FEF08A"}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeDasharray="16 24"
+                animate={{ x: [-15, 15, -15], opacity: [0.3, 0.8, 0.3] }}
+                transition={{ duration: 4 + i, repeat: Infinity, ease: "easeInOut" }}
               />
             ))}
           </g>
-        )}
+        </svg>
 
-        <AnimatePresence mode="popLayout">
-          {timePhase !== "night" ? (
-            <motion.g
-              key="sun"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 50 }}
-              transition={{ duration: 1 }}
-              style={{ x: celestialX, y: celestialY }}
-            >
-              <motion.circle
-                cx={timePhase === "morning" ? 300 : timePhase === "dusk" ? 1400 : 1600}
-                cy={timePhase === "dusk" ? 400 : 250}
-                r="200"
-                fill={timePhase === "dusk" ? "url(#sunGlowDusk)" : "url(#sunGlowDay)"}
-                animate={{ scale: [1, 1.1, 1], opacity: [0.7, 1, 0.7] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <circle
-                cx={timePhase === "morning" ? 300 : timePhase === "dusk" ? 1400 : 1600}
-                cy={timePhase === "dusk" ? 400 : 250}
-                r="80"
-                fill={timePhase === "dusk" ? "url(#sunGradientDusk)" : "url(#sunGradientDay)"}
-              />
-            </motion.g>
-          ) : (
-            <motion.g
-              key="moon"
-              initial={{ opacity: 0, y: -50 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -50 }}
-              transition={{ duration: 1 }}
-              style={{ x: celestialX, y: celestialY }}
-            >
-              <motion.circle
-                cx="1600" cy="150" r="150"
-                fill="url(#moonGlow)"
-                animate={{ scale: [1, 1.05, 1], opacity: [0.5, 0.8, 0.5] }}
-                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <circle cx="1600" cy="150" r="60" fill="url(#moonGradient)" />
-              {/* Moon Craters */}
-              <circle cx="1580" cy="130" r="12" fill="#94a3b8" opacity="0.3" />
-              <circle cx="1620" cy="160" r="8" fill="#94a3b8" opacity="0.3" />
-              <circle cx="1590" cy="170" r="15" fill="#94a3b8" opacity="0.2" />
-            </motion.g>
-          )}
-        </AnimatePresence>
+        {/* ── 核心互动模块：鼠标牵引的一苇渡江小舟 (Interactive Zen Boat) ── */}
+        <InteractiveZenBoat timeMode={timeMode} />
+      </motion.div>
 
-        {/* Clouds */}
-        <motion.g style={{ x: celestialX }} className={`fill-white transition-opacity duration-1000 ${timePhase === "night" ? "opacity-10 dark:opacity-5" : timePhase === "dusk" ? "opacity-40 fill-orange-100" : "opacity-80 dark:opacity-20"}`}>
-          <motion.path
-            d="M -200 150 Q -150 100 -100 150 Q -50 120 0 150 Q 50 180 0 200 L -200 200 Z"
-            animate={{ x: [0, 2200] }}
-            transition={{ duration: 120, repeat: Infinity, ease: "linear" }}
+      {/* ── 6. 近景陆地、蜿蜒求学路与学子小沙弥 (Foreground Land & Walking Monk) ── */}
+      <motion.div
+        style={{ x: foregroundX, y: foregroundY }}
+        className="pointer-events-none absolute inset-x-0 bottom-0 top-[68%] z-10"
+      >
+        <svg
+          viewBox="0 0 1440 340"
+          fill="none"
+          preserveAspectRatio="none"
+          className="h-full w-full"
+        >
+          <defs>
+            {/* 陆地渐变 */}
+            <linearGradient id="groundGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={theme.ground2} />
+              <stop offset="100%" stopColor={theme.ground1} />
+            </linearGradient>
+            {/* 蜿蜒小路渐变 */}
+            <linearGradient id="pathGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={theme.pathColor} stopOpacity="0.8" />
+              <stop offset="50%" stopColor="#F59E0B" stopOpacity="0.5" />
+              <stop offset="100%" stopColor={theme.pathColor} stopOpacity="0.9" />
+            </linearGradient>
+          </defs>
+
+          {/* 近景起伏草坡 */}
+          <path
+            d="M 0 120 Q 260 40, 560 90 T 1100 60 Q 1300 40, 1440 90 L 1440 340 L 0 340 Z"
+            fill="url(#groundGrad)"
           />
-          <motion.path
-            d="M 500 250 Q 550 180 620 250 Q 680 200 750 250 Q 820 280 750 320 L 500 320 Z"
-            animate={{ x: [0, 1500, -1000] }}
-            transition={{ duration: 150, repeat: Infinity, ease: "linear" }}
-          />
-          <motion.path
-            d="M 1200 100 Q 1280 40 1350 100 Q 1420 80 1500 100 Q 1550 150 1500 180 L 1200 180 Z"
-            animate={{ x: [0, 800, -1500] }}
-            transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
-          />
-        </motion.g>
 
-        {/* --- MOUNTAIN FAR LAYER --- */}
-        <motion.path
-          className={`${mountainColors.far} transition-colors duration-1000`}
-          d="M -100 700 L 250 400 L 600 650 L 1000 350 L 1400 600 L 1800 250 L 2100 600 L 2100 1080 L -100 1080 Z"
-          style={{ x: mountainFarX, y: mountainFarY }}
-        />
-        <motion.path
-          className={`${timePhase === "night" ? "fill-slate-600" : timePhase === "dusk" ? "fill-rose-300/50" : "fill-white"} dark:fill-slate-500 transition-colors duration-1000`}
-          d="M 250 400 L 320 460 L 250 480 L 180 460 Z M 1000 350 L 1080 410 L 1000 450 L 920 410 Z M 1800 250 L 1880 310 L 1800 350 L 1720 310 Z"
-          style={{ x: mountainFarX, y: mountainFarY }}
-        />
-
-        {/* --- MOUNTAIN NEAR LAYER --- */}
-        <motion.path
-          className={`${mountainColors.near} transition-colors duration-1000`}
-          d="M -200 800 L 150 550 L 500 800 L 850 500 L 1300 850 L 1700 450 L 2200 900 L 2200 1080 L -200 1080 Z"
-          style={{ x: mountainNearX, y: mountainNearY }}
-        />
-        <motion.path
-          className={`${timePhase === "night" ? "fill-slate-700" : timePhase === "dusk" ? "fill-rose-400/50" : "fill-emerald-100"} dark:fill-slate-600 transition-colors duration-1000`}
-          d="M 150 550 L 220 620 L 150 650 L 80 620 Z M 850 500 L 930 580 L 850 620 L 770 580 Z M 1700 450 L 1790 540 L 1700 580 L 1610 540 Z"
-          style={{ x: mountainNearX, y: mountainNearY }}
-        />
-
-        {/* --- WATER LAYER (Ripples) --- */}
-        <motion.g style={{ x: waterX, y: waterY }}>
-          <rect x="-200" y="750" width="2400" height="400" fill="url(#waterGrad)" />
-          
-          {/* Animated Ripples */}
-          <motion.path
-            className="stroke-white/30 dark:stroke-white/10 fill-transparent"
-            strokeWidth="3"
-            d="M -200 800 Q 0 780 200 800 T 600 800 T 1000 800 T 1400 800 T 1800 800 T 2200 800"
-            animate={{ x: [-100, 100, -100] }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          {/* 蜿蜒求学路 (The Winding Path) */}
+          <path
+            d="M 0 240 C 140 210, 240 160, 360 170 C 460 180, 520 120, 680 110"
+            stroke="url(#pathGrad)"
+            strokeWidth="28"
+            strokeLinecap="round"
+            fill="none"
+            opacity="0.75"
           />
-          <motion.path
-            className="stroke-white/20 dark:stroke-white/5 fill-transparent"
+          {/* 路面石阶纹理 */}
+          <path
+            d="M 0 240 C 140 210, 240 160, 360 170 C 460 180, 520 120, 680 110"
+            stroke="#FEF3C7"
             strokeWidth="2"
-            d="M -200 850 Q 0 870 200 850 T 600 850 T 1000 850 T 1400 850 T 1800 850 T 2200 850"
-            animate={{ x: [100, -100, 100] }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.path
-            className="stroke-white/40 dark:stroke-white/15 fill-transparent"
-            strokeWidth="4"
-            d="M -200 900 Q 0 880 200 900 T 600 900 T 1000 900 T 1400 900 T 1800 900 T 2200 900"
-            animate={{ x: [-50, 50, -50] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          />
-        </motion.g>
-
-        {/* --- FOREGROUND & WINDING PATH --- */}
-        <motion.g style={{ x: foregroundX, y: foregroundY }}>
-          {/* Base hill */}
-          <path
-            className={`${foregroundColor} transition-colors duration-1000`}
-            d="M -200 1080 L -200 850 Q 400 800 800 900 T 2200 800 L 2200 1080 Z"
-          />
-          {/* The Path */}
-          <path
-            className={`${timePhase === "night" ? "fill-slate-800" : timePhase === "dusk" ? "fill-amber-900" : "fill-amber-100"} dark:fill-amber-900/80 transition-colors duration-1000`}
-            d="M -200 950 Q 200 920 400 980 T 1000 950 T 1800 1020 L 1850 1080 L -200 1080 Z"
+            strokeDasharray="4 14"
+            fill="none"
+            opacity="0.4"
           />
 
-          {/* Grass patches */}
-          <g className={`${timePhase === "night" ? "fill-slate-900" : timePhase === "dusk" ? "fill-amber-950" : "fill-emerald-500"} dark:fill-emerald-800 transition-colors duration-1000`}>
-            <path d="M 100 880 Q 120 860 140 880 Z" />
-            <path d="M 600 920 Q 620 900 640 920 Z" />
-            <path d="M 1200 900 Q 1230 870 1260 900 Z" />
-            <path d="M 1600 980 Q 1630 950 1660 980 Z" />
+          {/* 禅意菩提树 / 垂柳剪影 (Zen Tree on left cliff) */}
+          <g transform="translate(40, 10)">
+            {/* 树干 */}
+            <path
+              d="M 60 160 Q 55 100, 75 60 Q 80 40, 70 10"
+              stroke="#291407"
+              strokeWidth="10"
+              strokeLinecap="round"
+              fill="none"
+            />
+            <path
+              d="M 70 70 Q 110 50, 130 30"
+              stroke="#291407"
+              strokeWidth="5"
+              strokeLinecap="round"
+              fill="none"
+            />
+            {/* 树冠绿云 */}
+            <circle cx="70" cy="15" r="28" fill={theme.ground2} opacity="0.9" />
+            <circle cx="110" cy="25" r="24" fill={theme.ground1} opacity="0.85" />
+            <circle cx="48" cy="28" r="22" fill={theme.ground2} opacity="0.9" />
           </g>
 
-          {/* --- Q-STYLE MONK CHARACTER --- */}
-          <motion.g
-            animate={{ y: [0, -15, 0] }}
-            transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
-            transform="translate(350, 820) scale(1.3)"
-          >
-            {/* Staff */}
-            <line x1="60" y1="20" x2="40" y2="120" stroke={timePhase === "night" ? "#0f172a" : "#78350f"} strokeWidth="6" strokeLinecap="round" className="transition-colors duration-1000" />
-            
-            {/* Bindle */}
-            <motion.path
-              d="M 60 20 Q 75 10 85 30 Q 75 50 55 35 Z"
-              fill={timePhase === "night" ? "#1e293b" : "#b45309"}
-              animate={{ rotate: [0, 10, 0] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-              style={{ transformOrigin: "60px 20px" }}
-              className="transition-colors duration-1000"
-            />
+          {/* ── 步行的小沙弥/求学子 (Walking Novice Monk) ── */}
+          <g transform="translate(240, 110)">
+            <motion.g
+              animate={{
+                y: [0, -6, 0],
+                rotate: [-1.5, 1.5, -1.5],
+              }}
+              transition={{
+                duration: 1.1,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
+              {/* 行囊 / 书笈 (Backpack / Scroll Case) */}
+              <rect x="-14" y="-2" width="11" height="18" rx="2" fill="#78350F" />
+              <line x1="-9" y1="-2" x2="-9" y2="16" stroke="#FEF3C7" strokeWidth="1" opacity="0.6" />
+              <rect x="-16" y="-6" width="15" height="5" rx="1.5" fill="#92400E" />
 
-            {/* Back Foot */}
-            <motion.ellipse
-              cx="25" cy="110" rx="12" ry="6" fill="#020617"
-              animate={{ x: [0, -10, 0], y: [0, -5, 0] }}
-              transition={{ duration: 0.6, repeat: Infinity, ease: "linear" }}
-            />
+              {/* 僧袍身体 (Monk Robe) */}
+              <path
+                d="M -5 4 C -6 8, -8 18, -10 24 L 10 24 C 8 18, 6 8, 5 4 Z"
+                fill="#D97706"
+              />
+              <path d="M 0 5 L -2 24" stroke="#B45309" strokeWidth="1" />
 
-            {/* Front Foot */}
-            <motion.ellipse
-              cx="45" cy="115" rx="12" ry="6" fill="#0f172a"
-              animate={{ x: [-10, 0, -10], y: [-5, 0, -5] }}
-              transition={{ duration: 0.6, repeat: Infinity, ease: "linear", delay: 0.3 }}
-            />
+              {/* 头部与斗笠 */}
+              <circle cx="0" cy="-3" r="4.5" fill="#FED7AA" />
+              {/* 斗笠 */}
+              <polygon points="-12,-4 0,-14 12,-4" fill="#D2B48C" />
+              <line x1="0" y1="-14" x2="0" y2="-4" stroke="#92400E" strokeWidth="0.8" opacity="0.5" />
 
-            {/* Body (Robes) */}
-            <path d="M 20 60 Q 35 40 50 60 L 60 100 Q 35 115 15 100 Z" fill={timePhase === "night" ? "#334155" : "#f59e0b"} className="transition-colors duration-1000" />
-            <path d="M 25 60 Q 35 50 45 60 L 50 100 Q 35 105 20 100 Z" fill={timePhase === "night" ? "#1e293b" : "#d97706"} className="transition-colors duration-1000" />
+              {/* 行走竹杖 (Walking Bamboo Staff) */}
+              <motion.line
+                x1="8"
+                y1="-6"
+                x2="14"
+                y2="28"
+                stroke="#78350F"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                animate={{ rotate: [-8, 8, -8] }}
+                transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+                style={{ transformOrigin: "8px -6px" }}
+              />
 
-            {/* Head */}
-            <circle cx="35" cy="40" r="22" fill={timePhase === "night" ? "#94a3b8" : "#fcd34d"} className="transition-colors duration-1000" />
-            
-            {/* Face details */}
-            <g stroke={timePhase === "night" ? "#1e293b" : "#78350f"} className="transition-colors duration-1000">
-              <path d="M 25 38 Q 28 42 31 38" fill="none" strokeWidth="2" strokeLinecap="round" />
-              <path d="M 43 38 Q 46 42 49 38" fill="none" strokeWidth="2" strokeLinecap="round" />
-              <path d="M 33 48 Q 37 52 41 48" fill="none" strokeWidth="2" strokeLinecap="round" />
-            </g>
-            
-            {/* Blush */}
-            <circle cx="22" cy="44" r="3" fill="#f87171" opacity={timePhase === "night" ? "0.2" : "0.6"} className="transition-opacity duration-1000" />
-            <circle cx="52" cy="44" r="3" fill="#f87171" opacity={timePhase === "night" ? "0.2" : "0.6"} className="transition-opacity duration-1000" />
+              {/* 脚步踏行 (Steps) */}
+              <motion.ellipse
+                cx="-4"
+                cy="25"
+                rx="3.5"
+                ry="1.8"
+                fill="#451A03"
+                animate={{ x: [-2, 3, -2] }}
+                transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.ellipse
+                cx="4"
+                cy="25"
+                rx="3.5"
+                ry="1.8"
+                fill="#451A03"
+                animate={{ x: [3, -2, 3] }}
+                transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.g>
+          </g>
+        </svg>
+      </motion.div>
 
-            {/* Monk Beads */}
-            <path d="M 25 65 Q 35 75 45 65" fill="none" stroke={timePhase === "night" ? "#0f172a" : "#78350f"} strokeWidth="3" strokeLinecap="round" strokeDasharray="1 5" className="transition-colors duration-1000" />
-          </motion.g>
-        </motion.g>
-      </svg>
+      {/* ── 7. 优雅时光切换药丸 (Interactive Time-of-Day Pill Switcher) ── */}
+      {showTimeSwitcher && (
+        <div className="absolute top-4 right-4 z-40">
+          <div className="flex items-center gap-1 rounded-full border border-white/30 bg-white/20 p-1 backdrop-blur-xl shadow-lg dark:bg-black/30 dark:border-white/10">
+            <button
+              onClick={() => setManualTime("day")}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                timeMode === "day"
+                  ? "bg-amber-400 text-amber-950 shadow-sm font-semibold"
+                  : "text-white/80 hover:text-white"
+              }`}
+              title="清晨/白天"
+            >
+              <Sun className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">白天</span>
+            </button>
+            <button
+              onClick={() => setManualTime("dusk")}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                timeMode === "dusk"
+                  ? "bg-orange-500 text-white shadow-sm font-semibold"
+                  : "text-white/80 hover:text-white"
+              }`}
+              title="暮鼓黄昏"
+            >
+              <Sunset className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">黄昏</span>
+            </button>
+            <button
+              onClick={() => setManualTime("night")}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                timeMode === "night"
+                  ? "bg-indigo-600 text-white shadow-sm font-semibold"
+                  : "text-white/80 hover:text-white"
+              }`}
+              title="静夜繁星"
+            >
+              <Moon className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">夜晚</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -89,7 +89,7 @@ export function ZenLogo3D({ className = "" }: ZenLogo3DProps) {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="h-[88px] w-[88px] rounded-[26px] overflow-hidden"
+          className="h-[88px] w-[88px] rounded-full overflow-hidden"
         >
           {/* Logo 图像或占位符 */}
           {!imgError ? (
@@ -100,7 +100,7 @@ export function ZenLogo3D({ className = "" }: ZenLogo3DProps) {
               height={88}
               priority
               onError={() => setImgError(true)}
-              className="h-full w-full object-contain mix-blend-multiply dark:invert dark:mix-blend-screen"
+              className="h-full w-full object-cover"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-golden-deep via-ocher to-golden-rich">

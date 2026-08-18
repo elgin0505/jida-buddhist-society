@@ -15,10 +15,17 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     // 检查本地登录会话凭据
-    const authData = localStorage.getItem("jbs_auth_user");
-    const isAuthenticated = !!authData;
+    let isAuthenticated = false;
+    try {
+      const authData = localStorage.getItem("jbs_auth_user");
+      isAuthenticated = !!authData;
+    } catch (e) {
+      console.warn("localStorage access denied or failed", e);
+    }
 
-    if (pathname === "/auth") {
+    const isAuthPage = pathname === "/auth" || pathname === "/auth/";
+
+    if (isAuthPage) {
       if (isAuthenticated) {
         // 已登录用户访问登录页 -> 自动重定向至会员仪表板
         setAuthorized(false);

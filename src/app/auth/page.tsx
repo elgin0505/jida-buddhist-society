@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, User, Loader2, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { ZenLogo3D } from "@/components/ZenLogo3D";
+import { InkRippleButton } from "@/components/InkRippleButton";
 
 // Lazy-load 3D background to avoid SSR issues with Three.js
 const ZenBackground3D = dynamic(
@@ -57,15 +58,6 @@ export default function AuthPage() {
         </AnimatePresence>
       </div>
 
-      {/* ── 4. 底部装饰文字 ── */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        className="relative z-10 mt-10 text-center text-xs text-black/60 dark:text-black/40 dark:text-white/30 drop-shadow-sm"
-      >
-        🪷 以慈悲心行善，以智慧心修行
-      </motion.p>
     </div>
   );
 }
@@ -74,11 +66,10 @@ export default function AuthPage() {
  *  玻璃态卡片样式 (共用)
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const GLASS_CARD_CLASS =
-  "rounded-3xl border border-white/20 dark:border-white/[0.08] " +
-  "bg-white/[0.12] dark:bg-black/20 " +
+  "rounded-3xl border border-white/40 dark:border-white/20 " +
+  "bg-white/20 dark:bg-black/30 " +
   "p-8 " +
   "shadow-[0_16px_64px_-12px_rgba(0,0,0,0.25),0_4px_24px_-4px_rgba(0,0,0,0.15)] " +
-  "ring-1 ring-white/10 " +
   "backdrop-blur-2xl";
 
 const INPUT_CLASS =
@@ -223,7 +214,7 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
         </div>
 
         {/* 提交按钮 */}
-        <motion.button
+        <InkRippleButton
           type="submit"
           disabled={loading}
           whileHover={{ scale: loading ? 1 : 1.01 }}
@@ -248,7 +239,7 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
               className="absolute inset-0 bg-white"
             />
           )}
-        </motion.button>
+        </InkRippleButton>
 
         {/* 切换至注册 */}
         <p className="mt-6 text-center text-sm text-black/60 dark:text-white/45">
@@ -513,7 +504,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
         </div>
 
         {/* 提交按钮 */}
-        <motion.button
+        <InkRippleButton
           type="submit"
           disabled={loading}
           whileHover={{ scale: loading ? 1 : 1.01 }}
@@ -538,7 +529,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
               className="absolute inset-0 bg-white"
             />
           )}
-        </motion.button>
+        </InkRippleButton>
 
         {/* 切换至登录 */}
         <p className="mt-6 text-center text-sm text-black/60 dark:text-white/45">

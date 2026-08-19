@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { LogOut } from "lucide-react";
 
 const navItems = [
@@ -58,10 +57,8 @@ export function Navigation() {
           </div>
         </Link>
 
-        {/* 顶部导航与主题切换 */}
+        {/* 顶部导航 */}
         <div className="flex items-center gap-3">
-          <ThemeToggle />
-
           <nav className="hidden items-center gap-1 md:flex">
             {navItems.map(({ href, label, icon: Icon }) => {
               const isActive = pathname.startsWith(href);

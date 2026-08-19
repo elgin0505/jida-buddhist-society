@@ -7,10 +7,12 @@ import { Eye, EyeOff, Mail, Lock, User, Loader2, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { ZenLogo3D } from "@/components/ZenLogo3D";
 import { InkRippleButton } from "@/components/InkRippleButton";
+import { FloatingDharmaQuote } from "@/components/FloatingDharmaQuote";
+import { useZenAudio } from "@/hooks/useZenAudio";
 
-// Dynamic import AnimatedJourneyBackground (Time-Aware Parallax + Walking Monk + Interactive Boat)
-const AnimatedJourneyBackground = dynamic(
-  () => import("@/components/AnimatedJourneyBackground").then((mod) => ({ default: mod.AnimatedJourneyBackground })),
+// Dynamic import MindfulJourney (佛陀与十大弟子的恒河行脚)
+const MindfulJourney = dynamic(
+  () => import("@/components/MindfulJourney").then((mod) => ({ default: mod.MindfulJourney })),
   { ssr: false }
 );
 
@@ -21,10 +23,13 @@ export default function AuthPage() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12">
-      {/* ── 1. 漫漫求学与苦海慈航 · 3D 视差互动背景 ── */}
+      {/* ── 1. 佛陀与十大弟子的恒河行脚 · 视差互动背景 ── */}
       <Suspense fallback={null}>
-        <AnimatedJourneyBackground />
+        <MindfulJourney />
       </Suspense>
+
+      {/* ── 1.5. 侘寂浮空文字 (Wabi-Sabi Whitespace) ── */}
+      <FloatingDharmaQuote />
 
       {/* ── 2. 3D 悬浮 Logo ── */}
       <ZenLogo3D />
@@ -104,6 +109,7 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { playZenSound } = useZenAudio();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,6 +140,8 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
       if (data.memberId) {
         localStorage.setItem("currentMemberId", data.memberId);
       }
+
+      playZenSound(); // 触发空灵音效
 
       toast.success(`欢迎回来，${data.name}！`, {
         description: "正在跳转到仪表板…",
@@ -269,6 +277,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { playZenSound } = useZenAudio();
 
   const passwordStrength = getPasswordStrength(password);
 
@@ -306,6 +315,8 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
       if (data.memberId) {
         localStorage.setItem("currentMemberId", data.memberId);
       }
+
+      playZenSound(); // 触发空灵音效
 
       toast.success("注册成功，法喜充满！", {
         description: `您的专属会员编号为 ${data.memberCode || data.memberId}，正在为您开启修行空间…`,

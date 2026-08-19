@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { appendMemberToGoogleSheet } from "@/lib/googleSheets";
+import { syncUserToGoogleSheet } from "@/lib/googleSheetsSync";
 
 export async function POST(request: Request) {
   try {
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(password, 12);
     const parsedBirthday = birthday ? new Date(birthday) : null;
 
-    // 3. 创建独立 User 账户
+    // 3. 创建独立 User 登录账户
     const user = await prisma.user.create({
       data: {
         name,
@@ -62,23 +62,21 @@ export async function POST(request: Request) {
       },
     });
 
-    // 5. 自动同步数据至 Google Sheets (异步调用，不阻塞响应)
-    try {
-      await appendMemberToGoogleSheet({
-        memberId: member.memberId,
-        name: member.name,
-        email: member.email,
-        birthday: member.birthday,
-        createdAt: member.createdAt,
-        totalPoints: member.totalPoints,
-      });
-    } catch (sheetErr) {
-      console.error("⚠️ Google Sheets 同步非致命错误:", sheetErr);
-    }
+    // 5. 安全调用 Google Sheets 同步逻辑 (内部有 try-catch 拦截，确保主流程绝不崩溃)
+    await syncUserToGoogleSheet({
+      memberId: member.memberId,
+      memberCode: member.memberId,
+      name: member.name,
+      email: member.email,
+      birthday: member.birthday,
+      createdAt: member.createdAt,
+      totalPoints: member.totalPoints,
+    });
 
     // 6. 返回成功注册的会话信息
     return NextResponse.json(
       {
+        message: "注册成功",
         id: user.id,
         name: user.name,
         email: user.email,
@@ -88,7 +86,7 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Register error:", error);
+    console.error("注册 API 发生严重错误:", error);
     return NextResponse.json(
       { error: "注册失败，请稍后重试" },
       { status: 500 }

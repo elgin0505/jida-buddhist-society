@@ -73,15 +73,15 @@ export default function RewardsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
         >
-          <Card className="mb-6 flex items-center justify-between bg-gradient-to-r from-golden-deep/5 to-ocher-light/20 dark:from-slate-800 dark:to-slate-800/80 dark:border-white/10">
+          <Card className="mb-6 flex items-center justify-between bg-gradient-to-r from-warm-white/95 via-warm-cream/90 to-ocher-light/40 border-2 border-golden-deep/35 shadow-md">
             <div>
-              <p className="text-sm text-muted dark:text-slate-400">当前可用积分</p>
+              <p className="text-xs font-bold text-golden-rich uppercase tracking-wider">当前可用积分</p>
               <motion.p
                 key={currentMember.totalPoints}
                 initial={{ scale: 1.15, color: "#2d6a4f" }}
                 animate={{ scale: 1, color: "#b8860b" }}
                 transition={{ duration: 0.4 }}
-                className="text-3xl font-bold"
+                className="text-4xl font-extrabold text-golden-rich mt-1"
               >
                 {currentMember.totalPoints}
               </motion.p>

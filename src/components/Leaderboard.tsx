@@ -36,13 +36,13 @@ export function Leaderboard({ members, currentMemberId }: LeaderboardProps) {
           <h4 className="text-lg font-bold text-charcoal dark:text-white">精进功德榜</h4>
         </div>
 
-        <div className="flex rounded-xl bg-ocher-light/30 dark:bg-slate-800/80 p-1 text-xs font-semibold">
+        <div className="flex rounded-xl bg-ocher-light/40 border border-ocher/30 p-1 text-xs font-semibold">
           <button
             onClick={() => setTab("points")}
             className={`rounded-lg px-3 py-1.5 transition-all ${
               tab === "points"
-                ? "bg-white dark:bg-slate-700 text-golden-rich shadow-sm"
-                : "text-muted dark:text-slate-400 hover:text-charcoal dark:hover:text-white"
+                ? "bg-white text-golden-rich shadow-sm font-bold"
+                : "text-muted hover:text-charcoal"
             }`}
           >
             功德榜
@@ -85,11 +85,11 @@ export function Leaderboard({ members, currentMemberId }: LeaderboardProps) {
                 </div>
 
                 {/* 姓名与积分 */}
-                <p className="w-full truncate text-center text-xs font-bold text-charcoal dark:text-white">
+                <p className="w-full truncate text-center text-xs font-bold text-charcoal">
                   {member.name}
                 </p>
                 <p className="text-[11px] font-bold text-golden-rich">
-                  {member.totalPoints} <span className="text-[9px] font-normal text-muted dark:text-slate-400">分</span>
+                  {member.totalPoints} <span className="text-[9px] font-normal text-muted">分</span>
                 </p>
 
                 {/* 领奖台台柱 */}
@@ -123,22 +123,22 @@ export function Leaderboard({ members, currentMemberId }: LeaderboardProps) {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className={`flex items-center justify-between rounded-xl px-4 py-3 transition-all ${
+                className={`flex items-center justify-between rounded-xl px-4 py-3 transition-all border ${
                   isCurrent
-                    ? "bg-golden-deep/15 border border-golden-deep/40 shadow-sm"
-                    : "bg-warm-cream/40 dark:bg-slate-800/50 hover:bg-warm-cream/70 dark:hover:bg-slate-800/80"
+                    ? "bg-golden-deep/15 border-golden-deep/40 shadow-sm"
+                    : "bg-warm-cream/50 border-ocher/20 hover:bg-warm-cream/80"
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocher-light/50 dark:bg-slate-700 text-xs font-bold text-muted dark:text-slate-400">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocher-light/60 text-xs font-bold text-golden-rich border border-ocher/30">
                     {rank}
                   </span>
                   <MemberAvatar name={member.name} photo={member.photo} size="sm" />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-charcoal dark:text-white">
+                    <p className="truncate text-sm font-bold text-charcoal">
                       {member.name} {isCurrent && <span className="text-[10px] text-golden-rich">(我)</span>}
                     </p>
-                    <p className="text-[11px] text-muted dark:text-slate-400">{member.memberId}</p>
+                    <p className="text-[11px] text-muted">{member.memberId}</p>
                   </div>
                 </div>
 

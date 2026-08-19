@@ -22,10 +22,10 @@ interface StatCardProps {
 }
 
 const accentStyles = {
-  golden: "bg-golden-deep/10 text-golden-rich",
-  jade: "bg-jade/10 text-jade",
-  sapphire: "bg-sapphire/10 text-sapphire",
-  carmine: "bg-carmine/10 text-carmine",
+  golden: "bg-gradient-to-br from-amber-200/50 to-amber-300/30 text-golden-rich border border-golden-deep/30 shadow-sm",
+  jade: "bg-gradient-to-br from-emerald-100 to-emerald-200/40 text-jade border border-jade/30 shadow-sm",
+  sapphire: "bg-gradient-to-br from-sky-100 to-sky-200/40 text-sapphire border border-sapphire/30 shadow-sm",
+  carmine: "bg-gradient-to-br from-rose-100 to-rose-200/40 text-carmine border border-carmine/30 shadow-sm",
 };
 
 export function StatCard({ label, value, icon, accent = "golden" }: StatCardProps) {
@@ -33,13 +33,13 @@ export function StatCard({ label, value, icon, accent = "golden" }: StatCardProp
     <Card hover>
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-muted dark:text-slate-400">{label}</p>
-          <p className="mt-1 text-3xl font-bold tracking-tight text-charcoal dark:text-white">
+          <p className="text-xs font-bold text-golden-rich uppercase tracking-wider">{label}</p>
+          <p className="mt-1.5 text-3xl font-extrabold tracking-tight text-charcoal">
             {value}
           </p>
         </div>
         <div
-          className={`flex h-11 w-11 items-center justify-center rounded-xl ${accentStyles[accent]}`}
+          className={`flex h-12 w-12 items-center justify-center rounded-2xl ${accentStyles[accent]}`}
         >
           {icon}
         </div>
@@ -78,14 +78,14 @@ export function Badge({
   className?: string;
 }) {
   const styles = {
-    golden: "bg-golden-deep/10 text-golden-rich border-golden-deep/20",
-    jade: "bg-jade/10 text-jade border-jade/20",
-    sapphire: "bg-sapphire/10 text-sapphire border-sapphire/20",
-    carmine: "bg-carmine/10 text-carmine border-carmine/20",
+    golden: "bg-golden-deep/15 text-golden-rich border-golden-deep/30 shadow-xs",
+    jade: "bg-jade/15 text-jade border-jade/30 shadow-xs",
+    sapphire: "bg-sapphire/15 text-sapphire border-sapphire/30 shadow-xs",
+    carmine: "bg-carmine/15 text-carmine border-carmine/30 shadow-xs",
   };
 
   return (
-    <span className={`inline-flex items-center rounded-lg border px-2.5 py-0.5 text-xs font-semibold ${styles[variant]} ${className}`}>
+    <span className={`inline-flex items-center rounded-lg border px-2.5 py-0.5 text-xs font-bold ${styles[variant]} ${className}`}>
       {children}
     </span>
   );
@@ -102,11 +102,11 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-ocher-light/40 dark:bg-slate-800 text-golden-rich">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200/50 border border-golden-deep/30 text-golden-rich shadow-sm">
         {icon}
       </div>
-      <h3 className="text-lg font-semibold text-charcoal dark:text-white">{title}</h3>
-      <p className="mt-1 max-w-sm text-sm text-muted dark:text-slate-400">{description}</p>
+      <h3 className="text-lg font-bold text-charcoal">{title}</h3>
+      <p className="mt-1 max-w-sm text-sm text-muted">{description}</p>
     </div>
   );
 }

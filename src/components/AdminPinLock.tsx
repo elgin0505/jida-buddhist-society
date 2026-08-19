@@ -213,11 +213,6 @@ export function AdminPinLock({ children }: AdminPinLockProps) {
             </svg>
           </button>
         </div>
-
-        {/* 默认密码温馨提示 */}
-        <p className="mt-6 text-[11px] text-muted/80">
-          💡 初始管理员密码为：<code className="rounded bg-ocher-light/50 px-1.5 py-0.5 font-bold text-golden-rich">1080</code>
-        </p>
       </motion.div>
     </div>
   );

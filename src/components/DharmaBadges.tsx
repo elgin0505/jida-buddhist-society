@@ -260,16 +260,16 @@ export function DharmaBadges({
               onClick={() => setSelectedBadge(badge)}
               className={`group relative flex flex-col items-center rounded-2xl p-4 text-center transition-all border ${
                 badge.unlocked
-                  ? "bg-white/80 dark:bg-slate-800/90 border-golden-deep/30 shadow-md hover:shadow-lg hover:border-golden-deep"
-                  : "bg-warm-cream/30 dark:bg-slate-800/30 border-dashed border-ocher/30 dark:border-white/10 opacity-60 hover:opacity-85"
+                  ? "bg-gradient-to-br from-warm-white/95 to-warm-cream/90 border-2 border-golden-deep/30 shadow-md hover:shadow-lg hover:border-golden-deep"
+                  : "bg-warm-cream/40 border-dashed border-ocher/40 opacity-60 hover:opacity-85"
               }`}
             >
               {/* 勋章图标 */}
               <div
                 className={`relative mb-2 flex h-14 w-14 items-center justify-center rounded-2xl text-2xl transition-transform group-hover:scale-110 ${
                   badge.unlocked
-                    ? "bg-gradient-to-br from-amber-100 to-amber-300 dark:from-slate-700 dark:to-slate-600 shadow-md ring-2 ring-golden-deep/40 text-charcoal"
-                    : "bg-ocher-light/20 dark:bg-slate-700/50 grayscale text-muted"
+                    ? "bg-gradient-to-br from-amber-100 to-amber-300 shadow-md ring-2 ring-golden-deep/40 text-charcoal"
+                    : "bg-ocher-light/20 grayscale text-muted"
                 }`}
               >
                 {badge.icon}
@@ -280,8 +280,8 @@ export function DharmaBadges({
                 )}
               </div>
 
-              <p className="text-xs font-bold text-charcoal dark:text-slate-100">{badge.name}</p>
-              <p className="mt-1 line-clamp-1 text-[10px] text-muted dark:text-slate-400">
+              <p className="text-xs font-bold text-charcoal">{badge.name}</p>
+              <p className="mt-1 line-clamp-1 text-[10px] text-muted">
                 {badge.description}
               </p>
 
@@ -316,15 +316,15 @@ export function DharmaBadges({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.88, y: 20 }}
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="relative z-10 w-full max-w-sm overflow-hidden rounded-3xl border border-white/80 dark:border-white/10 bg-warm-white/95 dark:bg-slate-800 p-7 shadow-2xl backdrop-blur-2xl text-center"
+              className="relative z-10 w-full max-w-sm overflow-hidden rounded-3xl border-2 border-golden-deep/40 bg-gradient-to-br from-warm-white/95 via-warm-cream/90 to-ocher-light/40 p-7 shadow-2xl backdrop-blur-2xl text-center"
             >
               {/* 勋章大徽章展示与光晕 */}
               <div className="relative my-4 flex items-center justify-center">
                 <div
                   className={`flex h-24 w-24 items-center justify-center rounded-3xl text-5xl shadow-2xl ring-4 ${
                     selectedBadge.unlocked
-                      ? "bg-gradient-to-tr from-amber-300 via-amber-400 to-yellow-200 dark:from-slate-700 dark:to-slate-600 ring-golden-deep/50 animate-pulse"
-                      : "bg-ocher-light/30 dark:bg-slate-700/50 ring-ocher/30 dark:ring-white/10 grayscale"
+                      ? "bg-gradient-to-tr from-amber-300 via-amber-400 to-yellow-200 ring-golden-deep/50 animate-pulse"
+                      : "bg-ocher-light/30 ring-ocher/30 grayscale"
                   }`}
                 >
                   {selectedBadge.icon}
@@ -332,7 +332,7 @@ export function DharmaBadges({
               </div>
 
               <div className="flex items-center justify-center gap-2">
-                <h4 className="text-xl font-bold text-charcoal dark:text-white">
+                <h4 className="text-xl font-bold text-charcoal">
                   {selectedBadge.name}
                 </h4>
                 <span
@@ -351,7 +351,7 @@ export function DharmaBadges({
               </p>
 
               {/* 禅意法义寄语 */}
-              <div className="my-5 rounded-2xl bg-white/70 dark:bg-slate-700/50 p-4 border border-ocher/15 dark:border-white/10 text-xs text-golden-rich font-serif italic">
+              <div className="my-5 rounded-2xl bg-white/80 p-4 border border-ocher/30 text-xs text-golden-rich font-serif italic shadow-inner">
                 “{selectedBadge.quote}”
               </div>
 

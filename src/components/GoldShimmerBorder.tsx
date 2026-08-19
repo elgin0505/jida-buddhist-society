@@ -33,7 +33,7 @@ export function GoldShimmerBorder({
       />
 
       {/* 内部主体内容（衬在毛玻璃底层之上） */}
-      <div className="relative z-10 rounded-[22px] bg-white/70 dark:bg-slate-900/80 backdrop-blur-xl">
+      <div className="relative z-10 rounded-[22px] bg-gradient-to-br from-warm-white/95 via-warm-cream/90 to-ocher-light/40 backdrop-blur-xl">
         {children}
       </div>
     </div>

@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma, recalculateMemberPoints } from "@/lib/prisma";
-import { logRedemptionToGoogleSheet } from "@/lib/googleSheets";
+import { logRedemptionToGoogleSheet, syncRewardsFromGoogleSheet } from "@/lib/googleSheets";
 
 export async function GET() {
-  const rewards = await prisma.reward.findMany({
-    orderBy: { pointsRequired: "asc" },
-  });
-
-  return NextResponse.json(rewards);
+  try {
+    const rewards = await syncRewardsFromGoogleSheet();
+    return NextResponse.json(rewards);
+  } catch (error) {
+    console.error("Failed to fetch rewards:", error);
+    const fallbackRewards = await prisma.reward.findMany({
+      orderBy: { pointsRequired: "asc" },
+    });
+    return NextResponse.json(fallbackRewards);
+  }
 }
 
 export async function POST(request: Request) {

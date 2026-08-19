@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { syncEventsFromGoogleSheet } from "@/lib/googleSheets";
 
 export async function GET() {
-  const events = await prisma.event.findMany({
-    orderBy: { dateTime: "asc" },
-  });
-
-  return NextResponse.json(events);
+  try {
+    const events = await syncEventsFromGoogleSheet();
+    return NextResponse.json(events);
+  } catch (error) {
+    console.error("Failed to fetch events:", error);
+    const fallbackEvents = await prisma.event.findMany({
+      orderBy: { dateTime: "asc" },
+    });
+    return NextResponse.json(fallbackEvents);
+  }
 }
 
 export async function POST(request: Request) {

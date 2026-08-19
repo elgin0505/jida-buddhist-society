@@ -175,7 +175,7 @@ function EventCard({ event, upcoming = false }: { event: Event; upcoming?: boole
       )}
 
       <div className="mb-3 flex items-start gap-3">
-        <div className="flex h-14 w-14 flex-shrink-0 flex-col items-center justify-center rounded-xl bg-golden-deep/10 dark:bg-slate-800/50 border border-golden-deep/20 dark:border-white/10 shadow-inner">
+        <div className="flex h-14 w-14 flex-shrink-0 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-amber-100 to-amber-200/60 border border-golden-deep/30 shadow-inner">
           <span className="text-xs font-bold text-golden-rich">
             {date.toLocaleDateString("zh-CN", { month: "short" })}
           </span>
@@ -184,15 +184,15 @@ function EventCard({ event, upcoming = false }: { event: Event; upcoming?: boole
           </span>
         </div>
         <div className="min-w-0 flex-1 pr-6">
-          <h4 className="font-semibold text-charcoal dark:text-white">{event.name}</h4>
-          <p className="mt-0.5 text-xs text-muted dark:text-slate-400">
+          <h4 className="font-bold text-charcoal">{event.name}</h4>
+          <p className="mt-0.5 text-xs text-muted">
             {date.toLocaleString("zh-CN", { weekday: "long", hour: "2-digit", minute: "2-digit" })}
           </p>
         </div>
       </div>
 
       {event.description && (
-        <p className="mb-3 text-sm leading-relaxed text-muted dark:text-slate-400 line-clamp-2">
+        <p className="mb-3 text-sm leading-relaxed text-muted line-clamp-2">
           {event.description}
         </p>
       )}
@@ -212,12 +212,12 @@ function EventCard({ event, upcoming = false }: { event: Event; upcoming?: boole
 
       {/* 底部操作行：同步日历 */}
       {upcoming && (
-        <div className="relative pt-3 border-t border-ocher/15 dark:border-white/10 flex items-center justify-end gap-2">
+        <div className="relative pt-3 border-t border-ocher/20 flex items-center justify-end gap-2">
           {/* 同步日历下拉按钮 */}
           <div className="relative">
             <button
               onClick={() => setShowCalendarMenu(!showCalendarMenu)}
-              className="flex items-center gap-1.5 rounded-xl border border-ocher/40 dark:border-white/10 bg-white/80 dark:bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-charcoal dark:text-white hover:bg-ocher-light/30 dark:hover:bg-slate-700 transition-all"
+              className="flex items-center gap-1.5 rounded-xl border border-ocher/50 bg-white/90 px-3 py-1.5 text-xs font-bold text-charcoal hover:bg-ocher-light/40 transition-all shadow-xs"
             >
               <svg className="h-3.5 w-3.5 text-golden-rich" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -233,18 +233,18 @@ function EventCard({ event, upcoming = false }: { event: Event; upcoming?: boole
                   initial={{ opacity: 0, scale: 0.9, y: 8 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 8 }}
-                  className="absolute right-0 bottom-full mb-2 z-30 w-48 rounded-2xl border border-white/80 dark:border-white/10 bg-warm-white/95 dark:bg-slate-800 p-2 shadow-xl backdrop-blur-xl"
+                  className="absolute right-0 bottom-full mb-2 z-30 w-48 rounded-2xl border-2 border-golden-deep/30 bg-warm-white/98 p-2 shadow-xl backdrop-blur-xl"
                 >
                   <button
                     onClick={downloadICS}
-                    className="flex w-full items-center gap-2 rounded-xl p-2 text-left text-xs font-semibold text-charcoal dark:text-white hover:bg-ocher-light/30 dark:hover:bg-slate-700 transition-colors"
+                    className="flex w-full items-center gap-2 rounded-xl p-2 text-left text-xs font-bold text-charcoal hover:bg-ocher-light/40 transition-colors"
                   >
                     <span>🍏</span>
                     Apple / 系统日历 (.ics)
                   </button>
                   <button
                     onClick={openGoogleCalendar}
-                    className="flex w-full items-center gap-2 rounded-xl p-2 text-left text-xs font-semibold text-charcoal dark:text-white hover:bg-ocher-light/30 dark:hover:bg-slate-700 transition-colors"
+                    className="flex w-full items-center gap-2 rounded-xl p-2 text-left text-xs font-bold text-charcoal hover:bg-ocher-light/40 transition-colors"
                   >
                     <span>🌐</span>
                     Google 日历 (网页跳转)

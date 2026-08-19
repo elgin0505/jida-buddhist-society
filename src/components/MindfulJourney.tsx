@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Sun, Sunset, Moon, Sparkles } from "lucide-react";
-import { useTheme } from "next-themes";
 
 export type TimeOfDay = "day" | "dusk" | "night";
 
@@ -24,8 +23,6 @@ export function MindfulJourney({
   forcedTimeMode,
   showTimeSwitcher = true,
 }: MindfulJourneyProps) {
-  const { setTheme } = useTheme();
-
   // ── 1. 时间感知系统 (Time-Aware System) ──
   const [detectedTime, setDetectedTime] = useState<TimeOfDay>("day");
   const [manualTime, setManualTime] = useState<TimeOfDay | null>(null);
@@ -42,15 +39,6 @@ export function MindfulJourney({
   }, []);
 
   const timeMode: TimeOfDay = forcedTimeMode || manualTime || detectedTime;
-
-  // 联动全局暗黑/明亮主题
-  useEffect(() => {
-    if (timeMode === "night") {
-      setTheme("dark");
-    } else {
-      setTheme("light");
-    }
-  }, [timeMode, setTheme]);
 
   // ── 2. 鼠标视差物理平滑过渡 (Smooth Parallax Physics) ──
   const mouseX = useMotionValue(0);

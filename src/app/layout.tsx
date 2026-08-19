@@ -45,7 +45,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" className={plusJakarta.variable} suppressHydrationWarning>
       <body className="font-sans">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <MemberProvider>
             <LoadingTransition />
             <Navigation />

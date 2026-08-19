@@ -169,7 +169,7 @@ export default function AdminCheckInPage() {
                       const event = events.find((ev) => ev.name === e.target.value);
                       if (event) setCustomPoints(event.points);
                     }}
-                    className="w-full rounded-xl border border-ocher/30 dark:border-white/10 bg-white/80 dark:bg-slate-800/80 px-4 py-2.5 text-sm dark:text-white focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
+                    className="w-full rounded-xl border border-ocher/40 bg-white/90 px-4 py-2.5 text-sm text-charcoal focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
                   >
                     {events.map((event) => (
                       <option key={event.id} value={event.name}>
@@ -180,13 +180,13 @@ export default function AdminCheckInPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-charcoal dark:text-slate-300">获得积分</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-charcoal">获得积分</label>
                   <input
                     type="number"
                     min={1}
                     value={customPoints}
                     onChange={(e) => setCustomPoints(e.target.value ? Number(e.target.value) : "")}
-                    className="w-full rounded-xl border border-ocher/30 dark:border-white/10 bg-white/80 dark:bg-slate-800/80 px-4 py-2.5 text-sm dark:text-white focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
+                    className="w-full rounded-xl border border-ocher/40 bg-white/90 px-4 py-2.5 text-sm text-charcoal focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
                   />
                 </div>
 
@@ -349,7 +349,7 @@ function ManualLookup({ onLookup }: { onLookup: (query: string) => void }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="输入会员ID或姓名"
-          className="flex-1 rounded-xl border border-ocher/30 dark:border-white/10 bg-white/80 dark:bg-slate-800/80 px-4 py-2.5 text-sm dark:text-white focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
+          className="flex-1 rounded-xl border border-ocher/40 bg-white/90 px-4 py-2.5 text-sm text-charcoal focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
           onKeyDown={(e) => e.key === "Enter" && query && onLookup(query)}
         />
         <button onClick={() => query && onLookup(query)} className="btn-secondary shrink-0">

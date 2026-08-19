@@ -37,14 +37,14 @@
     --bg-gradient-4: rgba(184, 134, 11, 0.08);
   }
 
-  /* ── 深夜佛堂 · 烛光微明 高级深色模式 ── */
+  /* ── 统一禅意暖金光泽 ── */
   .dark {
-    --bg-color: #090d16;
-    --text-color: #f8fafc;
-    --bg-gradient-1: rgba(255, 193, 7, 0.07);
-    --bg-gradient-2: rgba(45, 106, 79, 0.04);
-    --bg-gradient-3: rgba(232, 200, 114, 0.04);
-    --bg-gradient-4: rgba(184, 134, 11, 0.03);
+    --bg-color: #f5ede0;
+    --text-color: #2c2c2c;
+    --bg-gradient-1: rgba(201, 162, 39, 0.18);
+    --bg-gradient-2: rgba(45, 106, 79, 0.10);
+    --bg-gradient-3: rgba(232, 200, 114, 0.10);
+    --bg-gradient-4: rgba(184, 134, 11, 0.08);
   }
 
   body {
@@ -59,51 +59,36 @@
     min-height: 100vh;
     transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
-
-  /* 全局暗色水波纹/曼陀罗背景材质 (Pure CSS Texture) */
-  .dark body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.035;
-    background-image: 
-      radial-gradient(circle at 50% 50%, rgba(255, 193, 7, 0.8) 1px, transparent 1px),
-      radial-gradient(circle at 0% 0%, rgba(255, 193, 7, 0.6) 1.5px, transparent 1.5px),
-      radial-gradient(circle at 100% 100%, rgba(255, 193, 7, 0.6) 1.5px, transparent 1.5px);
-    background-size: 48px 48px, 96px 96px, 96px 96px;
-    background-position: 0 0, 24px 24px, 48px 48px;
-  }
 }
 
 @layer utilities {
-  /* ── 黑色毛玻璃卡片 (Glowing Glassmorphism) ── */
+  /* ── 温暖金黄琉璃毛玻璃卡片 (Warm Golden Glassmorphism) ── */
   .card {
-    @apply rounded-2xl border border-white/60 shadow-[0_8px_32px_-4px_rgba(201,162,39,0.14),0_2px_8px_-2px_rgba(0,0,0,0.06)] dark:border-white/10 dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.5)];
-    background: rgba(255, 251, 243, 0.65);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    transition: background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+    @apply rounded-2xl border-2 border-golden-deep/35 shadow-[0_12px_36px_-6px_rgba(201,162,39,0.22),0_4px_12px_-2px_rgba(201,162,39,0.1)];
+    background: linear-gradient(135deg, rgba(255, 252, 245, 0.92) 0%, rgba(250, 243, 230, 0.88) 50%, rgba(245, 230, 184, 0.55) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: all 0.35s ease;
   }
   
   .dark .card {
-    background: rgba(11, 15, 25, 0.65);
+    @apply rounded-2xl border-2 border-golden-deep/35 shadow-[0_12px_36px_-6px_rgba(201,162,39,0.22),0_4px_12px_-2px_rgba(201,162,39,0.1)];
+    background: linear-gradient(135deg, rgba(255, 252, 245, 0.92) 0%, rgba(250, 243, 230, 0.88) 50%, rgba(245, 230, 184, 0.55) 100%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
 
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-[0_16px_48px_-8px_rgba(201,162,39,0.25),0_4px_16px_-4px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_0_24px_rgba(255,193,7,0.18)] hover:-translate-y-1;
+    @apply transition-all duration-300 hover:shadow-[0_16px_48px_-8px_rgba(201,162,39,0.35),0_6px_20px_-4px_rgba(201,162,39,0.18)] hover:border-golden-deep/60 hover:-translate-y-1;
   }
 
   /* ── 烛光微明按钮 (Candlelight Glow Buttons) ── */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-golden-deep px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-golden-rich hover:shadow-lg dark:bg-gradient-to-r dark:from-amber-500 dark:to-amber-600 dark:hover:from-amber-400 dark:hover:to-amber-500 dark:shadow-[0_0_20px_rgba(255,193,7,0.35)] dark:hover:shadow-[0_0_28px_rgba(255,193,7,0.55)] active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-golden-deep px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-golden-rich hover:shadow-lg active:scale-[0.98];
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-ocher/40 dark:border-white/10 bg-white/60 dark:bg-black/35 px-5 py-2.5 text-sm font-semibold text-charcoal dark:text-white backdrop-blur-sm transition-all hover:bg-ocher-light/30 dark:hover:bg-slate-800/60 active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-ocher/50 bg-white/80 px-5 py-2.5 text-sm font-semibold text-charcoal backdrop-blur-sm transition-all hover:bg-ocher-light/40 active:scale-[0.98];
   }
 
   .btn-jade {

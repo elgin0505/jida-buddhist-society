@@ -86,8 +86,8 @@ function RewardCard({ reward, userPoints, onRedeem, isHighestTier, delay }: { re
   const progressPercentage = Math.min(100, Math.max(0, (userPoints / reward.pointsRequired) * 100));
 
   const CardContent = (
-    <div className="flex flex-col h-full bg-white/70 dark:bg-slate-800/80 backdrop-blur-md rounded-[22px] p-5 shadow-sm border border-white/40 dark:border-white/10">
-      <div className="mb-4 flex h-40 items-center justify-center rounded-xl bg-gradient-to-br from-ocher-light/30 to-warm-cream dark:from-slate-700/50 dark:to-slate-800/50 overflow-hidden">
+    <div className="flex flex-col h-full bg-gradient-to-br from-warm-white/95 via-warm-cream/90 to-ocher-light/40 backdrop-blur-md rounded-[22px] p-5 shadow-sm border-2 border-golden-deep/30">
+      <div className="mb-4 flex h-40 items-center justify-center rounded-xl bg-gradient-to-br from-ocher-light/30 to-warm-cream overflow-hidden border border-ocher/20">
         {reward.image ? (
           <img
             src={reward.image}
@@ -100,9 +100,9 @@ function RewardCard({ reward, userPoints, onRedeem, isHighestTier, delay }: { re
       </div>
 
       <div className="flex-1">
-        <h4 className="text-lg font-bold text-charcoal dark:text-white">{reward.name}</h4>
+        <h4 className="text-lg font-bold text-charcoal">{reward.name}</h4>
         {reward.description && (
-          <p className="mt-1.5 text-sm leading-relaxed text-muted dark:text-slate-400 line-clamp-2">
+          <p className="mt-1.5 text-sm leading-relaxed text-muted line-clamp-2">
             {reward.description}
           </p>
         )}
@@ -111,31 +111,31 @@ function RewardCard({ reward, userPoints, onRedeem, isHighestTier, delay }: { re
       <div className="mt-5 space-y-4">
         <div className="flex items-center justify-between">
           <Badge variant="golden">{reward.pointsRequired} 积分</Badge>
-          <span className="text-xs font-medium text-muted dark:text-slate-400">库存 {reward.stock}</span>
+          <span className="text-xs font-semibold text-muted">库存 {reward.stock}</span>
         </div>
         
         {/* 智能进度条与互动按钮 */}
-        <div className="pt-2 border-t border-ocher/10 dark:border-white/10">
+        <div className="pt-2 border-t border-ocher/20">
           {!canAfford ? (
             <div className="space-y-2">
-              <div className="flex justify-between text-[11px] font-semibold text-muted dark:text-slate-400">
+              <div className="flex justify-between text-[11px] font-bold text-muted">
                 <span>当前: {userPoints}</span>
                 <span>还差: {reward.pointsRequired - userPoints}</span>
               </div>
-              <div className="h-2.5 w-full bg-charcoal/5 dark:bg-white/5 rounded-full overflow-hidden shadow-inner">
+              <div className="h-2.5 w-full bg-ocher-light/40 rounded-full overflow-hidden shadow-inner border border-ocher/30">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercentage}%` }}
                   transition={{ duration: 1, ease: "easeOut" }}
-                  className="h-full bg-gradient-to-r from-ocher/40 to-ocher-light rounded-full"
+                  className="h-full bg-gradient-to-r from-golden-deep to-golden-rich rounded-full"
                 />
               </div>
-              <button disabled className="mt-2 w-full rounded-xl py-2.5 text-sm font-bold bg-charcoal/5 dark:bg-white/5 text-muted dark:text-slate-400 cursor-not-allowed transition-all">
+              <button disabled className="mt-2 w-full rounded-xl py-2.5 text-sm font-bold bg-ocher-light/30 text-muted/70 cursor-not-allowed transition-all border border-ocher/20">
                 积分不足
               </button>
             </div>
           ) : !inStock ? (
-             <button disabled className="mt-2 w-full rounded-xl py-2.5 text-sm font-bold bg-charcoal/5 dark:bg-white/5 text-muted dark:text-slate-400 cursor-not-allowed transition-all">
+             <button disabled className="mt-2 w-full rounded-xl py-2.5 text-sm font-bold bg-ocher-light/30 text-muted/70 cursor-not-allowed transition-all border border-ocher/20">
                 已兑完
               </button>
           ) : (

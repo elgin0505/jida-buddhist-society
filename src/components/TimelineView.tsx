@@ -54,7 +54,7 @@ export function TimelineView({ attendances = [], redemptions = [] }: TimelineVie
 
   if (items.length === 0) {
     return (
-      <div className="py-12 text-center text-sm text-muted dark:text-slate-400">
+      <div className="py-12 text-center text-sm text-muted font-medium">
         暂无出勤或兑换记录
       </div>
     );
@@ -74,25 +74,25 @@ export function TimelineView({ attendances = [], redemptions = [] }: TimelineVie
             <motion.div key={item.id} variants={itemVariants} className="relative flex items-start gap-4 sm:gap-6">
               {/* 左侧：时间 */}
               <div className="w-[70px] shrink-0 text-right sm:w-[100px]">
-                <div className="text-xs font-bold text-charcoal dark:text-slate-200 sm:text-sm">
+                <div className="text-xs font-bold text-charcoal sm:text-sm">
                   {format(dateObj, "MM-dd", { locale: zhCN })}
                 </div>
-                <div className="mt-0.5 text-[10px] text-muted dark:text-slate-400 sm:text-xs">
+                <div className="mt-0.5 text-[10px] text-muted sm:text-xs">
                   {format(dateObj, "HH:mm")}
                 </div>
               </div>
 
               {/* 中间：发光圆点 */}
               <div className="relative mt-1 flex h-4 w-4 shrink-0 items-center justify-center">
-                <div className="absolute h-full w-full rounded-full bg-golden-deep/30 blur-[4px] dark:bg-golden-deep/50" />
+                <div className="absolute h-full w-full rounded-full bg-golden-deep/30 blur-[4px]" />
                 <div className="relative h-2 w-2 rounded-full bg-golden-rich shadow-[0_0_8px_rgba(255,179,0,0.8)]" />
               </div>
 
               {/* 右侧：卡片详情 */}
-              <div className="flex-1 rounded-2xl border border-white/60 bg-white/50 p-4 shadow-sm backdrop-blur-md transition-all hover:bg-white/70 dark:border-white/10 dark:bg-slate-800/50 dark:hover:bg-slate-800/70">
+              <div className="flex-1 rounded-2xl border-2 border-golden-deep/30 bg-gradient-to-r from-warm-white/95 via-warm-cream/90 to-ocher-light/35 p-4 shadow-sm backdrop-blur-md transition-all hover:border-golden-deep/60 hover:shadow-md">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h4 className="text-sm font-semibold text-charcoal dark:text-slate-100">
+                    <h4 className="text-sm font-bold text-charcoal">
                       {isAttendance ? `参加了 ${item.title}` : `兑换了 ${item.title}`}
                     </h4>
                   </div>

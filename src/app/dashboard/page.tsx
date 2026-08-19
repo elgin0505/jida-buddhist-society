@@ -25,6 +25,8 @@ import { DailyDharmaCard } from "@/components/DailyDharmaCard";
 import { DharmaBadges, DHARMA_LEVELS } from "@/components/DharmaBadges";
 import { TimelineView } from "@/components/TimelineView";
 import { motion, AnimatePresence } from "framer-motion";
+import { KaresansuiBackground } from "@/components/KaresansuiBackground";
+import { LivingBodhiTree } from "@/components/LivingBodhiTree";
 
 interface AttendanceRecord {
   id: string;
@@ -222,7 +224,11 @@ export default function DashboardPage() {
   const redemptionCount = detail?.redemptions.length ?? 0;
 
   return (
-    <PageWrapper page="dashboard">
+    <>
+      {/* ── 枯山水沙地底层（Canvas 固定全屏，z-index: -1） ── */}
+      <KaresansuiBackground />
+
+      <PageWrapper page="dashboard">
       {showBirthdayConfetti && (
         <div className="fixed inset-0 z-50 pointer-events-none">
           <Confetti 
@@ -361,18 +367,13 @@ export default function DashboardPage() {
                   <p className="mt-1 text-[10px] text-muted/60 dark:text-slate-400/60">点击头像更换照片</p>
                 </div>
 
-                <div className="text-center">
-                  <p className="text-sm font-medium text-muted dark:text-slate-400">总积分</p>
-                  <motion.p
-                    key={currentMember.totalPoints}
-                    initial={{ scale: 1.2, color: "#2d6a4f" }}
-                    animate={{ scale: 1, color: "#b8860b" }}
-                    transition={{ duration: 0.4 }}
-                    className="text-5xl font-bold tracking-tight"
-                  >
-                    {currentMember.totalPoints}
-                  </motion.p>
-                  <p className="mt-1 text-xs text-muted dark:text-slate-400">功德积分</p>
+                {/* ── 功德菩提树（积分可视化） ── */}
+                <div className="flex flex-col items-center">
+                  <p className="mb-1 text-xs font-medium text-muted dark:text-slate-400">功德积分</p>
+                  <LivingBodhiTree
+                    points={currentMember.totalPoints}
+                    size="sm"
+                  />
                 </div>
 
                 {/* 会员二维码（点击放大与下载） */}
@@ -583,5 +584,6 @@ export default function DashboardPage() {
         />
       )}
     </PageWrapper>
+    </>
   );
 }

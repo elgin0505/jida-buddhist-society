@@ -64,6 +64,7 @@ export function RewardsStore({ rewards, userPoints, onRedeem }: RewardsStoreProp
 
 function RewardCard({ reward, userPoints, onRedeem, isHighestTier, delay }: { reward: Reward; userPoints: number; onRedeem: (reward: Reward) => Promise<void>; isHighestTier: boolean; delay: number }) {
   const [redeeming, setRedeeming] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const canAfford = userPoints >= reward.pointsRequired;
   const inStock = reward.stock > 0;
   
@@ -88,11 +89,14 @@ function RewardCard({ reward, userPoints, onRedeem, isHighestTier, delay }: { re
   const CardContent = (
     <div className="flex flex-col h-full bg-gradient-to-br from-warm-white/95 via-warm-cream/90 to-ocher-light/40 backdrop-blur-md rounded-[22px] p-5 shadow-sm border-2 border-golden-deep/30">
       <div className="mb-4 flex h-40 items-center justify-center rounded-xl bg-gradient-to-br from-ocher-light/30 to-warm-cream overflow-hidden border border-ocher/20">
-        {reward.image ? (
+        {reward.image && !imageError ? (
           <img
             src={reward.image}
             alt={reward.name}
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
             className="h-full w-full object-cover transition-transform duration-500 hover:scale-110"
+            onError={() => setImageError(true)}
           />
         ) : (
           <RewardPlaceholderIcon />

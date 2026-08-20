@@ -12,7 +12,7 @@ import {
   MemberAvatar,
   EmptyState,
 } from "@/components/ui";
-import { useMember, MemberSelector } from "@/components/MemberContext";
+import { useMember } from "@/components/MemberContext";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Leaderboard } from "@/components/Leaderboard";
 import { LotusLoading } from "@/components/LotusLoading";
@@ -276,19 +276,16 @@ export default function DashboardPage() {
         title="会员仪表板"
         subtitle="查看个人资料、修持境界、积分汇总与出勤记录"
         action={
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowScanner(true)}
-              className="flex items-center gap-1.5 rounded-xl bg-jade/15 border border-jade/30 px-3.5 py-2 text-xs font-bold text-jade shadow-sm hover:bg-jade/25 transition-all active:scale-95"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
-                <rect x="7" y="7" width="10" height="10" rx="1" />
-              </svg>
-              扫一扫签到
-            </button>
-            <MemberSelector />
-          </div>
+          <button
+            onClick={() => setShowScanner(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-jade/15 border border-jade/30 px-3.5 py-2 text-xs font-bold text-jade shadow-sm hover:bg-jade/25 transition-all active:scale-95"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+              <rect x="7" y="7" width="10" height="10" rx="1" />
+            </svg>
+            扫一扫签到
+          </button>
         }
       />
 

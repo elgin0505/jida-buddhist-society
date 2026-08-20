@@ -48,9 +48,9 @@ export async function POST(request: Request) {
       },
     });
 
-    // 4. 创建关联的 Member 会员档案，生成唯一编号 (例如 JBS0001)
+    // 4. 创建关联的 Member 会员档案，生成唯一编号 (例如 FXH0001)
     const memberCount = await prisma.member.count();
-    const memberId = `JBS${String(memberCount + 1).padStart(4, "0")}`;
+    const memberId = `FXH${String(memberCount + 1).padStart(4, "0")}`;
 
     const member = await prisma.member.create({
       data: {

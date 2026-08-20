@@ -67,7 +67,7 @@ function doGet(e) {
 
     if (action === 'getRewards') {
       const sheet = getOrCreateSheet(ss, 'Rewards', [
-        '奖品名称 (Reward Name)', '所需积分 (Points Required)', '库存 (Stock)', '描述 (Description)'
+        '奖品名称 (Reward Name)', '所需积分 (Points Required)', '库存 (Stock)', '描述 (Description)', '图片链接 (Image URL)'
       ]);
       const data = sheet.getDataRange().getValues();
       const rows = data.slice(1);
@@ -76,6 +76,7 @@ function doGet(e) {
         pointsRequired: Number(r[1]) || 0,
         stock: Number(r[2]) || 0,
         description: String(r[3] || '').trim(),
+        image: String(r[4] || '').trim() || null,
       })).filter(rw => rw.name);
 
       return jsonResponse({ success: true, rewards });
@@ -263,3 +264,51 @@ function jsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
+/**
+ * 🛠️ 一键格式化并排版 Rewards 分页 (可在 Apps Script 编辑器中直接运行)
+ */
+function formatRewardsSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Rewards');
+  if (!sheet) {
+    sheet = ss.insertSheet('Rewards');
+  }
+
+  // 1. 设置表头
+  const headers = [
+    '奖品名称 (Reward Name)',
+    '所需功德分 (Points Required)',
+    '库存数量 (Stock)',
+    '奖品描述 (Description)',
+    '图片链接 (Image URL)'
+  ];
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+  // 2. 表头样式美化 (金色背景、白字加粗、居中、冻结首行)
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setBackground('#B45309'); // 佛学会典雅金色/赭色
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setFontWeight('bold');
+  headerRange.setFontSize(11);
+  headerRange.setHorizontalAlignment('center');
+  headerRange.setVerticalAlignment('middle');
+  sheet.setRowHeight(1, 36);
+  sheet.setFrozenRows(1);
+
+  // 3. 设置最佳列宽
+  sheet.setColumnWidth(1, 180); // 奖品名称
+  sheet.setColumnWidth(2, 130); // 所需积分
+  sheet.setColumnWidth(3, 100); // 库存
+  sheet.setColumnWidth(4, 320); // 描述
+  sheet.setColumnWidth(5, 360); // 图片链接
+
+  // 4. 数据区域自动对齐与换行
+  const maxRows = Math.max(sheet.getMaxRows(), 50);
+  sheet.getRange(2, 2, maxRows - 1, 2).setHorizontalAlignment('center'); // 积分和库存居中
+  sheet.getRange(2, 1, maxRows - 1, 5).setWrap(true); // 自动换行
+
+  SpreadsheetApp.getActiveSpreadsheet().toast('✅ Rewards 表格已成功排版美化！', '完成');
+}
+

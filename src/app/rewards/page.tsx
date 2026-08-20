@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, PageHeader, EmptyState } from "@/components/ui";
-import { useMember, MemberSelector } from "@/components/MemberContext";
+import { useMember } from "@/components/MemberContext";
 import { PageWrapper } from "@/components/PageWrapper";
 import { LotusLoading } from "@/components/LotusLoading";
 import { motion } from "framer-motion";
@@ -64,7 +64,6 @@ export default function RewardsPage() {
       <PageHeader
         title="积分商城"
         subtitle="使用功德积分兑换精美奖品，回馈您的修行与参与"
-        action={<MemberSelector />}
       />
 
       {currentMember && (

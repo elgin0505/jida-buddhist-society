@@ -98,7 +98,7 @@ export function TimelineView({ attendances = [], redemptions = [] }: TimelineVie
                   </div>
                   <div className="shrink-0">
                     <Badge variant={isAttendance ? "jade" : "carmine"} className="text-xs font-bold shadow-sm">
-                      {isAttendance ? "+" : "-"}{item.points} 功德
+                      {isAttendance ? `+${item.points} 功德` : `-${item.points} 积分`}
                     </Badge>
                   </div>
                 </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Card, PageHeader, Badge, MemberAvatar } from "@/components/ui";
+import { Card, PageHeader, Badge } from "@/components/ui";
 import { QRScanner } from "@/components/QRScanner";
 import { PageWrapper } from "@/components/PageWrapper";
 import { CheckInToast } from "@/components/CheckInToast";
@@ -34,7 +34,6 @@ export default function AdminCheckInPage() {
   const [selectedEvent, setSelectedEvent] = useState("");
   const [customPoints, setCustomPoints] = useState<number | "">("");
   const [showScanner, setShowScanner] = useState(false);
-  const [scannedMember, setScannedMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [recentCheckIns, setRecentCheckIns] = useState<
@@ -54,6 +53,9 @@ export default function AdminCheckInPage() {
         if (upcoming.length > 0) {
           setSelectedEvent(upcoming[0].name);
           setCustomPoints(upcoming[0].points);
+        } else if (data.length > 0) {
+          setSelectedEvent(data[0].name);
+          setCustomPoints(data[0].points);
         }
       });
 
@@ -62,26 +64,12 @@ export default function AdminCheckInPage() {
       .then(setRecentCheckIns);
   }, []);
 
-  const handleScan = useCallback(async (data: string) => {
-    setShowScanner(false);
-    setMessage(null);
-
-    const res = await fetch("/api/members");
-    const members: Member[] = await res.json();
-
-    const member =
-      members.find((m) => m.memberId === data) ??
-      members.find((m) => m.id === data);
-
-    if (member) {
-      setScannedMember(member);
-    } else {
-      setMessage({ type: "error", text: "未找到对应会员，请检查二维码" });
+  // 执行直接签到
+  const executeCheckInForMember = async (member: Member) => {
+    if (!selectedEvent) {
+      setMessage({ type: "error", text: "请先选择需要签到的活动" });
+      return;
     }
-  }, []);
-
-  const handleCheckIn = async () => {
-    if (!scannedMember || !selectedEvent) return;
 
     setLoading(true);
     setMessage(null);
@@ -94,7 +82,7 @@ export default function AdminCheckInPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          memberId: scannedMember.id,
+          memberId: member.id,
           eventName: selectedEvent,
           pointsEarned: points,
         }),
@@ -103,41 +91,78 @@ export default function AdminCheckInPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setMessage({ type: "error", text: data.error });
+        setMessage({ type: "error", text: data.error || "签到失败" });
       } else {
-        // 弹出 Spring 气泡
+        // 弹出 Spring 提示气泡
         setToast({
-          memberName: scannedMember.name,
-          memberId: scannedMember.memberId,
+          memberName: member.name,
+          memberId: member.memberId,
           pointsEarned: points,
         });
         setToastVisible(true);
+        setMessage({
+          type: "success",
+          text: `🎉 会员【${member.name} (${member.memberId})】签到成功！已发放 +${points} 功德积分。`,
+        });
 
-        setScannedMember(data.member);
+        // 刷新最近签到列表
         const logs = await fetch("/api/attendance").then((r) => r.json());
         setRecentCheckIns(logs);
       }
     } catch {
-      setMessage({ type: "error", text: "签到失败，请稍后重试" });
+      setMessage({ type: "error", text: "网络异常，签到失败，请稍后重试" });
     } finally {
       setLoading(false);
     }
   };
 
+  // 扫码直接完成签到
+  const handleScan = useCallback(
+    async (data: string) => {
+      setShowScanner(false);
+      setMessage(null);
+
+      try {
+        const res = await fetch("/api/members");
+        const members: Member[] = await res.json();
+
+        const trimmed = data.trim().toLowerCase();
+        const member =
+          members.find((m) => m.memberId.toLowerCase() === trimmed) ??
+          members.find((m) => m.id === data.trim());
+
+        if (member) {
+          await executeCheckInForMember(member);
+        } else {
+          setMessage({ type: "error", text: `未找到二维码对应的会员 (${data})，请检查二维码` });
+        }
+      } catch {
+        setMessage({ type: "error", text: "获取会员列表失败，请重试" });
+      }
+    },
+    [selectedEvent, customPoints, events]
+  );
+
+  // 手动输入查找并签到
   const handleManualLookup = async (memberIdInput: string) => {
     setMessage(null);
-    const res = await fetch("/api/members");
-    const members: Member[] = await res.json();
-    const member = members.find(
-      (m) =>
-        m.memberId.toLowerCase() === memberIdInput.toLowerCase() ||
-        m.name.includes(memberIdInput)
-    );
+    try {
+      const res = await fetch("/api/members");
+      const members: Member[] = await res.json();
+      const trimmed = memberIdInput.trim().toLowerCase();
+      const member = members.find(
+        (m) =>
+          m.memberId.toLowerCase() === trimmed ||
+          m.name.toLowerCase().includes(trimmed)
+      );
 
-    if (member) {
-      setScannedMember(member);
-    } else {
-      setMessage({ type: "error", text: "未找到会员" });
+      if (member) {
+        await executeCheckInForMember(member);
+      } else {
+        setMessage({ type: "error", text: `未找到匹配会员 "${memberIdInput}"` });
+      }
+    } catch {
+      setMessage({ type: "error", text: "查找会员失败，请稍后重试" });
     }
   };
 
@@ -146,10 +171,10 @@ export default function AdminCheckInPage() {
       <AdminPinLock>
         <PageHeader
           title="管理员签到"
-          subtitle="扫描会员二维码或手动查找，记录活动出勤并发放积分"
+          subtitle="选择活动后扫描会员二维码或手动查找，一键记录出勤并发放功德积分"
         />
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="max-w-2xl mx-auto space-y-6">
           {/* 签到操作卡 */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -157,11 +182,16 @@ export default function AdminCheckInPage() {
             transition={{ duration: 0.35 }}
           >
             <Card>
-              <h4 className="mb-4 text-lg font-semibold text-charcoal dark:text-white">签到操作</h4>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-bold text-charcoal">签到操作</h4>
+                <span className="text-xs font-semibold text-golden-rich bg-golden-deep/10 border border-golden-deep/20 px-2.5 py-1 rounded-full">
+                  ⚡ 扫码即自动完成签到
+                </span>
+              </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-charcoal dark:text-slate-300">选择活动</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-charcoal">选择活动</label>
                   <select
                     value={selectedEvent}
                     onChange={(e) => {
@@ -169,13 +199,17 @@ export default function AdminCheckInPage() {
                       const event = events.find((ev) => ev.name === e.target.value);
                       if (event) setCustomPoints(event.points);
                     }}
-                    className="w-full rounded-xl border border-ocher/40 bg-white/90 px-4 py-2.5 text-sm text-charcoal focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
+                    className="w-full rounded-xl border border-ocher/40 bg-white/90 px-4 py-2.5 text-sm text-charcoal font-medium focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20 shadow-xs"
                   >
-                    {events.map((event) => (
-                      <option key={event.id} value={event.name}>
-                        {event.name} (+{event.points} 积分)
-                      </option>
-                    ))}
+                    {events.length === 0 ? (
+                      <option value="">暂无活动（请先添加活动）</option>
+                    ) : (
+                      events.map((event) => (
+                        <option key={event.id} value={event.name}>
+                          {event.name} (+{event.points} 积分)
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 
@@ -186,25 +220,34 @@ export default function AdminCheckInPage() {
                     min={1}
                     value={customPoints}
                     onChange={(e) => setCustomPoints(e.target.value ? Number(e.target.value) : "")}
-                    className="w-full rounded-xl border border-ocher/40 bg-white/90 px-4 py-2.5 text-sm text-charcoal focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
+                    placeholder="请输入签到获得积分"
+                    className="w-full rounded-xl border border-ocher/40 bg-white/90 px-4 py-2.5 text-sm text-charcoal font-medium focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20 shadow-xs"
                   />
                 </div>
 
-                <button onClick={() => setShowScanner(true)} className="btn-jade w-full py-3">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                <button
+                  onClick={() => setShowScanner(true)}
+                  disabled={loading || !selectedEvent}
+                  className="btn-jade w-full py-3.5 text-base font-bold shadow-md hover:shadow-lg transition-all"
+                >
+                  <svg className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
                     <rect x="7" y="7" width="10" height="10" rx="1" />
                   </svg>
-                  扫描二维码签到
+                  {loading ? "正在处理签到..." : "开启摄像头扫描签到"}
                 </button>
 
-                <ManualLookup onLookup={handleManualLookup} />
+                <div className="pt-2 border-t border-ocher/20">
+                  <ManualLookup onLookup={handleManualLookup} />
+                </div>
               </div>
 
               {message && (
                 <div
-                  className={`mt-4 rounded-xl px-4 py-3 text-sm font-medium ${
-                    message.type === "success" ? "bg-jade/10 text-jade" : "bg-carmine/10 text-carmine"
+                  className={`mt-4 rounded-xl px-4 py-3 text-sm font-semibold border ${
+                    message.type === "success"
+                      ? "bg-jade/10 text-jade border-jade/30"
+                      : "bg-carmine/10 text-carmine border-carmine/30"
                   }`}
                 >
                   {message.text}
@@ -213,107 +256,54 @@ export default function AdminCheckInPage() {
             </Card>
           </motion.div>
 
-          {/* 会员信息卡 */}
+          {/* 最近签到记录 */}
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: 0.08 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
           >
             <Card>
-              <h4 className="mb-4 text-lg font-semibold text-charcoal dark:text-white">会员信息</h4>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-bold text-charcoal">最近签到记录</h4>
+                <span className="text-xs text-muted">实时更新</span>
+              </div>
 
-              {scannedMember ? (
-                <div className="space-y-4">
-                  <motion.div
-                    key={scannedMember.id}
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className="flex items-center gap-4"
-                  >
-                    <MemberAvatar name={scannedMember.name} photo={scannedMember.photo} size="md" />
-                    <div>
-                      <p className="text-lg font-semibold text-charcoal dark:text-white">{scannedMember.name}</p>
-                      <p className="text-sm text-muted dark:text-slate-400">{scannedMember.email}</p>
-                      <div className="mt-1 flex gap-2">
-                        <Badge variant="golden">{scannedMember.memberId}</Badge>
-                        <Badge variant="jade">{scannedMember.totalPoints} 积分</Badge>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  <button
-                    onClick={handleCheckIn}
-                    disabled={loading || !selectedEvent}
-                    className="btn-primary w-full py-3"
-                  >
-                    {loading ? "签到中..." : "确认签到"}
-                  </button>
-
-                  <button onClick={() => setScannedMember(null)} className="btn-secondary w-full">
-                    清除
-                  </button>
+              {recentCheckIns.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-ocher/20 text-muted">
+                        <th className="pb-3 pr-4 font-semibold">会员</th>
+                        <th className="pb-3 pr-4 font-semibold">活动</th>
+                        <th className="pb-3 pr-4 font-semibold">时间</th>
+                        <th className="pb-3 font-semibold">积分</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentCheckIns.slice(0, 10).map((log) => (
+                        <tr key={log.id} className="border-b border-ocher/10">
+                          <td className="py-3 pr-4">
+                            <span className="font-bold text-charcoal">{log.member.name}</span>
+                            <span className="ml-1 text-xs text-muted">({log.member.memberId})</span>
+                          </td>
+                          <td className="py-3 pr-4 text-muted font-medium">{log.eventName}</td>
+                          <td className="py-3 pr-4 text-muted text-xs font-medium">
+                            {new Date(log.dateTime).toLocaleString("zh-CN")}
+                          </td>
+                          <td className="py-3">
+                            <Badge variant="jade">+{log.pointsEarned}</Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
-                <div className="flex flex-col items-center py-12 text-center">
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-jade/10 text-jade">
-                    <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
-                      <rect x="7" y="7" width="10" height="10" rx="1" />
-                    </svg>
-                  </div>
-                  <p className="text-sm text-muted dark:text-slate-400">扫描会员二维码或手动查找会员</p>
-                </div>
+                <p className="py-8 text-center text-sm text-muted">暂无签到记录</p>
               )}
             </Card>
           </motion.div>
         </div>
-
-        {/* 最近签到记录 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.16 }}
-        >
-          <Card className="mt-6">
-            <h4 className="mb-4 text-lg font-semibold text-charcoal dark:text-white">最近签到记录</h4>
-            {recentCheckIns.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-ocher/20 dark:border-white/10 text-muted dark:text-slate-400">
-                      <th className="pb-3 pr-4 font-medium">会员</th>
-                      <th className="pb-3 pr-4 font-medium">活动</th>
-                      <th className="pb-3 pr-4 font-medium">时间</th>
-                      <th className="pb-3 font-medium">积分</th>
-                    </tr>
-                  </thead>
-                  <thead>
-                    <tr className="border-b border-ocher/20 dark:border-white/10 text-muted dark:text-slate-400">
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentCheckIns.slice(0, 10).map((log) => (
-                      <tr key={log.id} className="border-b border-ocher/10 dark:border-white/5">
-                        <td className="py-3 pr-4">
-                          <span className="font-medium text-charcoal dark:text-white">{log.member.name}</span>
-                          <span className="ml-1 text-xs text-muted dark:text-slate-500">({log.member.memberId})</span>
-                        </td>
-                        <td className="py-3 pr-4 text-muted dark:text-slate-400">{log.eventName}</td>
-                        <td className="py-3 pr-4 text-muted dark:text-slate-400">{new Date(log.dateTime).toLocaleString("zh-CN")}</td>
-                        <td className="py-3">
-                          <Badge variant="jade">+{log.pointsEarned}</Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="py-8 text-center text-sm text-muted dark:text-slate-400">暂无签到记录</p>
-            )}
-          </Card>
-        </motion.div>
 
         {showScanner && (
           <QRScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
@@ -342,18 +332,21 @@ function ManualLookup({ onLookup }: { onLookup: (query: string) => void }) {
 
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-charcoal dark:text-slate-300">手动查找会员</label>
+      <label className="mb-1.5 block text-sm font-semibold text-charcoal">手动输入查找签到</label>
       <div className="flex gap-2">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="输入会员ID或姓名"
-          className="flex-1 rounded-xl border border-ocher/40 bg-white/90 px-4 py-2.5 text-sm text-charcoal focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20"
+          placeholder="输入会员编号(如 JBS0001) 或姓名"
+          className="flex-1 rounded-xl border border-ocher/40 bg-white/90 px-4 py-2.5 text-sm text-charcoal font-medium focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20 shadow-xs"
           onKeyDown={(e) => e.key === "Enter" && query && onLookup(query)}
         />
-        <button onClick={() => query && onLookup(query)} className="btn-secondary shrink-0">
-          查找
+        <button
+          onClick={() => query && onLookup(query)}
+          className="btn-secondary shrink-0 font-bold"
+        >
+          一键签到
         </button>
       </div>
     </div>

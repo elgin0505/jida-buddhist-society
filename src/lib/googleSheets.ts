@@ -400,6 +400,39 @@ export async function syncEventsFromGoogleSheet() {
   });
 }
 
+/**
+ * 格式化图片链接：支持标准 URL、Google Drive 分享链接以及 =IMAGE() 公式
+ */
+function formatImageUrl(rawUrl: any): string | null {
+  if (!rawUrl) return null;
+  let str = String(rawUrl).trim();
+  if (!str) return null;
+
+  // 1. 如果是 Excel / Google Sheets 的 =IMAGE("...") 公式
+  const formulaMatch = str.match(/=IMAGE\(["'](.+?)["']\)/i);
+  if (formulaMatch && formulaMatch[1]) {
+    str = formulaMatch[1].trim();
+  }
+
+  // 2. 如果是 Google Drive 分享链接，自动转为高可用直接图片链接
+  const driveFileMatch = str.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFileMatch && driveFileMatch[1]) {
+    return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}`;
+  }
+
+  const driveIdMatch = str.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (str.includes("drive.google.com") && driveIdMatch && driveIdMatch[1]) {
+    return `https://lh3.googleusercontent.com/d/${driveIdMatch[1]}`;
+  }
+
+  // 3. 普通 http/https 图片链接
+  if (str.startsWith("http://") || str.startsWith("https://") || str.startsWith("/")) {
+    return str;
+  }
+
+  return null;
+}
+
 /* ─────────────────────────────────────────────────────────────
  * 5. 从 Google Sheets 读取商城法宝列表 (Rewards 表 ➔ 网页)
  * ───────────────────────────────────────────────────────────── */
@@ -418,11 +451,12 @@ export async function syncRewardsFromGoogleSheet() {
         "所需功德分 (Points Required)",
         "库存数量 (Stock)",
         "奖品描述 (Description)",
+        "图片链接 (Image URL)",
       ]);
 
       const res = await client.sheets.spreadsheets.values.get({
         spreadsheetId: client.spreadsheetId,
-        range: "Rewards!A2:D",
+        range: "Rewards!A2:E",
       });
       const rawRows = res.data.values || [];
       rewardRows = rawRows
@@ -432,6 +466,7 @@ export async function syncRewardsFromGoogleSheet() {
           pointsRequired: parseInt(String(r[1] || "0"), 10) || 0,
           stock: parseInt(String(r[2] || "10"), 10) || 10,
           description: String(r[3] || "").trim() || null,
+          image: formatImageUrl(r[4]),
         }));
       hasFetchedFromSheet = true;
     } else if (webhookUrl) {
@@ -443,6 +478,7 @@ export async function syncRewardsFromGoogleSheet() {
           pointsRequired: parseInt(String(rw.pointsRequired || "0"), 10) || 0,
           stock: parseInt(String(rw.stock || "10"), 10) || 10,
           description: String(rw.description || "").trim() || null,
+          image: formatImageUrl(rw.image),
         }));
         hasFetchedFromSheet = true;
       }
@@ -474,6 +510,7 @@ export async function syncRewardsFromGoogleSheet() {
               pointsRequired: rw.pointsRequired,
               stock: rw.stock,
               description: rw.description,
+              image: rw.image,
             },
           });
         } else {
@@ -483,11 +520,12 @@ export async function syncRewardsFromGoogleSheet() {
               pointsRequired: rw.pointsRequired,
               stock: rw.stock,
               description: rw.description,
+              image: rw.image,
             },
           });
         }
       }
-      console.log(`🔄 [GoogleSheets] 成功从表格同步 ${rewardRows.length} 个法宝奖品`);
+      console.log(`🔄 [GoogleSheets] 成功从表格同步 ${rewardRows.length} 个法宝奖品 (含图片链接)`);
     }
   } catch (err: any) {
     console.error("⚠️ [GoogleSheets] 从表格同步法宝失败 (将降级使用本地数据库):", err?.message || err);

@@ -292,10 +292,32 @@ export async function logRedemptionToGoogleSheet(payload: RedemptionSheetPayload
  * ───────────────────────────────────────────────────────────── */
 function parseDateSafely(val: any): Date {
   if (!val) return new Date();
-  const d = new Date(val);
+  if (val instanceof Date) return val;
+  let str = String(val).trim();
+  if (!str) return new Date();
+
+  // 1. 标准 Date 解析
+  const d = new Date(str);
   if (!isNaN(d.getTime())) return d;
-  const d2 = new Date(String(val).replace(/-/g, "/"));
+
+  // 2. 将连字符转斜杠
+  const d2 = new Date(str.replace(/-/g, "/"));
   if (!isNaN(d2.getTime())) return d2;
+
+  // 3. 处理中文日期格式如 2026年8月25日 19:30
+  const cnMatch = str.match(/(\d{4})年(\d{1,2})月(\d{1,2})日?\s*(\d{1,2})?:?(\d{1,2})?/);
+  if (cnMatch) {
+    const [, y, m, day, h, min] = cnMatch;
+    return new Date(Number(y), Number(m) - 1, Number(day), Number(h || 0), Number(min || 0));
+  }
+
+  // 4. 处理 DD/MM/YYYY 或 DD-MM-YYYY
+  const dmyMatch = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\s*(\d{1,2})?:?(\d{1,2})?/);
+  if (dmyMatch) {
+    const [, day, m, y, h, min] = dmyMatch;
+    return new Date(Number(y), Number(m) - 1, Number(day), Number(h || 0), Number(min || 0));
+  }
+
   return new Date();
 }
 

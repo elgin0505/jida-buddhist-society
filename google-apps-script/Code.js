@@ -312,3 +312,52 @@ function formatRewardsSheet() {
   SpreadsheetApp.getActiveSpreadsheet().toast('✅ Rewards 表格已成功排版美化！', '完成');
 }
 
+/**
+ * 🛠️ 一键格式化并排版 Events (活动列表) 分页
+ */
+function formatEventsSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Events');
+  if (!sheet) {
+    sheet = ss.insertSheet('Events');
+  }
+
+  // 1. 设置表头
+  const headers = [
+    '活动名称 (Event Name)',
+    '日期时间 (DateTime)',
+    '地点 (Location)',
+    '参与功德分 (Points)',
+    '活动描述 (Description)'
+  ];
+
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+  // 2. 表头样式美化 (金色背景、白字加粗、居中、冻结首行)
+  const headerRange = sheet.getRange(1, 1, 1, headers.length);
+  headerRange.setBackground('#B45309'); // 佛学会典雅金色/赭色
+  headerRange.setFontColor('#FFFFFF');
+  headerRange.setFontWeight('bold');
+  headerRange.setFontSize(11);
+  headerRange.setHorizontalAlignment('center');
+  headerRange.setVerticalAlignment('middle');
+  sheet.setRowHeight(1, 36);
+  sheet.setFrozenRows(1);
+
+  // 3. 设置最佳列宽
+  sheet.setColumnWidth(1, 180); // 活动名称
+  sheet.setColumnWidth(2, 170); // 日期时间
+  sheet.setColumnWidth(3, 140); // 地点
+  sheet.setColumnWidth(4, 110); // 功德分
+  sheet.setColumnWidth(5, 320); // 描述
+
+  // 4. 数据区域自动格式化 (B 列设为日期时间格式，D 列居中，开启自动换行)
+  const maxRows = Math.max(sheet.getMaxRows(), 50);
+  sheet.getRange(2, 2, maxRows - 1, 1).setNumberFormat('yyyy-mm-dd hh:mm'); // 日期时间格式
+  sheet.getRange(2, 4, maxRows - 1, 1).setHorizontalAlignment('center'); // 功德分居中
+  sheet.getRange(2, 1, maxRows - 1, 5).setWrap(true); // 自动换行
+
+  SpreadsheetApp.getActiveSpreadsheet().toast('✅ Events 活动表格已成功排版，B 列支持自由修改日期时间！', '完成');
+}
+
+

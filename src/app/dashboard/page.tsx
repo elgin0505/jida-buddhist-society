@@ -25,7 +25,7 @@ import { DailyDharmaCard } from "@/components/DailyDharmaCard";
 import { DharmaBadges, DHARMA_LEVELS } from "@/components/DharmaBadges";
 import { TimelineView } from "@/components/TimelineView";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast as sonnerToast } from "sonner";
 import { Camera } from "lucide-react";
 import { KaresansuiBackground } from "@/components/KaresansuiBackground";
 import { LivingBodhiTree } from "@/components/LivingBodhiTree";
@@ -197,18 +197,18 @@ export default function DashboardPage() {
       const data = await res.json();
       if (res.ok) {
         await refreshMembers();
-        toast.success("头像更新成功！", {
+        sonnerToast.success("头像更新成功！", {
           description: "全新庄严相貌已保存并实时展现。",
           icon: "🪷",
         });
         setUploadMsg("头像已更新！");
       } else {
-        toast.error(data.error || "上传失败");
+        sonnerToast.error(data.error || "上传失败");
         setUploadMsg(data.error || "上传失败");
       }
     } catch (err: any) {
       console.error("Avatar upload failed:", err);
-      toast.error(err?.message || "上传失败，请稍后重试");
+      sonnerToast.error(err?.message || "上传失败，请稍后重试");
       setUploadMsg("上传失败，请稍后重试");
     } finally {
       setUploading(false);

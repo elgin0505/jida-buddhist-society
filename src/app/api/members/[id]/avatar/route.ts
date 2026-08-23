@@ -10,7 +10,7 @@ export async function POST(
   try {
     const { id } = await params;
 
-    // 兼容通过 cuid (id) 或会员自定义编号 (memberId) 查询
+    // 兼容通过 cuid (id) 或会员编号 (memberId) 查询
     const member = await prisma.member.findFirst({
       where: {
         OR: [{ id }, { memberId: id }],
@@ -25,10 +25,10 @@ export async function POST(
     let photoUrl = "";
 
     const avatarDir = join(process.cwd(), "public", "avatars");
-    await mkdir(avatarDir, { recursive: true });
 
-    // 清理该会员历史上传的头像文件
+    // 尝试清理本地开发环境中的历史头像文件（非阻塞）
     try {
+      await mkdir(avatarDir, { recursive: true });
       const existingFiles = await readdir(avatarDir);
       const safePrefix = member.memberId.replace(/[^a-zA-Z0-9-_]/g, "_");
       for (const f of existingFiles) {
@@ -39,33 +39,28 @@ export async function POST(
     } catch {}
 
     if (contentType.includes("application/json")) {
-      // 1. JSON Base64 格式上传（极速、无需依赖临时多媒体解析）
+      // 1. JSON Base64 格式（全平台及 Vercel Serverless / PostgreSQL 强保证）
       const body = await request.json();
-      const { photoData, ext = "jpg" } = body;
+      const { photoData } = body;
 
       if (!photoData || typeof photoData !== "string") {
         return NextResponse.json({ error: "无效的图片数据" }, { status: 400 });
       }
 
-      // 提取 base64 实际数据
-      const base64Match = photoData.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
-      let buffer: Buffer;
-      let fileExt = ext;
+      // 直接以标准 Data URL 存入数据库，具备永久可用性，完全免疫无状态容器重置与只读文件系统
+      photoUrl = photoData;
 
-      if (base64Match) {
-        fileExt = base64Match[1] === "jpeg" ? "jpg" : base64Match[1];
-        buffer = Buffer.from(base64Match[2], "base64");
-      } else {
-        buffer = Buffer.from(photoData, "base64");
-      }
-
-      const timestamp = Date.now();
-      const safePrefix = member.memberId.replace(/[^a-zA-Z0-9-_]/g, "_");
-      const fileName = `${safePrefix}_${timestamp}.${fileExt}`;
-      const filePath = join(avatarDir, fileName);
-
-      await writeFile(filePath, buffer);
-      photoUrl = `/avatars/${fileName}?v=${timestamp}`;
+      // 尝试在本地环境写入静态文件备份（只读环境自动忽略）
+      try {
+        const base64Match = photoData.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+        if (base64Match) {
+          const fileExt = base64Match[1] === "jpeg" ? "jpg" : base64Match[1];
+          const buffer = Buffer.from(base64Match[2], "base64");
+          const safePrefix = member.memberId.replace(/[^a-zA-Z0-9-_]/g, "_");
+          const fileName = `${safePrefix}_${Date.now()}.${fileExt}`;
+          await writeFile(join(avatarDir, fileName), buffer).catch(() => {});
+        }
+      } catch {}
     } else {
       // 2. FormData 文件流上传
       const formData = await request.formData();
@@ -75,28 +70,24 @@ export async function POST(
         return NextResponse.json({ error: "未提供图片文件" }, { status: 400 });
       }
 
-      // 允许任意常见图像类型（包括 iPhone HEIC/HEIF 等）
       if (!file.type.startsWith("image/") && !file.name.match(/\.(jpg|jpeg|png|webp|gif|heic|heif)$/i)) {
         return NextResponse.json({ error: "请上传有效的图片文件" }, { status: 400 });
       }
 
-      if (file.size > 15 * 1024 * 1024) {
-        return NextResponse.json({ error: "图片文件过大，请使用 15MB 以内的图片" }, { status: 400 });
-      }
-
-      let rawExt = extname(file.name).replace(".", "").toLowerCase();
-      if (!rawExt || rawExt === "heic" || rawExt === "heif") {
-        rawExt = "jpg";
-      }
-
-      const timestamp = Date.now();
-      const safePrefix = member.memberId.replace(/[^a-zA-Z0-9-_]/g, "_");
-      const fileName = `${safePrefix}_${timestamp}.${rawExt}`;
-      const filePath = join(avatarDir, fileName);
-
       const arrayBuffer = await file.arrayBuffer();
-      await writeFile(filePath, Buffer.from(arrayBuffer));
-      photoUrl = `/avatars/${fileName}?v=${timestamp}`;
+      const buffer = Buffer.from(arrayBuffer);
+      const mimeType = file.type || "image/jpeg";
+      const base64String = buffer.toString("base64");
+      photoUrl = `data:${mimeType};base64,${base64String}`;
+
+      // 尝试在本地环境写入静态文件备份
+      try {
+        let rawExt = extname(file.name).replace(".", "").toLowerCase() || "jpg";
+        if (rawExt === "heic" || rawExt === "heif") rawExt = "jpg";
+        const safePrefix = member.memberId.replace(/[^a-zA-Z0-9-_]/g, "_");
+        const fileName = `${safePrefix}_${Date.now()}.${rawExt}`;
+        await writeFile(join(avatarDir, fileName), buffer).catch(() => {});
+      } catch {}
     }
 
     // 更新数据库中该会员的头像记录

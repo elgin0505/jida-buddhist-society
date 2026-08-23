@@ -18,7 +18,7 @@ export function FloatingDharmaQuote() {
       initial={{ opacity: 0, y: -15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 4, ease: "easeOut", delay: 0.5 }}
-      className="pointer-events-none absolute left-8 top-16 md:left-24 md:top-24 z-10 hidden sm:block"
+      className="pointer-events-none absolute left-8 top-16 md:left-24 md:top-24 z-10 hidden sm:block transform-gpu will-change-transform"
       style={{
         writingMode: "vertical-rl",
         textOrientation: "mixed",

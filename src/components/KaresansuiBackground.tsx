@@ -139,13 +139,22 @@ export function KaresansuiBackground() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // 设置 Canvas 尺寸为全屏
+    // 设置 Canvas 尺寸为全屏 (高刷 Retina DPR 适配，消除移动端与 Mac 屏幕发虚)
     const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      canvas.style.width = `${window.innerWidth}px`;
-      canvas.style.height = `${window.innerHeight}px`;
+      // 1. 获取设备物理像素比 (取 dpr，通常 Retina 为 2 或 3，上限锁在 2 兼顾极致锐利度与电池能耗)
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      // 2. 将底层位图物理分辨率放大至 dpr 倍 (例如 1080p 屏幕以 2160p 精度绘制)
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+
+      // 3. 通过 CSS 尺寸将其限制回屏幕实际视口尺寸 (保持 100vw * 100vh 呈现)
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      // 4. 缩放 2D 渲染上下文坐标系，使得后续所有 drawRake 和坐标计算仍使用常规 CSS 逻辑像素
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.scale(dpr, dpr);

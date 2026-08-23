@@ -49,6 +49,9 @@
 
   body {
     @apply antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     background-color: var(--bg-color);
     color: var(--text-color);
     background-image:
@@ -62,9 +65,9 @@
 }
 
 @layer utilities {
-  /* ── 温暖金黄琉璃毛玻璃卡片 (Warm Golden Glassmorphism) ── */
+  /* ── 温暖金黄琉璃毛玻璃卡片 (Warm Golden Glassmorphism & GPU Acceleration) ── */
   .card {
-    @apply rounded-2xl border-2 border-golden-deep/35 shadow-[0_12px_36px_-6px_rgba(201,162,39,0.22),0_4px_12px_-2px_rgba(201,162,39,0.1)];
+    @apply rounded-2xl border-2 border-golden-deep/35 shadow-[0_12px_36px_-6px_rgba(201,162,39,0.22),0_4px_12px_-2px_rgba(201,162,39,0.1)] transform-gpu will-change-transform;
     background: linear-gradient(135deg, rgba(255, 252, 245, 0.92) 0%, rgba(250, 243, 230, 0.88) 50%, rgba(245, 230, 184, 0.55) 100%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -72,7 +75,7 @@
   }
   
   .dark .card {
-    @apply rounded-2xl border-2 border-golden-deep/35 shadow-[0_12px_36px_-6px_rgba(201,162,39,0.22),0_4px_12px_-2px_rgba(201,162,39,0.1)];
+    @apply rounded-2xl border-2 border-golden-deep/35 shadow-[0_12px_36px_-6px_rgba(201,162,39,0.22),0_4px_12px_-2px_rgba(201,162,39,0.1)] transform-gpu will-change-transform;
     background: linear-gradient(135deg, rgba(255, 252, 245, 0.92) 0%, rgba(250, 243, 230, 0.88) 50%, rgba(245, 230, 184, 0.55) 100%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);

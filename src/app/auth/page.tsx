@@ -45,6 +45,7 @@ export default function AuthPage() {
               animate={{ opacity: 1, rotateY: 0 }}
               exit={{ opacity: 0, rotateY: 90 }}
               transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+              className="transform-gpu will-change-transform backface-hidden"
               style={{ perspective: 1200 }}
             >
               <LoginCard
@@ -59,6 +60,7 @@ export default function AuthPage() {
               animate={{ opacity: 1, rotateY: 0 }}
               exit={{ opacity: 0, rotateY: -90 }}
               transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+              className="transform-gpu will-change-transform backface-hidden"
               style={{ perspective: 1200 }}
             >
               <RegisterCard onSwitch={() => setMode("login")} />
@@ -70,6 +72,7 @@ export default function AuthPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -10 }}
               transition={{ duration: 0.35, ease: "easeOut" }}
+              className="transform-gpu will-change-transform"
             >
               <ForgotPasswordCard onBackToLogin={() => setMode("login")} />
             </motion.div>

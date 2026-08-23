@@ -6,6 +6,7 @@ import { LoadingTransition } from "@/components/LoadingTransition";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PWAInstaller } from "@/components/PWAInstaller";
+import { CinematicNoise } from "@/components/CinematicNoise";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -53,6 +54,7 @@ export default function RootLayout({
               <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
             </AuthGuard>
             <PWAInstaller />
+            <CinematicNoise />
             <Toaster position="top-center" richColors />
           </MemberProvider>
         </ThemeProvider>

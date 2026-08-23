@@ -57,49 +57,38 @@ export default function AuthPage() {
               transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
               style={{ perspective: 1200 }}
             >
-              <RegisterCard onSwitch={() => setMode("login")} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-    </div>
-  );
-}
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+              <RegisterCard onSwi/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  *  玻璃态卡片样式 (共用)
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const GLASS_CARD_CLASS =
-  "rounded-3xl border border-white/40 dark:border-white/20 " +
-  "bg-white/20 dark:bg-black/30 " +
+  "rounded-3xl border border-white/20 " +
+  "bg-black/35 backdrop-blur-2xl " +
   "p-8 " +
-  "shadow-[0_16px_64px_-12px_rgba(0,0,0,0.25),0_4px_24px_-4px_rgba(0,0,0,0.15)] " +
-  "backdrop-blur-2xl";
+  "shadow-[0_16px_64px_-12px_rgba(0,0,0,0.5),0_4px_24px_-4px_rgba(0,0,0,0.3)]";
 
 const INPUT_CLASS =
   "h-12 w-full rounded-xl " +
-  "border border-black/10 dark:border-white/10 dark:border-white/10 " +
-  "bg-black/[0.04] dark:bg-white/[0.06] " +
-  "pl-11 pr-4 text-sm text-black dark:text-white " +
-  "shadow-inner shadow-black/10 " +
+  "border border-white/15 " +
+  "bg-white/[0.08] " +
+  "pl-11 pr-4 text-sm text-white " +
+  "shadow-inner shadow-black/20 " +
   "outline-none transition-all " +
-  "placeholder:text-black/40 dark:text-white/30 " +
-  "focus:border-golden-deep/60 focus:ring-2 focus:ring-golden-deep/25 focus:bg-black/[0.06] dark:focus:bg-white/15 " +
+  "placeholder:text-white/40 " +
+  "focus:border-golden-rich/80 focus:ring-2 focus:ring-golden-rich/25 focus:bg-white/[0.12] " +
   "backdrop-blur-sm";
 
 const INPUT_PW_CLASS =
   "h-12 w-full rounded-xl " +
-  "border border-black/10 dark:border-white/10 dark:border-white/10 " +
-  "bg-black/[0.04] dark:bg-white/[0.06] " +
-  "pl-11 pr-12 text-sm text-black dark:text-white " +
-  "shadow-inner shadow-black/10 " +
+  "border border-white/15 " +
+  "bg-white/[0.08] " +
+  "pl-11 pr-12 text-sm text-white " +
+  "shadow-inner shadow-black/20 " +
   "outline-none transition-all " +
-  "placeholder:text-black/40 dark:text-white/30 " +
-  "focus:border-golden-deep/60 focus:ring-2 focus:ring-golden-deep/25 focus:bg-black/[0.06] dark:focus:bg-white/15 " +
+  "placeholder:text-white/40 " +
+  "focus:border-golden-rich/80 focus:ring-2 focus:ring-golden-rich/25 focus:bg-white/[0.12] " +
   "backdrop-blur-sm";
 
-const LABEL_CLASS = "mb-1.5 block text-xs font-semibold text-black/70 dark:text-white/70";
+const LABEL_CLASS = "mb-1.5 block text-xs font-semibold text-white/85";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  *  登录卡片
@@ -161,8 +150,8 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
   return (
     <form onSubmit={handleSubmit} autoComplete="on">
       <div className={GLASS_CARD_CLASS}>
-        <h2 className="mb-1 text-xl font-bold text-black dark:text-white">登录您的账户</h2>
-        <p className="mb-7 text-sm text-black/60 dark:text-white/50">
+        <h2 className="mb-1 text-xl font-bold text-white drop-shadow-sm">登录您的账户</h2>
+        <p className="mb-7 text-sm text-white/65">
           输入您的邮箱和密码，继续您的修行之旅
         </p>
 
@@ -172,7 +161,7 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
             电子邮箱
           </label>
           <div className="relative">
-            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/35" />
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
             <input
               id="login-email"
               name="email"
@@ -193,7 +182,7 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
             密码
           </label>
           <div className="relative">
-            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/35" />
+            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
             <input
               id="login-password"
               name="password"
@@ -209,7 +198,7 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
               type="button"
               tabIndex={-1}
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-black/40 dark:text-white/30 transition-colors hover:text-golden-deep"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-white/45 transition-colors hover:text-golden-rich"
               aria-label={showPassword ? "隐藏密码" : "显示密码"}
             >
               {showPassword ? (
@@ -227,7 +216,7 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
           disabled={loading}
           whileHover={{ scale: loading ? 1 : 1.01 }}
           whileTap={{ scale: loading ? 1 : 0.98 }}
-          className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-golden-deep to-golden-rich py-3 text-sm font-bold text-white shadow-lg shadow-golden-deep/30 transition-all disabled:opacity-60 dark:shadow-[0_0_24px_rgba(255,193,7,0.3)]"
+          className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-golden-deep via-golden-rich to-ocher-light py-3 text-sm font-bold text-white shadow-lg shadow-golden-deep/30 transition-all disabled:opacity-60"
         >
           <span className="relative z-10 flex items-center justify-center gap-2">
             {loading ? (
@@ -240,6 +229,30 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
             )}
           </span>
           {/* 呼吸发光 */}
+          {!loading && (
+            <motion.div
+              animate={{ opacity: [0, 0.15, 0] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute inset-0 bg-white"
+            />
+          )}
+        </InkRippleButton>
+
+        {/* 切换至注册 */}
+        <p className="mt-6 text-center text-sm text-white/70">
+          还没有账号？{" "}
+          <button
+            type="button"
+            onClick={onSwitch}
+            className="font-semibold text-golden-rich underline-offset-2 transition-colors hover:text-golden-light hover:underline"
+          >
+            立即注册
+          </button>
+        </p>
+      </div>
+    </form>
+  );
+} 呼吸发光 */}
           {!loading && (
             <motion.div
               animate={{ opacity: [0, 0.15, 0] }}
@@ -338,8 +351,8 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
   return (
     <form onSubmit={handleSubmit} autoComplete="on">
       <div className={GLASS_CARD_CLASS}>
-        <h2 className="mb-1 text-xl font-bold text-black dark:text-white">创建新账户</h2>
-        <p className="mb-7 text-sm text-black/60 dark:text-white/50">
+        <h2 className="mb-1 text-xl font-bold text-white drop-shadow-sm">创建新账户</h2>
+        <p className="mb-7 text-sm text-white/65">
           加入技大佛学会，开启功德积分之旅
         </p>
 
@@ -349,7 +362,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
             姓名
           </label>
           <div className="relative">
-            <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/35" />
+            <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
             <input
               id="register-name"
               name="name"
@@ -370,7 +383,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
             电子邮箱
           </label>
           <div className="relative">
-            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/35" />
+            <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
             <input
               id="register-email"
               name="email"
@@ -387,40 +400,40 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
 
         {/* 生日 */}
         <div className="mb-5">
-          <label className="mb-1.5 flex items-center justify-between text-xs font-semibold text-black/70 dark:text-white/70">
+          <label className="mb-1.5 flex items-center justify-between text-xs font-semibold text-white/85">
             <span>出生日期 (选填)</span>
-            <span className="text-[10px] font-normal text-golden-deep">✨ 生日当天有惊喜</span>
+            <span className="text-[10px] font-normal text-golden-rich">✨ 生日当天有惊喜</span>
           </label>
           <div className="flex gap-2 relative">
-            <Calendar className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/35 z-10" />
+            <Calendar className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45 z-10" />
             <select
               value={birthYear}
               onChange={(e) => setBirthYear(e.target.value)}
-              className={`${INPUT_CLASS} !pl-9 !pr-2 w-1/3 text-center appearance-none cursor-pointer bg-no-repeat bg-[right_0.2rem_center] bg-[url('data:image/svg+xml;utf8,<svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')]`}
+              className={`${INPUT_CLASS} !pl-9 !pr-2 w-1/3 text-center appearance-none cursor-pointer bg-no-repeat bg-[right_0.2rem_center] bg-[url('data:image/svg+xml;utf8,<svg fill="white" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')]`}
             >
-              <option value="" className="text-black">年</option>
+              <option value="" className="text-black bg-white">年</option>
               {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((y) => (
-                <option key={y} value={y} className="text-black">{y}</option>
+                <option key={y} value={y} className="text-black bg-white">{y}</option>
               ))}
             </select>
             <select
               value={birthMonth}
               onChange={(e) => setBirthMonth(e.target.value)}
-              className={`${INPUT_CLASS} !pl-2 !pr-2 w-1/3 text-center appearance-none cursor-pointer bg-no-repeat bg-[right_0.2rem_center] bg-[url('data:image/svg+xml;utf8,<svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')]`}
+              className={`${INPUT_CLASS} !pl-2 !pr-2 w-1/3 text-center appearance-none cursor-pointer bg-no-repeat bg-[right_0.2rem_center] bg-[url('data:image/svg+xml;utf8,<svg fill="white" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')]`}
             >
-              <option value="" className="text-black">月</option>
+              <option value="" className="text-black bg-white">月</option>
               {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => (
-                <option key={m} value={m} className="text-black">{m}月</option>
+                <option key={m} value={m} className="text-black bg-white">{m}月</option>
               ))}
             </select>
             <select
               value={birthDay}
               onChange={(e) => setBirthDay(e.target.value)}
-              className={`${INPUT_CLASS} !pl-2 !pr-2 w-1/3 text-center appearance-none cursor-pointer bg-no-repeat bg-[right_0.2rem_center] bg-[url('data:image/svg+xml;utf8,<svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')]`}
+              className={`${INPUT_CLASS} !pl-2 !pr-2 w-1/3 text-center appearance-none cursor-pointer bg-no-repeat bg-[right_0.2rem_center] bg-[url('data:image/svg+xml;utf8,<svg fill="white" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')]`}
             >
-              <option value="" className="text-black">日</option>
+              <option value="" className="text-black bg-white">日</option>
               {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0")).map((d) => (
-                <option key={d} value={d} className="text-black">{d}日</option>
+                <option key={d} value={d} className="text-black bg-white">{d}日</option>
               ))}
             </select>
           </div>
@@ -432,7 +445,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
             设置密码
           </label>
           <div className="relative">
-            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-black/40 dark:text-white/35" />
+            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
             <input
               id="register-password"
               name="new-password"
@@ -449,7 +462,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
               type="button"
               tabIndex={-1}
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-black/40 dark:text-white/30 transition-colors hover:text-golden-deep"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-white/45 transition-colors hover:text-golden-rich"
               aria-label={showPassword ? "隐藏密码" : "显示密码"}
             >
               {showPassword ? (
@@ -480,7 +493,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
                         : passwordStrength <= 3
                         ? "#c9a227"
                         : "#2d6a4f"
-                      : "rgba(255,255,255,0.12)",
+                      : "rgba(255,255,255,0.15)",
                 }}
                 transition={{ duration: 0.3, delay: level * 0.05 }}
                 style={{ originX: 0 }}
@@ -495,12 +508,12 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
               style={{
                 color:
                   passwordStrength <= 1
-                    ? "#c1121f"
-                    : passwordStrength <= 2
                     ? "#e07a5f"
+                    : passwordStrength <= 2
+                    ? "#f4a261"
                     : passwordStrength <= 3
-                    ? "#c9a227"
-                    : "#2d6a4f",
+                    ? "#e9c46a"
+                    : "#52b788",
               }}
             >
               {passwordStrength <= 1
@@ -520,7 +533,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
           disabled={loading}
           whileHover={{ scale: loading ? 1 : 1.01 }}
           whileTap={{ scale: loading ? 1 : 0.98 }}
-          className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-golden-deep to-golden-rich py-3 text-sm font-bold text-white shadow-lg shadow-golden-deep/30 transition-all disabled:opacity-60 dark:shadow-[0_0_24px_rgba(255,193,7,0.3)]"
+          className="relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-golden-deep via-golden-rich to-ocher-light py-3 text-sm font-bold text-white shadow-lg shadow-golden-deep/30 transition-all disabled:opacity-60"
         >
           <span className="relative z-10 flex items-center justify-center gap-2">
             {loading ? (
@@ -543,12 +556,12 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
         </InkRippleButton>
 
         {/* 切换至登录 */}
-        <p className="mt-6 text-center text-sm text-black/60 dark:text-white/45">
+        <p className="mt-6 text-center text-sm text-white/70">
           已有账号？{" "}
           <button
             type="button"
             onClick={onSwitch}
-            className="font-semibold text-golden-deep underline-offset-2 transition-colors hover:text-ocher hover:underline"
+            className="font-semibold text-golden-rich underline-offset-2 transition-colors hover:text-golden-light hover:underline"
           >
             立即登录
           </button>

@@ -123,7 +123,7 @@ export function ZenLogo3D({ className = "" }: ZenLogo3DProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.5 }}
-        className="text-[26px] font-bold tracking-tight text-charcoal dark:text-white sm:text-3xl"
+        className="text-[26px] font-bold tracking-tight text-white sm:text-3xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]"
       >
         技大佛学会
       </motion.h1>
@@ -131,7 +131,7 @@ export function ZenLogo3D({ className = "" }: ZenLogo3DProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.45, duration: 0.5 }}
-        className="mt-1.5 text-sm font-medium text-muted/80 dark:text-slate-400"
+        className="mt-1.5 text-sm font-medium text-white/80 sm:text-base drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]"
       >
         出勤与积分追踪 · 会员系统
       </motion.p>

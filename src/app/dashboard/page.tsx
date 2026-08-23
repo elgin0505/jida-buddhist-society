@@ -25,6 +25,8 @@ import { DailyDharmaCard } from "@/components/DailyDharmaCard";
 import { DharmaBadges, DHARMA_LEVELS } from "@/components/DharmaBadges";
 import { TimelineView } from "@/components/TimelineView";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import { Camera } from "lucide-react";
 import { KaresansuiBackground } from "@/components/KaresansuiBackground";
 import { LivingBodhiTree } from "@/components/LivingBodhiTree";
 
@@ -119,39 +121,94 @@ export default function DashboardPage() {
     return "🌱 初发心菩萨";
   }, [currentMember]);
 
-  const handleAvatarClick = () => fileInputRef.current?.click();
+  const handleAvatarClick = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    fileInputRef.current?.click();
+  };
+
+  // 客户端图像智能无损/高清压缩，兼容任意超大分辨率和手机照片格式 (HEIC/PNG/JPG/WebP)
+  const compressImageToDataUrl = (file: File, maxDim = 512, quality = 0.88): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new window.Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(e.target?.result as string);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve(dataUrl);
+        };
+        img.onerror = () => {
+          resolve(e.target?.result as string);
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+    });
+  };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentMember) return;
 
-    if (!file.type.startsWith("image/")) {
-      setUploadMsg("请上传图片文件");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadMsg("图片大小不能超过 5MB");
-      return;
-    }
-
     setUploading(true);
-    setUploadMsg(null);
-    const form = new FormData();
-    form.append("avatar", file);
+    setUploadMsg("正在处理并上传新头像...");
 
     try {
+      // 1. 客户端秒级压缩优化
+      const compressedDataUrl = await compressImageToDataUrl(file, 512, 0.88);
+
+      if (!compressedDataUrl) {
+        throw new Error("图片读取失败");
+      }
+
+      // 2. 发送至服务器更新
       const res = await fetch(`/api/members/${currentMember.id}/avatar`, {
         method: "POST",
-        body: form,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          photoData: compressedDataUrl,
+          ext: "jpg",
+        }),
       });
+
       const data = await res.json();
       if (res.ok) {
         await refreshMembers();
+        toast.success("头像更新成功！", {
+          description: "全新庄严相貌已保存并实时展现。",
+          icon: "🪷",
+        });
         setUploadMsg("头像已更新！");
       } else {
+        toast.error(data.error || "上传失败");
         setUploadMsg(data.error || "上传失败");
       }
-    } catch {
+    } catch (err: any) {
+      console.error("Avatar upload failed:", err);
+      toast.error(err?.message || "上传失败，请稍后重试");
       setUploadMsg("上传失败，请稍后重试");
     } finally {
       setUploading(false);
@@ -304,34 +361,48 @@ export default function DashboardPage() {
               </div>
 
               <div className="relative flex flex-col items-center gap-6 sm:flex-row sm:items-start">
-                {/* 头像 + 上传按钮 */}
-                <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
-                  <MemberAvatar
-                    name={currentMember.name}
-                    photo={currentMember.photo}
-                    size="lg"
-                  />
-                  {/* 相机悬浮层 */}
-                  <div className="absolute inset-0 flex items-center justify-center rounded-full bg-charcoal/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    {uploading ? (
-                      <svg className="h-6 w-6 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                      </svg>
-                    ) : (
-                      <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
-                        <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-                        <circle cx="12" cy="13" r="4" />
-                      </svg>
-                    )}
+                {/* 头像 + 更换照片按钮 */}
+                <div className="flex flex-col items-center sm:items-start shrink-0">
+                  <div
+                    className="relative group cursor-pointer select-none rounded-full"
+                    onClick={handleAvatarClick}
+                    title="点击更换头像相片"
+                  >
+                    <MemberAvatar
+                      name={currentMember.name}
+                      photo={currentMember.photo}
+                      size="lg"
+                    />
+
+                    {/* 相机微光悬浮层 */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-200 backdrop-blur-xs">
+                      {uploading ? (
+                        <svg className="h-7 w-7 animate-spin text-amber-300" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                        </svg>
+                      ) : (
+                        <>
+                          <Camera className="h-6 w-6 text-white drop-shadow" />
+                          <span className="mt-1 text-[10px] font-bold text-white tracking-wider">更换相片</span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* 始终可见的小相机角标 (右下角发光徽章) */}
+                    <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-golden-deep text-white shadow-md border-2 border-white transition-transform group-hover:scale-110">
+                      <Camera className="h-3.5 w-3.5" />
+                    </div>
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarChange}
+                      onClick={(e) => e.stopPropagation()}
+                    />
                   </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarChange}
-                  />
                 </div>
 
                 <div className="flex-1 text-center sm:text-left">

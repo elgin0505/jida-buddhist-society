@@ -1,4 +1,6 @@
-import { ReactNode } from "react";
+"use client";
+
+import { ReactNode, useState } from "react";
 
 interface CardProps {
   children: ReactNode;
@@ -120,31 +122,34 @@ export function MemberAvatar({
   photo?: string | null;
   size?: "sm" | "md" | "lg";
 }) {
+  const [loadFailed, setLoadFailed] = useState(false);
+
   const sizeClasses = {
     sm: "h-10 w-10 text-sm",
     md: "h-16 w-16 text-xl",
     lg: "h-24 w-24 text-3xl",
   };
 
-  const initials = name
+  const initials = (name || "佛")
     .split("")
     .filter((c) => c.trim())
     .slice(0, 1)
     .join("");
 
-  if (photo) {
+  if (photo && !loadFailed) {
     return (
       <img
         src={photo}
         alt={name}
-        className={`${sizeClasses[size]} rounded-full object-cover ring-2 ring-golden-deep/20`}
+        onError={() => setLoadFailed(true)}
+        className={`${sizeClasses[size]} rounded-full object-cover ring-2 ring-golden-deep/30 shadow-md transition-all duration-300 hover:scale-105`}
       />
     );
   }
 
   return (
     <div
-      className={`${sizeClasses[size]} flex items-center justify-center rounded-full bg-gradient-to-br from-golden-deep to-ocher font-bold text-white ring-2 ring-golden-deep/20`}
+      className={`${sizeClasses[size]} flex items-center justify-center rounded-full bg-gradient-to-br from-golden-deep via-amber-500 to-ocher font-black text-white ring-2 ring-golden-deep/30 shadow-inner select-none`}
     >
       {initials}
     </div>

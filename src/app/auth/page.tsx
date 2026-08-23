@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ZenLogo3D } from "@/components/ZenLogo3D";
 import { InkRippleButton } from "@/components/InkRippleButton";
 import { FloatingDharmaQuote } from "@/components/FloatingDharmaQuote";
+import { ForgotPasswordCard } from "@/components/ForgotPasswordCard";
 import { useZenAudio } from "@/hooks/useZenAudio";
 
 // Dynamic import MindfulJourney (佛陀与十大弟子的恒河行脚)
@@ -16,7 +17,7 @@ const MindfulJourney = dynamic(
   { ssr: false }
 );
 
-type Mode = "login" | "register";
+type Mode = "login" | "register" | "forgot";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<Mode>("login");
@@ -46,9 +47,12 @@ export default function AuthPage() {
               transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
               style={{ perspective: 1200 }}
             >
-              <LoginCard onSwitch={() => setMode("register")} />
+              <LoginCard
+                onSwitch={() => setMode("register")}
+                onForgotPassword={() => setMode("forgot")}
+              />
             </motion.div>
-          ) : (
+          ) : mode === "register" ? (
             <motion.div
               key="register"
               initial={{ opacity: 0, rotateY: 90 }}
@@ -58,6 +62,16 @@ export default function AuthPage() {
               style={{ perspective: 1200 }}
             >
               <RegisterCard onSwitch={() => setMode("login")} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="forgot"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            >
+              <ForgotPasswordCard onBackToLogin={() => setMode("login")} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -102,7 +116,13 @@ const LABEL_CLASS = "mb-1.5 block text-xs font-bold text-stone-700";
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  *  登录卡片
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-function LoginCard({ onSwitch }: { onSwitch: () => void }) {
+function LoginCard({
+  onSwitch,
+  onForgotPassword,
+}: {
+  onSwitch: () => void;
+  onForgotPassword: () => void;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -187,9 +207,18 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
 
         {/* 密码 */}
         <div className="mb-7">
-          <label htmlFor="login-password" className={LABEL_CLASS}>
-            密码
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label htmlFor="login-password" className={LABEL_CLASS}>
+              密码
+            </label>
+            <button
+              type="button"
+              onClick={onForgotPassword}
+              className="text-xs font-semibold text-golden-deep hover:text-ocher transition-colors underline-offset-2 hover:underline"
+            >
+              忘记密码？
+            </button>
+          </div>
           <div className="relative">
             <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
             <input
@@ -269,9 +298,7 @@ function LoginCard({ onSwitch }: { onSwitch: () => void }) {
 function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [birthYear, setBirthYear] = useState("");
-  const [birthMonth, setBirthMonth] = useState("");
-  const [birthDay, setBirthDay] = useState("");
+  const [birthday, setBirthday] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -298,7 +325,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, birthday: (birthYear && birthMonth && birthDay) ? `${birthYear}-${birthMonth}-${birthDay}` : undefined }),
+        body: JSON.stringify({ name, email, password, birthday: birthday || undefined }),
       });
 
       const data = await res.json();
@@ -383,44 +410,24 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
           </div>
         </div>
 
-        {/* 生日 */}
+        {/* 出生日期 (日历选择器) */}
         <div className="mb-5">
-          <label className="mb-1.5 flex items-center justify-between text-xs font-bold text-stone-700">
+          <label htmlFor="register-birthday" className="mb-1.5 flex items-center justify-between text-xs font-bold text-stone-700">
             <span>出生日期 (选填)</span>
             <span className="text-[10px] font-semibold text-golden-deep">✨ 生日当天有惊喜</span>
           </label>
-          <div className="flex gap-2 relative">
+          <div className="relative">
             <Calendar className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400 z-10" />
-            <select
-              value={birthYear}
-              onChange={(e) => setBirthYear(e.target.value)}
-              className={`${INPUT_CLASS} !pl-9 !pr-2 w-1/3 text-center appearance-none cursor-pointer bg-no-repeat bg-[right_0.2rem_center] bg-[url('data:image/svg+xml;utf8,<svg fill="%2378716c" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')]`}
-            >
-              <option value="" className="text-stone-900 bg-white">年</option>
-              {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((y) => (
-                <option key={y} value={y} className="text-stone-900 bg-white">{y}</option>
-              ))}
-            </select>
-            <select
-              value={birthMonth}
-              onChange={(e) => setBirthMonth(e.target.value)}
-              className={`${INPUT_CLASS} !pl-2 !pr-2 w-1/3 text-center appearance-none cursor-pointer bg-no-repeat bg-[right_0.2rem_center] bg-[url('data:image/svg+xml;utf8,<svg fill="%2378716c" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')]`}
-            >
-              <option value="" className="text-stone-900 bg-white">月</option>
-              {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => (
-                <option key={m} value={m} className="text-stone-900 bg-white">{m}月</option>
-              ))}
-            </select>
-            <select
-              value={birthDay}
-              onChange={(e) => setBirthDay(e.target.value)}
-              className={`${INPUT_CLASS} !pl-2 !pr-2 w-1/3 text-center appearance-none cursor-pointer bg-no-repeat bg-[right_0.2rem_center] bg-[url('data:image/svg+xml;utf8,<svg fill="%2378716c" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>')]`}
-            >
-              <option value="" className="text-stone-900 bg-white">日</option>
-              {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, "0")).map((d) => (
-                <option key={d} value={d} className="text-stone-900 bg-white">{d}日</option>
-              ))}
-            </select>
+            <input
+              id="register-birthday"
+              name="birthday"
+              type="date"
+              max={new Date().toISOString().split("T")[0]}
+              min="1920-01-01"
+              value={birthday}
+              onChange={(e) => setBirthday(e.target.value)}
+              className={`${INPUT_CLASS} cursor-pointer text-stone-800`}
+            />
           </div>
         </div>
 

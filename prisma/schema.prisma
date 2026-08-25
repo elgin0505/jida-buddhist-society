@@ -81,6 +81,7 @@ model ZenGameScore {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   score       Int
   maxCombo    Int
+  trackName   String?
   achievedAt  DateTime @default(now())
 
   @@index([userId])

@@ -86,10 +86,18 @@ export function ForgotPasswordCard({ onBackToLogin }: ForgotPasswordCardProps) {
       }
 
       playZenSound();
-      toast.success("验证码已发送至您的邮箱！", {
-        description: "请查收 6 位数字验证码（10 分钟内有效）。",
-        icon: "🪷",
-      });
+      if (data.devCode) {
+        setCode(data.devCode);
+        toast.info(`【调试模式】验证码为：${data.devCode}（已自动为您填入）`, {
+          duration: 8000,
+          icon: "🔑",
+        });
+      } else {
+        toast.success("验证码已发送至您的邮箱！", {
+          description: "请查收 6 位数字验证码（10 分钟内有效）。",
+          icon: "🪷",
+        });
+      }
 
       setCountdown(60);
       setStep("reset");

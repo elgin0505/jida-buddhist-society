@@ -303,7 +303,9 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
   const [email, setEmail] = useState("");
   const [birthday, setBirthday] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { playZenSound } = useZenAudio();
 
@@ -312,13 +314,18 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !confirmPassword) {
       toast.error("请填写完整的注册信息");
       return;
     }
 
     if (password.length < 6) {
       toast.error("密码长度至少为 6 个字符");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("两次输入的密码不一致，请仔细核对");
       return;
     }
 
@@ -470,7 +477,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
         </div>
 
         {/* 密码强度指示器 */}
-        <div className="mb-7">
+        <div className="mb-5">
           <div className="flex gap-1.5">
             {[1, 2, 3, 4].map((level) => (
               <motion.div
@@ -519,6 +526,51 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
                 ? "良好 — 安全性尚可"
                 : "强 — 非常安全"}
             </motion.p>
+          )}
+        </div>
+
+        {/* 确认密码 */}
+        <div className="mb-7">
+          <label htmlFor="register-confirm-password" className={LABEL_CLASS}>
+            确认密码
+          </label>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+            <input
+              id="register-confirm-password"
+              name="confirm-password"
+              type={showConfirmPassword ? "text" : "password"}
+              autoComplete="new-password"
+              required
+              minLength={6}
+              placeholder="请再次输入相同密码"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={INPUT_PW_CLASS}
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-stone-400 transition-colors hover:text-golden-deep"
+              aria-label={showConfirmPassword ? "隐藏确认密码" : "显示确认密码"}
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="h-4.5 w-4.5" />
+              ) : (
+                <Eye className="h-4.5 w-4.5" />
+              )}
+            </button>
+          </div>
+          {confirmPassword.length > 0 && password !== confirmPassword && (
+            <p className="mt-1.5 text-[11px] font-semibold text-rose-500 flex items-center gap-1">
+              ⚠️ 两次输入的密码不一致
+            </p>
+          )}
+          {confirmPassword.length > 0 && password === confirmPassword && (
+            <p className="mt-1.5 text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
+              ✓ 密码一致
+            </p>
           )}
         </div>
 

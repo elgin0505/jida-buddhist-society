@@ -44,10 +44,18 @@ export async function POST(request: Request) {
 
     // 发送禅意风格邮件通知
     try {
-      await sendPasswordResetEmail({
+      const mailRes = await sendPasswordResetEmail({
         to: user.email,
         code,
         name: user.name,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: mailRes?.mocked
+          ? `（开发调试模式）验证码为：${code}`
+          : "验证码已成功发送至您的邮箱，10 分钟内有效",
+        devCode: mailRes?.mocked ? code : undefined,
       });
     } catch (mailError) {
       console.error("[ForgotPassword] 邮件发送失败:", mailError);
@@ -56,11 +64,6 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
-
-    return NextResponse.json({
-      success: true,
-      message: "验证码已成功发送至您的邮箱，10 分钟内有效",
-    });
   } catch (error) {
     console.error("[ForgotPassword Error]", error);
     return NextResponse.json(

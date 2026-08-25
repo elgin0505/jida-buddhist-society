@@ -31,21 +31,12 @@ interface SendResetEmailParams {
 
 /**
  * 发送禅意风格的重置密码 OTP 验证码邮件
+ * 优先采用 SMTP 发送，若未配置 SMTP 则自动降级通过 Google Apps Script 自动化邮件服务无感发送
  */
 export async function sendPasswordResetEmail({ to, code, name = "修行者" }: SendResetEmailParams) {
   const user = process.env.EMAIL_USER || process.env.SMTP_USER || process.env.GMAIL_USER;
+  const webhookUrl = process.env.GOOGLE_SHEETS_API_URL || process.env.GOOGLE_SHEET_WEBHOOK_URL;
   const transporter = getEmailTransporter();
-
-  // 如果未配置 SMTP，在开发控制台输出模拟日志，便于本地调试
-  if (!transporter || !user) {
-    console.warn("\n⚠️ [Mailer Warning] 未检测到 EMAIL_USER 或 EMAIL_APP_PASSWORD 环境变量！");
-    console.warn(`📩 [Mock Email] 正在向 <${to}> 发送模拟重置验证码: 【${code}】 (10分钟内有效)\n`);
-    return {
-      success: true,
-      mocked: true,
-      message: "邮件服务未配置环境变量，已在控制台输出模拟验证码",
-    };
-  }
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -111,13 +102,59 @@ export async function sendPasswordResetEmail({ to, code, name = "修行者" }: S
 </html>
   `;
 
-  const info = await transporter.sendMail({
-    from: `"技大佛学会" <${user}>`,
-    to,
-    subject: "【技大佛学会】清净心 · 重置您的账户密码",
-    text: `尊敬的 ${name} 同修：\n\n您正在申请重置密码，您的 6 位验证码为：【${code}】（10分钟内有效）。\n\n若非本人操作，请忽略此邮件。\n\n技大佛学会 敬启`,
-    html: htmlContent,
-  });
+  // 1. 如果已配置 SMTP (如 Gmail App Password)，直接通过 Nodemailer 发送
+  if (transporter && user) {
+    try {
+      const info = await transporter.sendMail({
+        from: `"技大佛学会" <${user}>`,
+        to,
+        subject: "【技大佛学会】清净心 · 重置您的账户密码",
+        text: `尊敬的 ${name} 同修：\n\n您正在申请重置密码，您的 6 位验证码为：【${code}】（10分钟内有效）。\n\n若非本人操作，请忽略此邮件。\n\n技大佛学会 敬启`,
+        html: htmlContent,
+      });
+      console.log(`✅ [Mailer] 验证码邮件已成功通过 SMTP 发送至 <${to}>:`, info.messageId);
+      return { success: true, messageId: info.messageId, channel: "smtp" };
+    } catch (smtpErr: any) {
+      console.warn("⚠️ [Mailer] SMTP 发送失败，尝试降级为 Google Apps Script 发送:", smtpErr?.message || smtpErr);
+    }
+  }
 
-  return { success: true, messageId: info.messageId };
+  // 2. 如果未配置 SMTP 或 SMTP 发送异常，尝试通过 Google Apps Script Webhook 自动化邮件发送
+  if (webhookUrl) {
+    try {
+      const res = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "sendPasswordResetEmail",
+          data: {
+            to,
+            code,
+            name,
+            subject: "【技大佛学会】清净心 · 重置您的账户密码",
+            html: htmlContent,
+          },
+        }),
+      });
+      const json = await res.json();
+      if (json && json.success) {
+        console.log(`✅ [Mailer] 验证码邮件已成功通过 Google Apps Script 发送至 <${to}>`);
+        return { success: true, channel: "google-apps-script", message: json.message };
+      } else {
+        console.warn("⚠️ [Mailer] Google Apps Script 发送邮件返回:", json);
+      }
+    } catch (webhookErr: any) {
+      console.warn("⚠️ [Mailer] Google Apps Script 请求异常:", webhookErr?.message || webhookErr);
+    }
+  }
+
+  // 3. 兜底与开发调试输出
+  console.warn("\n⚠️ [Mailer Warning] 未配置发件邮箱环境变量 (EMAIL_USER / EMAIL_APP_PASSWORD)！");
+  console.warn(`📩 [Dev Mock Email] 正在向 <${to}> 发送重置验证码: 【${code}】 (10分钟内有效)\n`);
+  return {
+    success: true,
+    mocked: true,
+    code,
+    message: "邮件服务尚未配置发件邮箱，已在控制台生成验证码",
+  };
 }

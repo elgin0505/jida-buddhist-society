@@ -218,6 +218,39 @@ function doPost(e) {
       return jsonResponse({ success: true, count: rewards.length });
     }
 
+    // 6. 发送重置密码验证码邮件 (通过 Google Apps Script MailApp 发送)
+    if (action === 'sendPasswordResetEmail' || action === 'sendEmail') {
+      const data = payload.data || {};
+      const to = data.to;
+      const code = data.code;
+      const name = data.name || '同修';
+      const subject = data.subject || '【技大佛学会】清净心 · 重置您的账户密码';
+      const htmlContent = data.html || (
+        '<div style="font-family: sans-serif; padding: 20px; background: #FAF8F2; border-radius: 12px;">' +
+        '<h2 style="color: #9E740B;">🪷 技大佛学会 · 重置密码验证码</h2>' +
+        '<p>尊敬的 ' + name + ' 同修，阿弥陀佛：</p>' +
+        '<p>您正在申请重置密码，您的 6 位数字验证码为：</p>' +
+        '<h1 style="color: #B45309; letter-spacing: 6px; font-size: 32px;">' + code + '</h1>' +
+        '<p>⏱️ 验证码在 10 分钟内有效。如非本人操作，请忽略此邮件。</p>' +
+        '<hr style="border: none; border-top: 1px solid #EADBBA;" />' +
+        '<p style="font-size: 12px; color: #8A8170;">技大佛学会 敬启</p>' +
+        '</div>'
+      );
+
+      if (!to || !code) {
+        return jsonResponse({ success: false, error: '缺少收件人邮箱 (to) 或验证码 (code)' });
+      }
+
+      MailApp.sendEmail({
+        to: to,
+        subject: subject,
+        htmlBody: htmlContent,
+        name: '技大佛学会'
+      });
+
+      return jsonResponse({ success: true, message: '验证码邮件已成功通过 Google 发送至 ' + to });
+    }
+
     return jsonResponse({ success: false, error: 'Unknown action: ' + action });
   } catch (err) {
     return jsonResponse({ success: false, error: err.toString() });

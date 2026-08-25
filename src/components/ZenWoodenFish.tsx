@@ -26,6 +26,8 @@ export function ZenWoodenFish() {
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isStriking, setIsStriking] = useState(false);
+  const [currentLevel, setCurrentLevel] = useState(1);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   // 初始化今日敲击次数
@@ -112,6 +114,22 @@ export function ZenWoodenFish() {
     setFloatingTexts((prev) => prev.filter((item) => item.id !== id));
   };
 
+  // Dynamic difficulty: increase level every 500 points
+  useEffect(() => {
+    const threshold = currentLevel * 500;
+    if (meritCount >= threshold) {
+      setCurrentLevel((lvl) => lvl + 1);
+    }
+  }, [meritCount, currentLevel]);
+
+  // Fetch leaderboard data on mount
+  useEffect(() => {
+    fetch("/api/game/leaderboard")
+      .then((res) => res.json())
+      .then((data) => setLeaderboard(data.leaderboard ?? []))
+      .catch((e) => console.error("Leaderboard fetch error", e));
+  }, []);
+
   return (
     <>
       {/* 悬浮木鱼触发按钮 (右下角) */}
@@ -197,7 +215,8 @@ export function ZenWoodenFish() {
               <p className="mt-0.5 text-3xl font-extrabold tracking-tight text-golden-rich">
                 {meritCount}
               </p>
-            </div>
+                      <p className="mt-1 text-xs text-amber-300">境界：{currentLevel}</p>
+          </div>
 
             {/* 木鱼主体敲击区 */}
             <div className="relative my-4 flex flex-col items-center justify-center py-4 select-none">
@@ -249,6 +268,16 @@ export function ZenWoodenFish() {
             {/* 底部禅意寄语 */}
             <div className="rounded-xl bg-ocher-light/20 p-2.5 text-center text-[11px] text-muted">
               “静坐常思己过，闲谈莫论人非。”
+              <div className="mt-4">
+                <h3 className="text-sm font-medium text-charcoal">精进榜 Top 10</h3>
+                <ul className="mt-2 space-y-1 text-xs text-muted">
+                  {leaderboard.map((item, idx) => (
+                    <li key={item.id} className={/* TODO: highlight current user */ ''}>
+                      {idx + 1}. {item.name ?? '匿名'} - {item.score}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </motion.div>
         )}

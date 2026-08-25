@@ -29,6 +29,7 @@ import { toast as sonnerToast } from "sonner";
 import { Camera } from "lucide-react";
 import { KaresansuiBackground } from "@/components/KaresansuiBackground";
 import { LivingBodhiTree } from "@/components/LivingBodhiTree";
+import { ZenWoodenFish } from "@/components/ZenWoodenFish";
 
 interface AttendanceRecord {
   id: string;
@@ -651,6 +652,7 @@ export default function DashboardPage() {
           }}
         />
       )}
+    <ZenWoodenFish />
     </PageWrapper>
     </>
   );

@@ -10,11 +10,9 @@ import {
   Trophy,
   Heart,
   Music2,
-  Zap,
   Play,
-  CheckCircle2,
-  Sparkles,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 
 /**
@@ -53,7 +51,7 @@ export interface BuddhistTrack {
   subtitle: string;
   bpm: number;
   spawnInterval: number; // 音符生成间隔 (ms)
-  fallSpeed: number;     // 初始下落基速 (px/frame)
+  fallSpeed: number;     // 动态下落基速 (px/frame)
   difficulty: "入门 · 初发心" | "精进 · 日常行" | "金刚 · 极专注";
   badgeColor: string;
   bgmSrc: string;        // 佛曲音频路径占位符
@@ -140,7 +138,7 @@ const PERFECT_WINDOW = 36;
 const GOOD_WINDOW = 68;
 
 export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockProps) {
-  // ── 状态管理 ──
+  // ── 1. 响应式状态 ──
   const [gameState, setGameState] = useState<"select" | "playing" | "gameover">("select");
   const [selectedTrack, setSelectedTrack] = useState<BuddhistTrack>(BUDDHIST_TRACKS[0]);
   const [displayScore, setDisplayScore] = useState(0);
@@ -159,12 +157,13 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
     { id: number; x: number; y: number; dx: number }[]
   >([]);
 
-  // ── Game Loop 专用 Ref ──
+  // ── 2. Game Loop 与音频 Ref 持久化 ──
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const bgmRef = useRef<HTMLAudioElement | null>(null);
   const sfxBufferRef = useRef<AudioBuffer | null>(null);
+  const synthDroneNodesRef = useRef<{ oscList: OscillatorNode[]; gainNode: GainNode } | null>(null);
 
   const scoreRef = useRef(0);
   const comboRef = useRef(0);
@@ -178,7 +177,7 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
   const isPlayingRef = useRef(false);
   const activeLanesPressRef = useRef<[boolean, boolean, boolean]>([false, false, false]);
 
-  // 读取当前已登录的修持用户凭证
+  // 读取已登录同修凭证
   useEffect(() => {
     try {
       const stored = localStorage.getItem("jbs_auth_user");
@@ -191,62 +190,111 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
     }
   }, []);
 
-  // ── 拉取真实云端排行榜数据 ──
+  // ── 3. 拉取真实云端排行榜数据 ──
   const fetchLeaderboard = useCallback(async () => {
     setLoadingLeaderboard(true);
     try {
+      console.log("🌐 [Frontend] 正在从 /api/game/leaderboard 拉取云端精进榜...");
       const res = await fetch("/api/game/leaderboard", { cache: "no-store" });
       const data = await res.json();
-      if (data.success && Array.isArray(data.leaderboard)) {
+      console.log("📊 [Frontend] 排行榜数据返回:", data);
+      if (data && data.success && Array.isArray(data.leaderboard)) {
         setLeaderboard(data.leaderboard);
+      } else {
+        setLeaderboard([]);
       }
-    } catch (e) {
-      console.error("Failed to fetch real leaderboard:", e);
+    } catch (e: any) {
+      console.error("❌ [Frontend] 拉取排行榜失败:", e?.message || e);
+      setLeaderboard([]);
     } finally {
       setLoadingLeaderboard(false);
     }
   }, []);
 
-  // ── Web Audio API 零延迟音频引擎 ──
-  const initAudio = useCallback(() => {
+  // 组件挂载时预拉取一次排行榜
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
+
+  // ── 4. Web Audio API 物理合成器与音效引擎 ──
+  const initAudioContext = useCallback(() => {
     if (!audioCtxRef.current) {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       audioCtxRef.current = new AudioCtx();
     }
     if (audioCtxRef.current.state === "suspended") {
       audioCtxRef.current.resume();
     }
+  }, []);
 
-    // 预加载木鱼音效 /sounds/woodblock.mp3
-    if (!sfxBufferRef.current && audioCtxRef.current) {
-      fetch(selectedTrack.woodblockSfx)
-        .then((res) => {
-          if (!res.ok) throw new Error("SFX file not found");
-          return res.arrayBuffer();
-        })
-        .then((buf) => audioCtxRef.current?.decodeAudioData(buf))
-        .then((decoded) => {
-          sfxBufferRef.current = decoded;
-        })
-        .catch(() => {
-          // 自动降级为内置高阶带通物理合成器
-        });
+  // 停止合成梵音音景
+  const stopSyntheticZenDrone = useCallback(() => {
+    if (synthDroneNodesRef.current) {
+      try {
+        const { oscList, gainNode } = synthDroneNodesRef.current;
+        if (audioCtxRef.current) {
+          gainNode.gain.linearRampToValueAtTime(0.001, audioCtxRef.current.currentTime + 0.3);
+        }
+        setTimeout(() => {
+          oscList.forEach((osc) => {
+            try {
+              osc.stop();
+              osc.disconnect();
+            } catch {}
+          });
+        }, 350);
+      } catch {}
+      synthDroneNodesRef.current = null;
     }
+  }, []);
 
-    // 初始化所选曲目 BGM
-    if (bgmRef.current) {
-      bgmRef.current.pause();
+  // 开启纯正 Web Audio 物理合成禅意音景 (432Hz 颂钵谐振泛音，100% 离线，永不静音)
+  const startSyntheticZenDrone = useCallback((bpm = 72) => {
+    if (soundMuted) return;
+    initAudioContext();
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+
+    stopSyntheticZenDrone();
+
+    try {
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0.001, ctx.currentTime);
+      masterGain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 1.2);
+      masterGain.connect(ctx.destination);
+
+      // 432Hz 谐波自然三和弦 (根音 108Hz, 五度 162Hz, 八度 216Hz, 泛音 432Hz)
+      const freqs = [108, 162, 216, 432];
+      const oscList: OscillatorNode[] = [];
+
+      freqs.forEach((f, idx) => {
+        const osc = ctx.createOscillator();
+        const subGain = ctx.createGain();
+        osc.type = idx === 0 ? "triangle" : "sine";
+        osc.frequency.setValueAtTime(f, ctx.currentTime);
+
+        // 呼吸微调 LFO (随 BPM 柔和起伏)
+        const breathSpeed = 60 / bpm;
+        subGain.gain.setValueAtTime(0.3 / (idx + 1), ctx.currentTime);
+
+        osc.connect(subGain);
+        subGain.connect(masterGain);
+        osc.start(ctx.currentTime);
+        oscList.push(osc);
+      });
+
+      synthDroneNodesRef.current = { oscList, gainNode: masterGain };
+    } catch (err) {
+      console.warn("Drone synth init error:", err);
     }
-    const audio = new Audio(selectedTrack.bgmSrc);
-    audio.loop = true;
-    audio.volume = 0.35;
-    bgmRef.current = audio;
-  }, [selectedTrack]);
+  }, [initAudioContext, soundMuted, stopSyntheticZenDrone]);
 
-  // 播放 0ms 延迟真实/合成木鱼音效
+  // 播放 0ms 延迟木鱼敲击声
   const playWoodblockSound = useCallback((pitchMultiplier = 1.0) => {
     if (soundMuted) return;
-    if (!audioCtxRef.current) initAudio();
+    initAudioContext();
     const ctx = audioCtxRef.current;
     if (!ctx) return;
 
@@ -260,7 +308,7 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
       gain.connect(ctx.destination);
       source.start(0);
     } else {
-      // 物理建模带通谐振合成木鱼 (Resonant Bandpass Synth)
+      // 物理谐振带通合成木鱼
       const now = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -284,7 +332,83 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
       osc.start(now);
       osc.stop(now + 0.15);
     }
-  }, [initAudio, soundMuted]);
+  }, [initAudioContext, soundMuted]);
+
+  // ── 5. 核心：启动游戏与音频直接交互（修复 Autoplay Policy） ──
+  const handleStartGame = (track: BuddhistTrack) => {
+    console.log(`🎵 [Audio Autoplay] 用户主动手势触发，开始启动曲目: ${track.name}`);
+    setSelectedTrack(track);
+
+    // 1. 同步唤醒 Web Audio API Context (解决浏览器拦截策略)
+    initAudioContext();
+
+    // 2. 停止旧的 BGM & 合成音景
+    if (bgmRef.current) {
+      try {
+        bgmRef.current.pause();
+        bgmRef.current.currentTime = 0;
+      } catch {}
+    }
+    stopSyntheticZenDrone();
+
+    // 3. 同步创建并尝试播放 HTML5 BGM
+    const audio = new Audio(track.bgmSrc);
+    audio.loop = true;
+    audio.volume = 0.35;
+    bgmRef.current = audio;
+
+    if (!soundMuted) {
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log(`✅ [Audio] 外部佛曲音频成功播放: ${track.bgmSrc}`);
+          })
+          .catch((err) => {
+            console.warn(`⚠️ [Audio] 外部音频加载受限 (${err.message})，自动激活 432Hz 禅意和弦音景！`);
+            startSyntheticZenDrone(track.bpm);
+          });
+      }
+    }
+
+    // 4. 动态引擎挂载：注入专属速度与生成频率
+    gameSpeedRef.current = track.fallSpeed;
+    spawnIntervalRef.current = track.spawnInterval;
+
+    // 5. 重置游戏数据
+    scoreRef.current = 0;
+    comboRef.current = 0;
+    maxComboRef.current = 0;
+    livesRef.current = INITIAL_LIVES;
+    notesRef.current = [];
+    isPlayingRef.current = true;
+
+    setDisplayScore(0);
+    setDisplayCombo(0);
+    setLives(INITIAL_LIVES);
+    setHitFeedback(null);
+    setGameState("playing");
+  };
+
+  // ── 6. 退出与清理 ──
+  const cleanupAudio = useCallback(() => {
+    if (bgmRef.current) {
+      try {
+        bgmRef.current.pause();
+        bgmRef.current.currentTime = 0;
+      } catch {}
+    }
+    stopSyntheticZenDrone();
+  }, [stopSyntheticZenDrone]);
+
+  useEffect(() => {
+    return () => {
+      cleanupAudio();
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+    };
+  }, [cleanupAudio]);
 
   // 触发反重力金色光尘粒子
   const spawnAntiGravityParticles = (laneIndex: number, hitY: number) => {
@@ -353,47 +477,48 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
     }
   }, [playWoodblockSound]);
 
-  // 结算并上报真实数据库
+  // ── 7. 结算并上报真实数据库战绩 ──
   const handleGameOver = useCallback(async () => {
+    console.log("🏁 [Game Over] 进入止静结算流程...");
     isPlayingRef.current = false;
+    cleanupAudio();
     setGameState("gameover");
-    if (bgmRef.current) {
-      bgmRef.current.pause();
-    }
 
     const finalScore = scoreRef.current;
     const finalCombo = maxComboRef.current;
     const trackTitle = selectedTrack.name;
 
-    // 1. 调用外部回调
     if (onScoreSave) {
       onScoreSave(finalScore, finalCombo, trackTitle);
     }
 
-    // 2. 提交成绩至数据库 API
-    if (currentUserInfo && (currentUserInfo.id || currentUserInfo.email)) {
-      try {
-        await fetch("/api/game/leaderboard", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: currentUserInfo.id,
-            userEmail: currentUserInfo.email,
-            score: finalScore,
-            maxCombo: finalCombo,
-            trackName: trackTitle,
-          }),
-        });
-      } catch (err) {
-        console.error("Score auto-save failed:", err);
-      }
+    // 提交成绩至数据库
+    try {
+      const payload = {
+        userId: currentUserInfo?.id || undefined,
+        userEmail: currentUserInfo?.email || undefined,
+        score: finalScore,
+        maxCombo: finalCombo,
+        trackName: trackTitle,
+      };
+
+      console.log("📤 [Frontend] 正在提交本次战绩至 /api/game/leaderboard:", payload);
+      const postRes = await fetch("/api/game/leaderboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const postData = await postRes.json();
+      console.log("📥 [Frontend] 战绩入库响应结果:", postData);
+    } catch (err: any) {
+      console.error("❌ [Frontend] 战绩提交请求异常:", err?.message || err);
     }
 
-    // 3. 实时拉取最新排行榜
+    // 实时拉取最新排行榜
     fetchLeaderboard();
-  }, [onScoreSave, currentUserInfo, selectedTrack, fetchLeaderboard]);
+  }, [onScoreSave, currentUserInfo, selectedTrack, cleanupAudio, fetchLeaderboard]);
 
-  // ── HTML5 Game Loop ──
+  // ── 8. HTML5 Game Loop ──
   useEffect(() => {
     if (gameState !== "playing") return;
 
@@ -543,6 +668,7 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && onClose) {
+        cleanupAudio();
         onClose();
         return;
       }
@@ -556,7 +682,7 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [gameState, triggerHit, onClose]);
+  }, [gameState, triggerHit, onClose, cleanupAudio]);
 
   // Canvas 尺寸响应
   useEffect(() => {
@@ -571,34 +697,6 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
     window.addEventListener("resize", resizeCanvas);
     return () => window.removeEventListener("resize", resizeCanvas);
   }, [gameState]);
-
-  // 启动游戏并注入选定曲目的动态节奏参数
-  const startTrackGame = (track: BuddhistTrack) => {
-    setSelectedTrack(track);
-    initAudio();
-
-    // 动态引擎挂载：注入选定曲目的专属速度与生成频率
-    gameSpeedRef.current = track.fallSpeed;
-    spawnIntervalRef.current = track.spawnInterval;
-
-    if (bgmRef.current && !soundMuted) {
-      bgmRef.current.currentTime = 0;
-      bgmRef.current.play().catch(() => {});
-    }
-
-    scoreRef.current = 0;
-    comboRef.current = 0;
-    maxComboRef.current = 0;
-    livesRef.current = INITIAL_LIVES;
-    notesRef.current = [];
-    isPlayingRef.current = true;
-
-    setDisplayScore(0);
-    setDisplayCombo(0);
-    setLives(INITIAL_LIVES);
-    setHitFeedback(null);
-    setGameState("playing");
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-[#0a0d14] text-white select-none overflow-hidden font-sans">
@@ -643,10 +741,14 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
           <button
             type="button"
             onClick={() => {
-              setSoundMuted(!soundMuted);
-              if (bgmRef.current) {
-                if (!soundMuted) bgmRef.current.pause();
-                else bgmRef.current.play().catch(() => {});
+              const nextMuted = !soundMuted;
+              setSoundMuted(nextMuted);
+              if (nextMuted) {
+                cleanupAudio();
+              } else {
+                if (bgmRef.current) {
+                  bgmRef.current.play().catch(() => startSyntheticZenDrone(selectedTrack.bpm));
+                }
               }
             }}
             className="p-1.5 rounded-full bg-white/5 hover:bg-white/10 text-stone-300 transition-colors"
@@ -658,7 +760,10 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
           {onClose && (
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => {
+                cleanupAudio();
+                onClose();
+              }}
               className="p-1.5 rounded-full bg-white/5 hover:bg-white/10 text-stone-300 transition-colors"
               title="退出修持"
             >
@@ -732,7 +837,7 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
         </div>
       </div>
 
-      {/* ── 模块一：现代佛曲选择系统 (Track Selection Modal) ── */}
+      {/* ── 模块一：选歌界面 (Track Selection) ── */}
       <AnimatePresence>
         {gameState === "select" && (
           <motion.div
@@ -817,7 +922,7 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
               <div className="mt-6 flex gap-3">
                 <button
                   type="button"
-                  onClick={() => startTrackGame(selectedTrack)}
+                  onClick={() => handleStartGame(selectedTrack)}
                   className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 text-stone-950 font-bold font-serif tracking-widest text-sm shadow-[0_0_25px_rgba(217,119,6,0.5)] hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Play className="h-4 w-4 fill-stone-950" />
@@ -827,7 +932,10 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
                 {onClose && (
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={() => {
+                      cleanupAudio();
+                      onClose();
+                    }}
                     className="px-5 py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 text-stone-300 font-serif text-xs tracking-wider transition-all"
                   >
                     返回
@@ -896,12 +1004,14 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
                 </div>
 
                 {loadingLeaderboard && leaderboard.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-stone-500 font-serif">
-                    正在加载同修记录…
+                  <div className="py-8 text-center text-xs text-stone-500 font-serif flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+                    <span>正在加载同修记录…</span>
                   </div>
                 ) : leaderboard.length === 0 ? (
-                  <div className="py-6 text-center text-xs text-stone-500 font-serif">
-                    暂无修持战绩，您是第一位精进者！
+                  <div className="py-6 text-center text-xs text-stone-400 font-serif bg-white/5 rounded-2xl border border-white/10 p-4">
+                    <Sparkles className="h-4 w-4 text-amber-400 mx-auto mb-1" />
+                    当前暂无同修记录，您将成为第一位精进者！
                   </div>
                 ) : (
                   <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
@@ -952,7 +1062,7 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
               <div className="flex gap-2.5">
                 <button
                   type="button"
-                  onClick={() => startTrackGame(selectedTrack)}
+                  onClick={() => handleStartGame(selectedTrack)}
                   className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 text-stone-950 font-bold font-serif text-xs tracking-widest hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-lg cursor-pointer"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -961,7 +1071,10 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
 
                 <button
                   type="button"
-                  onClick={() => setGameState("select")}
+                  onClick={() => {
+                    cleanupAudio();
+                    setGameState("select");
+                  }}
                   className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-amber-300 font-serif text-xs tracking-wider transition-all border border-amber-400/20 cursor-pointer"
                 >
                   切换曲目
@@ -970,7 +1083,10 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
                 {onClose && (
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={() => {
+                      cleanupAudio();
+                      onClose();
+                    }}
                     className="px-3.5 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-stone-400 font-serif text-xs transition-all"
                   >
                     退出

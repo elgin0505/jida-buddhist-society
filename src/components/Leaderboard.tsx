@@ -33,7 +33,7 @@ export function Leaderboard({ members, currentMemberId }: LeaderboardProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xl">🏆</span>
-          <h4 className="text-lg font-bold text-charcoal dark:text-white">精进功德榜</h4>
+          <h4 className="text-lg font-bold text-charcoal dark:text-white">精进积分榜</h4>
         </div>
 
         <div className="flex rounded-xl bg-ocher-light/40 border border-ocher/30 p-1 text-xs font-semibold">
@@ -45,7 +45,7 @@ export function Leaderboard({ members, currentMemberId }: LeaderboardProps) {
                 : "text-muted hover:text-charcoal"
             }`}
           >
-            功德榜
+            积分榜
           </button>
         </div>
       </div>

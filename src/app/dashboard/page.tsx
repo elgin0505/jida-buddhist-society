@@ -438,7 +438,7 @@ export default function DashboardPage() {
 
                 {/* ── 功德菩提树（积分可视化） ── */}
                 <div className="flex flex-col items-center">
-                  <p className="mb-1 text-xs font-medium text-muted dark:text-slate-400">功德积分</p>
+                  <p className="mb-1 text-xs font-medium text-muted dark:text-slate-400">累积积分</p>
                   <LivingBodhiTree
                     points={currentMember.totalPoints}
                     size="sm"
@@ -555,7 +555,7 @@ export default function DashboardPage() {
             }`}
           >
             <span>🏆</span>
-            精进功德榜
+            精进积分榜
           </button>
 
           <button

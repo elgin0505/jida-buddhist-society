@@ -107,7 +107,7 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
         })
         .then((buf) => audioCtxRef.current?.decodeAudioData(buf))
         .then((decoded) => {
-          sfxBufferRef.current = decoded;
+          sfxBufferRef.current = decoded || null;
         })
         .catch(() => {
           // 备用：若无外部 mp3，自动启用高品质合成木鱼声
@@ -467,17 +467,34 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
     setDisplayCombo(0);
     setLives(INITIAL_LIVES);
     setHitFeedback(null);
+    setDisplayScore(0);
+    setDisplayCombo(0);
+    setLives(INITIAL_LIVES);
+    setHitFeedback(null);
     setGameState("playing");
   };
 
-  // Mock 排行榜数据
-  const mockLeaderboard: LeaderboardItem[] = [
-    { rank: 1, name: "慧海居士", score: 8600, combo: 68, title: "金刚妙觉" },
-    { rank: 2, name: "净心修行者", score: 6200, combo: 45, title: "破迷居士" },
-    { rank: 3, name: "妙音行者", score: 4900, combo: 32, title: "随喜行者" },
-    { rank: 4, name: "刘俊宏 (我)", score: Math.max(displayScore, 3600), combo: maxComboRef.current || 24, title: "初发心" },
-    { rank: 5, name: "法空同修", score: 2800, combo: 18, title: "初发心" },
-  ];
+  // 动态排行榜数据 (优先读取云端排行榜)
+  const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
+
+  useEffect(() => {
+    fetch("/api/game/leaderboard")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.leaderboard) && data.leaderboard.length > 0) {
+          setLeaderboard(data.leaderboard);
+        } else {
+          setLeaderboard([
+            { rank: 1, name: "慧海居士", score: 8600, combo: 68, title: "金刚妙觉" },
+            { rank: 2, name: "净心修行者", score: 6200, combo: 45, title: "破迷居士" },
+            { rank: 3, name: "妙音行者", score: 4900, combo: 32, title: "随喜行者" },
+            { rank: 4, name: "同修 (我)", score: Math.max(displayScore, 3600), combo: maxComboRef.current || 24, title: "初发心" },
+            { rank: 5, name: "法空同修", score: 2800, combo: 18, title: "初发心" },
+          ]);
+        }
+      })
+      .catch(() => {});
+  }, [gameState, displayScore]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-[#0a0d14] text-white select-none overflow-hidden font-sans">
@@ -686,7 +703,7 @@ export function ZenRhythmWoodblock({ onClose, onScoreSave }: ZenRhythmWoodblockP
                 <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block px-1">
                   精进同修排行 Top 5
                 </span>
-                {mockLeaderboard.map((item) => (
+                {leaderboard.map((item) => (
                   <div
                     key={item.rank}
                     className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs ${

@@ -39,10 +39,18 @@ export default function AdminCheckInPage() {
   const [recentCheckIns, setRecentCheckIns] = useState<
     { id: string; dateTime: string; eventName: string; pointsEarned: number; member: { name: string; memberId: string } }[]
   >([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [toast, setToast] = useState<ToastData | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
 
   useEffect(() => {
+    fetch("/api/members")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setMembers(data);
+      })
+      .catch(console.error);
+
     fetch("/api/events")
       .then((res) => res.json())
       .then((data) => {

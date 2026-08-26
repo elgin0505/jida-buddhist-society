@@ -126,18 +126,30 @@ function doPost(e) {
 
     // 2. 记录奖品兑换
     if (action === 'logRedemption') {
-      const { memberId, memberName, rewardName, pointsSpent, timestamp } = payload.data;
+      const data = payload.data || {};
+      const { memberId, memberName, rewardName, pointsSpent, timestamp, quantity, newStock } = data;
       const sheet = getOrCreateSheet(ss, 'Redemptions', [
-        '时间 (Timestamp)', '会员编号 (Member ID)', '姓名 (Name)', '兑换奖品 (Reward)', '消耗积分 (Points Spent)'
+        '时间 (Timestamp)', '会员编号 (Member ID)', '姓名 (Name)', '兑换奖品 (Reward)', '消耗积分 (Points Spent)', '数量 (Quantity)'
       ]);
       
       const timeStr = timestamp ? new Date(timestamp).toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur' }) : new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur' });
-      sheet.appendRow([timeStr, memberId, memberName || '', rewardName, pointsSpent || 0]);
+      sheet.appendRow([timeStr, memberId, memberName || '', rewardName, pointsSpent || 0, quantity || 1]);
       
       // 扣除 Members 表格中的积分
       updateMemberPointsInSheet(ss, memberId, -Number(pointsSpent || 0));
 
-      return jsonResponse({ success: true, message: '兑换已同步到 Google Sheet' });
+      // 实时扣除并更新 Rewards 表格中的库存！
+      updateRewardStockInSheet(ss, rewardName, newStock, quantity || 1);
+
+      return jsonResponse({ success: true, message: '兑换已同步到 Google Sheet 并更新库存' });
+    }
+
+    // 2.1 独立更新奖品库存
+    if (action === 'updateRewardStock') {
+      const data = payload.data || {};
+      const { rewardName, newStock, quantityDeducted } = data;
+      updateRewardStockInSheet(ss, rewardName, newStock, quantityDeducted);
+      return jsonResponse({ success: true, message: '奖品库存已成功更新' });
     }
 
     // 3. 全量推送会员列表
@@ -273,6 +285,27 @@ function updateMemberPointsInSheet(ss, memberId, deltaPoints) {
     }
   } catch (e) {
     console.error('Failed to update member points in sheet:', e);
+  }
+}
+
+function updateRewardStockInSheet(ss, rewardName, newStock, quantityDeducted) {
+  try {
+    const sheet = ss.getSheetByName('Rewards');
+    if (!sheet) return;
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]).trim() === String(rewardName).trim()) {
+        if (typeof newStock === 'number') {
+          sheet.getRange(i + 1, 3).setValue(Math.max(0, newStock));
+        } else if (quantityDeducted) {
+          const currentStock = Number(data[i][2]) || 0;
+          sheet.getRange(i + 1, 3).setValue(Math.max(0, currentStock - quantityDeducted));
+        }
+        break;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to update reward stock in sheet:', e);
   }
 }
 

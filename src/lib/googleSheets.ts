@@ -228,14 +228,64 @@ export async function logAttendanceToGoogleSheet(payload: AttendanceSheetPayload
 }
 
 /* ─────────────────────────────────────────────────────────────
- * 3. 奖品兑换记录同步 (Redemption Log ➔ Redemptions 表)
+ * 3. 奖品兑换记录同步 (Redemption Log ➔ Redemptions 表 & 实时扣减 Rewards 库存)
  * ───────────────────────────────────────────────────────────── */
 export interface RedemptionSheetPayload {
   memberId: string;
   memberName: string;
   rewardName: string;
   pointsSpent: number;
+  quantity?: number;
+  newStock?: number;
   timestamp: string;
+}
+
+/**
+ * 实时将最新库存数量更新到 Google Sheets 的 Rewards 表格中
+ */
+export async function updateRewardStockInGoogleSheet(rewardName: string, newStock: number) {
+  const client = getGoogleSheetsClient();
+  const webhookUrl = getWebhookUrl();
+  if (!client && !webhookUrl) return { success: false, skipped: true };
+
+  try {
+    if (client) {
+      const res = await client.sheets.spreadsheets.values.get({
+        spreadsheetId: client.spreadsheetId,
+        range: "Rewards!A2:C",
+      });
+      const rows = res.data.values || [];
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i] && String(rows[i][0] || "").trim() === String(rewardName).trim()) {
+          const rowIndex = i + 2; // 1-based index including header
+          await client.sheets.spreadsheets.values.update({
+            spreadsheetId: client.spreadsheetId,
+            range: `Rewards!C${rowIndex}`,
+            valueInputOption: "USER_ENTERED",
+            requestBody: {
+              values: [[Math.max(0, newStock)]],
+            },
+          });
+          console.log(`📦 [GoogleSheets] 成功更新表格中「${rewardName}」的库存为: ${newStock}`);
+          break;
+        }
+      }
+    } else if (webhookUrl) {
+      await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "updateRewardStock",
+          data: { rewardName, newStock },
+        }),
+      });
+      console.log(`📦 [GoogleSheets Webhook] 成功发送库存更新请求「${rewardName}」: ${newStock}`);
+    }
+    return { success: true };
+  } catch (error: any) {
+    console.error("❌ [GoogleSheets] 奖品库存同步至表格失败:", error?.message || error);
+    return { success: false, error: error?.message };
+  }
 }
 
 export async function logRedemptionToGoogleSheet(payload: RedemptionSheetPayload) {
@@ -251,7 +301,7 @@ export async function logRedemptionToGoogleSheet(payload: RedemptionSheetPayload
       payload.memberName,
       payload.rewardName,
       `-${payload.pointsSpent}`,
-      "法宝兑换",
+      `数量: ${payload.quantity || 1}`,
     ];
 
     if (client) {
@@ -261,7 +311,7 @@ export async function logRedemptionToGoogleSheet(payload: RedemptionSheetPayload
         "姓名 (Name)",
         "兑换奖品 (Reward Name)",
         "消耗积分 (Points Spent)",
-        "记录类型 (Type)",
+        "数量/类型 (Quantity/Type)",
       ]);
 
       await client.sheets.spreadsheets.values.append({
@@ -273,6 +323,11 @@ export async function logRedemptionToGoogleSheet(payload: RedemptionSheetPayload
           values: [rowValues],
         },
       });
+
+      // 同步更新 Google Sheets 中 Rewards 分页的库存
+      if (typeof payload.newStock === "number") {
+        await updateRewardStockInGoogleSheet(payload.rewardName, payload.newStock);
+      }
     } else if (webhookUrl) {
       await fetch(webhookUrl, {
         method: "POST",

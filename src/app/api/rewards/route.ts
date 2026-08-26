@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma, recalculateMemberPoints } from "@/lib/prisma";
-import { logRedemptionToGoogleSheet, syncRewardsFromGoogleSheet } from "@/lib/googleSheets";
+import { logRedemptionToGoogleSheet, syncRewardsFromGoogleSheet, updateRewardStockInGoogleSheet } from "@/lib/googleSheets";
 
 export async function GET() {
   try {
@@ -16,69 +16,175 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const { memberId, rewardId } = body;
+  try {
+    const body = await request.json();
+    const { memberId, rewardId, quantity, items } = body;
 
-  if (!memberId || !rewardId) {
-    return NextResponse.json(
-      { error: "会员ID和奖品ID为必填项" },
-      { status: 400 }
+    if (!memberId) {
+      return NextResponse.json(
+        { error: "会员身份信息必填，请先登录" },
+        { status: 400 }
+      );
+    }
+
+    const member = await prisma.member.findUnique({ where: { id: memberId } });
+    if (!member) {
+      return NextResponse.json({ error: "会员不存在" }, { status: 404 });
+    }
+
+    // 1. 规范化兑换清单 (支持单品选择数量 或 多选批量兑换)
+    interface RedeemItemRequest {
+      rewardId: string;
+      quantity: number;
+    }
+
+    let itemsToProcess: RedeemItemRequest[] = [];
+
+    if (Array.isArray(items) && items.length > 0) {
+      itemsToProcess = items.map((it: any) => ({
+        rewardId: String(it.rewardId),
+        quantity: Math.max(1, parseInt(String(it.quantity || "1"), 10)),
+      }));
+    } else if (rewardId) {
+      itemsToProcess = [
+        {
+          rewardId: String(rewardId),
+          quantity: Math.max(1, parseInt(String(quantity || "1"), 10)),
+        },
+      ];
+    } else {
+      return NextResponse.json(
+        { error: "请选择要兑换的法宝结缘品" },
+        { status: 400 }
+      );
+    }
+
+    // 2. 检查并计算所有奖品的库存与积分
+    let totalPointsNeeded = 0;
+    const validatedItems: {
+      reward: any;
+      quantity: number;
+      pointsRequired: number;
+    }[] = [];
+
+    for (const itemReq of itemsToProcess) {
+      const reward = await prisma.reward.findUnique({
+        where: { id: itemReq.rewardId },
+      });
+
+      if (!reward) {
+        return NextResponse.json(
+          { error: `法宝ID [${itemReq.rewardId}] 不存在或已下架` },
+          { status: 404 }
+        );
+      }
+
+      if (reward.stock < itemReq.quantity) {
+        return NextResponse.json(
+          {
+            error: `「${reward.name}」库存不足！当前仅剩 ${reward.stock} 件，无法兑换 ${itemReq.quantity} 件。`,
+          },
+          { status: 400 }
+        );
+      }
+
+      const itemTotalPoints = reward.pointsRequired * itemReq.quantity;
+      totalPointsNeeded += itemTotalPoints;
+
+      validatedItems.push({
+        reward,
+        quantity: itemReq.quantity,
+        pointsRequired: itemTotalPoints,
+      });
+    }
+
+    // 3. 检查会员总积分是否充足
+    if (member.totalPoints < totalPointsNeeded) {
+      return NextResponse.json(
+        {
+          error: `当前积分不足！共需 ${totalPointsNeeded} 积分，您当前拥有 ${member.totalPoints} 积分。`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // 4. 执行数据库原子事务：扣减各法宝库存、扣减会员积分、创建兑换记录
+    const transactionOps: any[] = [];
+
+    for (const val of validatedItems) {
+      // 创建兑换记录 (按数量记录或单笔总分)
+      for (let q = 0; q < val.quantity; q++) {
+        transactionOps.push(
+          prisma.redemption.create({
+            data: {
+              memberId,
+              rewardId: val.reward.id,
+              pointsSpent: val.reward.pointsRequired,
+            },
+          })
+        );
+      }
+
+      // 扣减数据库库存
+      transactionOps.push(
+        prisma.reward.update({
+          where: { id: val.reward.id },
+          data: { stock: { decrement: val.quantity } },
+        })
+      );
+    }
+
+    // 扣减会员总积分
+    transactionOps.push(
+      prisma.member.update({
+        where: { id: memberId },
+        data: { totalPoints: { decrement: totalPointsNeeded } },
+      })
     );
-  }
 
-  const member = await prisma.member.findUnique({ where: { id: memberId } });
-  const reward = await prisma.reward.findUnique({ where: { id: rewardId } });
+    const txResults = await prisma.$transaction(transactionOps);
+    const updatedMember = await recalculateMemberPoints(memberId);
 
-  if (!member) {
-    return NextResponse.json({ error: "会员不存在" }, { status: 404 });
-  }
+    // 5. 异步同步到 Google Sheet：更新最新库存并写入 Redemptions 兑换记录
+    const nowIso = new Date().toISOString();
 
-  if (!reward) {
-    return NextResponse.json({ error: "奖品不存在" }, { status: 404 });
-  }
+    for (const val of validatedItems) {
+      const newStock = Math.max(0, val.reward.stock - val.quantity);
 
-  if (reward.stock <= 0) {
-    return NextResponse.json({ error: "奖品已兑完" }, { status: 400 });
-  }
+      // 同步到 Google Sheet
+      logRedemptionToGoogleSheet({
+        memberId: member.memberId,
+        memberName: member.name,
+        rewardName: val.reward.name,
+        pointsSpent: val.pointsRequired,
+        quantity: val.quantity,
+        newStock,
+        timestamp: nowIso,
+      }).catch((e) => console.error("Google Sheets sync redemption log error:", e));
 
-  if (member.totalPoints < reward.pointsRequired) {
-    return NextResponse.json(
-      { error: "积分不足，无法兑换" },
-      { status: 400 }
+      updateRewardStockInGoogleSheet(val.reward.name, newStock).catch((e) =>
+        console.error("Google Sheets update stock error:", e)
+      );
+    }
+
+    console.log(
+      `✅ [Redeem API] 会员 ${member.name} (${member.memberId}) 成功兑换 ${validatedItems.length} 种法宝，共消耗 ${totalPointsNeeded} 积分`
     );
-  }
 
-  const [redemption, updatedMember] = await prisma.$transaction([
-    prisma.redemption.create({
-      data: {
-        memberId,
-        rewardId,
-        pointsSpent: reward.pointsRequired,
+    return NextResponse.json(
+      {
+        success: true,
+        message: "兑换成功！福慧增长，功德无量。",
+        totalPointsSpent: totalPointsNeeded,
+        remainingPoints: updatedMember.totalPoints,
       },
-    }),
-    prisma.reward.update({
-      where: { id: rewardId },
-      data: { stock: { decrement: 1 } },
-    }),
-    prisma.member.update({
-      where: { id: memberId },
-      data: { totalPoints: { decrement: reward.pointsRequired } },
-    }),
-  ]);
-
-  await recalculateMemberPoints(memberId);
-
-  // 异步同步到 Google Sheet
-  logRedemptionToGoogleSheet({
-    memberId: member.memberId,
-    memberName: member.name,
-    rewardName: reward.name,
-    pointsSpent: reward.pointsRequired,
-    timestamp: redemption.createdAt.toISOString(),
-  });
-
-  return NextResponse.json(
-    { redemption, member: updatedMember },
-    { status: 201 }
-  );
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error("❌ [Redeem API Error]:", error?.message || error);
+    return NextResponse.json(
+      { error: error?.message || "兑换失败，请稍后重试" },
+      { status: 500 }
+    );
+  }
 }

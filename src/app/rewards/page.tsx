@@ -31,19 +31,46 @@ export default function RewardsPage() {
       });
   }, []);
 
-  const handleRedeem = async (reward: Reward) => {
+  const handleRedeem = async (reward: Reward, quantity = 1) => {
     if (!currentMember) throw new Error("您尚未登录或选择身份");
 
     const res = await fetch("/api/rewards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ memberId: currentMember.id, rewardId: reward.id }),
+      body: JSON.stringify({
+        memberId: currentMember.id,
+        rewardId: reward.id,
+        quantity,
+      }),
     });
 
     const data = await res.json();
 
     if (!res.ok) {
       throw new Error(data.error || "兑换失败，请稍后重试");
+    }
+
+    await refreshMembers();
+    const updated = await fetch("/api/rewards").then((r) => r.json());
+    setRewards(updated);
+  };
+
+  const handleBatchRedeem = async (items: Array<{ rewardId: string; quantity: number }>) => {
+    if (!currentMember) throw new Error("您尚未登录或选择身份");
+
+    const res = await fetch("/api/rewards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        memberId: currentMember.id,
+        items,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "批量兑换失败，请稍后重试");
     }
 
     await refreshMembers();
@@ -105,6 +132,7 @@ export default function RewardsPage() {
           rewards={rewards}
           userPoints={currentMember?.totalPoints || 0}
           onRedeem={handleRedeem}
+          onBatchRedeem={handleBatchRedeem}
         />
       )}
     </PageWrapper>

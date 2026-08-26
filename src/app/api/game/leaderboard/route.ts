@@ -25,7 +25,7 @@ export async function GET() {
 
     console.log(`✅ [API Leaderboard GET] 成功查询到 ${scores.length} 条战绩记录`);
 
-    const leaderboard = scores.map((item, index) => {
+    const leaderboard = scores.map((item: any, index: number) => {
       const score = item.score;
       let title = "初发心";
       if (score >= 8000) title = "金刚妙觉";

@@ -9,7 +9,7 @@ const navItems = [
   { href: "/dashboard", label: "会员仪表板", icon: LotusIcon },
   { href: "/events", label: "活动列表", icon: CalendarIcon },
   { href: "/rewards", label: "积分商城", icon: GiftIcon },
-  { href: "/admin/check-in", label: "管理员签到", icon: ScanIcon },
+  { href: "/admin/check-in", label: "管理控制台", icon: ScanIcon },
 ];
 
 export function Navigation() {

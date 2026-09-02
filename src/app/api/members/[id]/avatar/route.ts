@@ -47,6 +47,11 @@ export async function POST(
         return NextResponse.json({ error: "无效的图片数据" }, { status: 400 });
       }
 
+      // 限制 Base64 体积不超过 2MB
+      if (photoData.length > 2 * 1024 * 1024 * 1.37) {
+        return NextResponse.json({ error: "图片文件过大，请上传小于 2MB 的头像图片" }, { status: 400 });
+      }
+
       // 直接以标准 Data URL 存入数据库，具备永久可用性，完全免疫无状态容器重置与只读文件系统
       photoUrl = photoData;
 
@@ -68,6 +73,11 @@ export async function POST(
 
       if (!file) {
         return NextResponse.json({ error: "未提供图片文件" }, { status: 400 });
+      }
+
+      // 限制文件体积不超过 2MB
+      if (file.size > 2 * 1024 * 1024) {
+        return NextResponse.json({ error: "图片文件过大，请上传小于 2MB 的头像图片" }, { status: 400 });
       }
 
       if (!file.type.startsWith("image/") && !file.name.match(/\.(jpg|jpeg|png|webp|gif|heic|heif)$/i)) {

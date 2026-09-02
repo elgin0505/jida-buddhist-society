@@ -33,12 +33,13 @@ export async function POST(request: Request) {
     // 有效期 10 分钟
     const expiry = new Date(Date.now() + 10 * 60 * 1000);
 
-    // 将验证码与过期时间存入数据库
+    // 将验证码与过期时间存入数据库，并重置错误尝试计数
     await prisma.user.update({
       where: { email: normalizedEmail },
       data: {
         resetCode: code,
         resetCodeExpiry: expiry,
+        resetAttempts: 0,
       },
     });
 

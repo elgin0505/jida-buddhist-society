@@ -159,9 +159,16 @@ export default function AdminDashboardPage() {
     const points = customPoints !== "" ? Number(customPoints) : (event?.points ?? 1);
 
     try {
+      const adminPin = typeof window !== "undefined"
+        ? sessionStorage.getItem("jbs_admin_pin") || localStorage.getItem("jbs_admin_custom_pin") || "1080"
+        : "1080";
+
       const res = await fetch("/api/attendance", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": adminPin,
+        },
         body: JSON.stringify({
           memberId: member.id,
           eventName: selectedEvent,

@@ -58,6 +58,7 @@ export function AdminPinLock({ children }: AdminPinLockProps) {
       // 验证成功
       setIsAuthenticated(true);
       sessionStorage.setItem("jbs_admin_authenticated", "true");
+      sessionStorage.setItem("jbs_admin_pin", inputPin);
       setPin("");
     } else {
       // 密码错误：触发抖动
@@ -71,6 +72,7 @@ export function AdminPinLock({ children }: AdminPinLockProps) {
   const handleLock = () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem("jbs_admin_authenticated");
+    sessionStorage.removeItem("jbs_admin_pin");
     setPin("");
   };
 

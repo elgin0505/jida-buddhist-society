@@ -15,10 +15,14 @@ model Member {
   photo       String?
   birthday    DateTime?
   totalPoints Int             @default(0)
+  userId      String?         @unique
+  user        User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
   attendances AttendanceLog[]
   redemptions Redemption[]
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+
+  @@index([memberId])
 }
 
 model AttendanceLog {
@@ -29,6 +33,8 @@ model AttendanceLog {
   eventName    String
   pointsEarned Int      @default(1)
   createdAt    DateTime @default(now())
+
+  @@index([memberId, eventName, dateTime])
 }
 
 model Reward {
@@ -50,6 +56,8 @@ model Redemption {
   reward      Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
   pointsSpent Int
   createdAt   DateTime @default(now())
+
+  @@index([memberId])
 }
 
 model Event {
@@ -63,17 +71,20 @@ model Event {
 }
 
 model User {
-  id              String    @id @default(cuid())
+  id              String         @id @default(cuid())
   name            String
-  email           String    @unique
+  email           String         @unique
   birthday        DateTime?
   passwordHash    String
   resetCode       String?
   resetCodeExpiry DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  resetAttempts   Int            @default(0)
+  member          Member?
   zenGameScores   ZenGameScore[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
+
 // ── Zen Rhythm Game Score ────────────────────────────────────────
 model ZenGameScore {
   id          String   @id @default(cuid())
@@ -86,4 +97,3 @@ model ZenGameScore {
 
   @@index([userId])
 }
-

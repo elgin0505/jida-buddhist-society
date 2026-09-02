@@ -376,7 +376,21 @@ function parseDateSafely(val: any): Date {
   return new Date();
 }
 
-export async function syncEventsFromGoogleSheet() {
+// ── 短时内存缓存机制 (TTL: 30 秒)，大幅降低高并发下 Google API 的网络延迟与请求开销 ──
+let lastEventsFetchTime = 0;
+let lastRewardsFetchTime = 0;
+const CACHE_TTL_MS = 30 * 1000; // 30 秒
+
+export async function syncEventsFromGoogleSheet(forceRefresh = false) {
+  const now = Date.now();
+
+  // 1. 如果在缓存有效期内且非强制刷新，直接从本地数据库秒级返回
+  if (!forceRefresh && now - lastEventsFetchTime < CACHE_TTL_MS) {
+    return prisma.event.findMany({
+      orderBy: { dateTime: "asc" },
+    });
+  }
+
   const client = getGoogleSheetsClient();
   const webhookUrl = getWebhookUrl();
 
@@ -465,6 +479,7 @@ export async function syncEventsFromGoogleSheet() {
           });
         }
       }
+      lastEventsFetchTime = Date.now();
       console.log(`🔄 [GoogleSheets] 成功从表格同步 ${eventRows.length} 个活动`);
     }
   } catch (err: any) {
@@ -513,7 +528,16 @@ function formatImageUrl(rawUrl: any): string | null {
 /* ─────────────────────────────────────────────────────────────
  * 5. 从 Google Sheets 读取商城法宝列表 (Rewards 表 ➔ 网页)
  * ───────────────────────────────────────────────────────────── */
-export async function syncRewardsFromGoogleSheet() {
+export async function syncRewardsFromGoogleSheet(forceRefresh = false) {
+  const now = Date.now();
+
+  // 1. 如果在缓存有效期内且非强制刷新，直接从本地数据库秒级返回
+  if (!forceRefresh && now - lastRewardsFetchTime < CACHE_TTL_MS) {
+    return prisma.reward.findMany({
+      orderBy: { pointsRequired: "asc" },
+    });
+  }
+
   const client = getGoogleSheetsClient();
   const webhookUrl = getWebhookUrl();
 
@@ -602,6 +626,7 @@ export async function syncRewardsFromGoogleSheet() {
           });
         }
       }
+      lastRewardsFetchTime = Date.now();
       console.log(`🔄 [GoogleSheets] 成功从表格同步 ${rewardRows.length} 个法宝奖品 (含图片链接)`);
     }
   } catch (err: any) {

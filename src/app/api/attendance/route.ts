@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma, recalculateMemberPoints } from "@/lib/prisma";
 import { logAttendanceToGoogleSheet } from "@/lib/googleSheets";
+import { verifyAdminPin } from "@/lib/adminAuth";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -19,6 +20,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // 1. 安全校验：验证管理员权限
+  const auth = verifyAdminPin(request);
+  if (!auth.isValid && auth.errorResponse) {
+    return auth.errorResponse;
+  }
+
   const body = await request.json();
   const { memberId, eventName, pointsEarned = 1 } = body;
 
@@ -46,6 +53,7 @@ export async function POST(request: Request) {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
+  // 2. 幂等校验：防止同日重复签到
   const existing = await prisma.attendanceLog.findFirst({
     where: {
       memberId: member.id,
@@ -56,7 +64,7 @@ export async function POST(request: Request) {
 
   if (existing) {
     return NextResponse.json(
-      { error: "该会员今日已签到此活动" },
+      { error: "该会员今日已签到此活动，无需重复签到" },
       { status: 409 }
     );
   }
@@ -65,20 +73,20 @@ export async function POST(request: Request) {
     data: {
       memberId: member.id,
       eventName,
-      pointsEarned,
+      pointsEarned: Number(pointsEarned) || 1,
     },
   });
 
   const updatedMember = await recalculateMemberPoints(member.id);
 
-  // 异步同步到 Google Sheet
+  // 3. 异步非阻塞同步到 Google Sheet
   logAttendanceToGoogleSheet({
     memberId: member.memberId,
     memberName: member.name,
     eventName,
-    pointsEarned,
+    pointsEarned: Number(pointsEarned) || 1,
     timestamp: log.dateTime.toISOString(),
-  });
+  }).catch((err) => console.error("Google Sheets attendance sync error:", err));
 
   return NextResponse.json(
     { log, member: updatedMember },

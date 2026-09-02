@@ -7,7 +7,6 @@ import { NextResponse } from "next/server";
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  */
 export async function GET() {
-  console.log("🔍 [API Leaderboard GET] 收到排行榜数据请求...");
   try {
     const scores = await prisma.zenGameScore.findMany({
       take: 10,
@@ -22,8 +21,6 @@ export async function GET() {
         },
       },
     });
-
-    console.log(`✅ [API Leaderboard GET] 成功查询到 ${scores.length} 条战绩记录`);
 
     const leaderboard = scores.map((item: any, index: number) => {
       const score = item.score;
@@ -62,29 +59,24 @@ export async function GET() {
 /**
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  *  POST /api/game/leaderboard: 保存玩家的真实木鱼音游修持战绩
+ *  [Unique Highest Score System] 每个玩家仅保留唯一最高分
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  */
 export async function POST(request: Request) {
-  console.log("📝 [API Leaderboard POST] 收到战绩提交请求...");
   try {
     const body = await request.json();
     const { userId, userEmail, score, maxCombo, trackName } = body;
 
-    console.log("📦 [API Leaderboard POST] 请求体数据:", {
-      userId,
-      userEmail,
-      score,
-      maxCombo,
-      trackName,
-    });
-
     if (typeof score !== "number" || typeof maxCombo !== "number") {
-      console.warn("⚠️ [API Leaderboard POST] 缺少有效的分数或连击数");
       return NextResponse.json(
         { success: false, error: "分数与连击数必须为有效数字" },
         { status: 400 }
       );
     }
+
+    const cleanScore = Math.max(0, Math.floor(score));
+    const cleanCombo = Math.max(0, Math.floor(maxCombo));
+    const cleanTrack = trackName || "《大悲咒 (赛博轻灵版)》";
 
     // 1. 查找匹配的真实用户（支持 userId、email 或 member 表关联）
     let targetUser = null;
@@ -121,36 +113,65 @@ export async function POST(request: Request) {
     }
 
     if (!targetUser) {
-      console.warn("⚠️ [API Leaderboard POST] 数据库中未找到任何注册用户");
       return NextResponse.json(
         { success: false, error: "未找到注册修行者账户，请先注册或登录" },
         { status: 401 }
       );
     }
 
-    // 2. 写入数据库战绩记录
-    const cleanScore = Math.max(0, Math.floor(score));
-    const cleanCombo = Math.max(0, Math.floor(maxCombo));
-    const cleanTrack = trackName || "《大悲咒 (赛博轻灵版)》";
+    // 2. Prisma Transaction: 保证每个玩家仅保留一条历史最高分记录
+    const result = await prisma.$transaction(async (tx) => {
+      const existingRecord = await tx.zenGameScore.findFirst({
+        where: { userId: targetUser.id },
+        orderBy: { score: "desc" },
+      });
 
-    const newRecord = await prisma.zenGameScore.create({
-      data: {
-        userId: targetUser.id,
-        score: cleanScore,
-        maxCombo: cleanCombo,
-        trackName: cleanTrack,
-      },
-      include: {
-        user: { select: { name: true, email: true } },
-      },
+      if (!existingRecord) {
+        // 首次创设战绩
+        const created = await tx.zenGameScore.create({
+          data: {
+            userId: targetUser.id,
+            score: cleanScore,
+            maxCombo: cleanCombo,
+            trackName: cleanTrack,
+            achievedAt: new Date(),
+          },
+          include: {
+            user: { select: { name: true, email: true } },
+          },
+        });
+        return { action: "created", isNewHigh: true, record: created };
+      }
+
+      if (cleanScore > existingRecord.score) {
+        // 新成绩突破最高纪录 -> 更新记录
+        const updated = await tx.zenGameScore.update({
+          where: { id: existingRecord.id },
+          data: {
+            score: cleanScore,
+            maxCombo: Math.max(existingRecord.maxCombo, cleanCombo),
+            trackName: cleanTrack,
+            achievedAt: new Date(),
+          },
+          include: {
+            user: { select: { name: true, email: true } },
+          },
+        });
+        return { action: "updated", isNewHigh: true, record: updated };
+      }
+
+      // 未破纪录 -> 返回现有记录，不污染排行榜
+      return { action: "kept", isNewHigh: false, record: existingRecord };
     });
-
-    console.log(`🎉 [API Leaderboard POST] 战绩成功入库: ID=${newRecord.id}, 玩家=${newRecord.user?.name}, 得分=${cleanScore}`);
 
     return NextResponse.json({
       success: true,
-      data: newRecord,
-      message: "战绩已成功载入功德簿！",
+      action: result.action,
+      isNewHigh: result.isNewHigh,
+      data: result.record,
+      message: result.isNewHigh
+        ? "恭喜突破个人修持记录！最高分已载入功德榜。"
+        : "修持完成，当前未超过历史最高分，已保留历史最佳战绩。",
     });
   } catch (error: any) {
     console.error("❌ [API Leaderboard POST Exception]:", error?.message || error);

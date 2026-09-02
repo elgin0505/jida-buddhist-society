@@ -29,8 +29,6 @@ import { toast as sonnerToast } from "sonner";
 import { Camera } from "lucide-react";
 import { KaresansuiBackground } from "@/components/KaresansuiBackground";
 import { LivingBodhiTree } from "@/components/LivingBodhiTree";
-import { ZenWoodenFish } from "@/components/ZenWoodenFish";
-import { ZenRhythmWoodblock } from "@/components/ZenRhythmWoodblock";
 
 interface AttendanceRecord {
   id: string;
@@ -62,7 +60,6 @@ export default function DashboardPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"history" | "leaderboard" | "badges">("history");
-  const [showWoodblockGame, setShowWoodblockGame] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [toast, setToast] = useState<ToastData | null>(null);
@@ -531,52 +528,6 @@ export default function DashboardPage() {
         <DailyDharmaCard />
       </motion.div>
 
-      {/* ── 梵音木鱼 · 下落式音游入口卡片 ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.16, ease: "easeOut" }}
-        className="mb-8"
-      >
-        <div
-          onClick={() => setShowWoodblockGame(true)}
-          className="group relative cursor-pointer overflow-hidden rounded-3xl border border-amber-400/30 bg-gradient-to-r from-[#171c2c]/95 via-[#101422]/95 to-[#0b0e18]/95 p-5 sm:p-6 shadow-lg hover:shadow-2xl hover:border-amber-400/60 transition-all backdrop-blur-2xl"
-        >
-          {/* 金色光晕背景 */}
-          <div className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-amber-500/10 blur-3xl group-hover:bg-amber-500/20 transition-all" />
-
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-400/30 text-3xl shadow-inner group-hover:scale-110 transition-transform">
-                🪵
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-300 border border-amber-400/30 font-mono uppercase">
-                    3-Lane Rhythm Game
-                  </span>
-                  <span className="text-[10px] text-amber-400 font-serif">✨ Web Audio 零延迟</span>
-                </div>
-                <h3 className="mt-1 text-base sm:text-lg font-bold text-stone-100 font-serif group-hover:text-amber-300 transition-colors">
-                  梵音木鱼 · 下落式正念音游
-                </h3>
-                <p className="text-xs text-stone-400 mt-0.5 line-clamp-1">
-                  跟随菩提光斑节奏击响木鱼，戒定慧三轨律动，反重力光尘业障消除。
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 px-5 py-2.5 text-xs font-bold text-stone-950 shadow-md group-hover:brightness-110 active:scale-95 transition-all self-start sm:self-auto"
-            >
-              <span>开启修持</span>
-              <span>➔</span>
-            </button>
-          </div>
-        </div>
-      </motion.div>
-
       {/* 视图切换 Tabs (3 栏切换) */}
       <div className="mb-6 flex justify-center">
         <div className="inline-flex rounded-2xl bg-white/70 dark:bg-slate-800/80 p-1.5 shadow-sm border border-ocher/20 dark:border-white/10 backdrop-blur-md">
@@ -700,31 +651,6 @@ export default function DashboardPage() {
           }}
         />
       )}
-    <ZenWoodenFish />
-
-    {/* ── 全屏下落式梵音木鱼音游 ── */}
-    {showWoodblockGame && (
-      <ZenRhythmWoodblock
-        onClose={() => setShowWoodblockGame(false)}
-        onScoreSave={async (score, maxCombo) => {
-          if (!currentMember) return;
-          try {
-            await fetch("/api/game/leaderboard", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userId: currentMember.id,
-                userEmail: currentMember.email,
-                score,
-                maxCombo,
-              }),
-            });
-          } catch (e) {
-            console.error("Score save error", e);
-          }
-        }}
-      />
-    )}
     </PageWrapper>
     </>
   );

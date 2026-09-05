@@ -29,6 +29,9 @@ import { toast as sonnerToast } from "sonner";
 import { Camera } from "lucide-react";
 import { KaresansuiBackground } from "@/components/KaresansuiBackground";
 import { LivingBodhiTree } from "@/components/LivingBodhiTree";
+import dynamic from "next/dynamic";
+
+const LotusSeaCanvas = dynamic(() => import("@/components/LotusSeaCanvas"), { ssr: false });
 
 interface AttendanceRecord {
   id: string;
@@ -65,6 +68,7 @@ export default function DashboardPage() {
   const [toast, setToast] = useState<ToastData | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [showBirthdayConfetti, setShowBirthdayConfetti] = useState(false);
+  const [showLotusCanvas, setShowLotusCanvas] = useState(false);
   const [liveEventsCount, setLiveEventsCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { width, height } = useWindowSize();
@@ -626,6 +630,57 @@ export default function DashboardPage() {
           }}
         />
       )}
+      
+      {/* 供灯祈福入口按钮 */}
+      <button
+        onClick={() => setShowLotusCanvas(true)}
+        className="fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-golden-deep to-golden-rich text-white shadow-[0_8px_20px_rgba(201,162,39,0.4)] transition-all hover:scale-110 active:scale-95"
+        style={{
+          left: "20px",
+          bottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
+        }}
+        title="供灯祈福"
+      >
+        <span className="text-2xl drop-shadow-md">🪷</span>
+      </button>
+
+      {/* 供灯祈福全屏 3D 模态框 */}
+      <AnimatePresence>
+        {showLotusCanvas && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md"
+          >
+            <div className="relative w-[95vw] max-w-5xl h-[85vh] overflow-hidden rounded-3xl border border-golden-deep/40 shadow-[0_0_50px_rgba(201,162,39,0.15)] bg-[#050505]">
+              {/* 关闭按钮 */}
+              <button
+                onClick={() => setShowLotusCanvas(false)}
+                className="absolute right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-carmine/80"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+
+              {/* 环境提示文本 */}
+              <div className="absolute left-1/2 top-6 z-50 -translate-x-1/2 rounded-full bg-black/40 px-4 py-1.5 text-xs tracking-widest text-golden-rich backdrop-blur-md">
+                点击水面供灯 · 点击心灯回向
+              </div>
+              
+              <LotusSeaCanvas 
+                currentUserName={currentMember?.name ?? "我"}
+                maxLampsPerUser={3}
+                onPlaceLamp={() => sonnerToast.success("已供上一盏心灯", { icon: "🪷" })}
+                onDedicate={() => sonnerToast.success("功德已回向", { icon: "✨" })}
+                onLimitReached={() => sonnerToast.warning("您的三盏祈福心灯已满，请将位置留予同修 🙏", { duration: 4000 })}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PageWrapper>
     </>
   );

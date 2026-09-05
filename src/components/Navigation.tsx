@@ -2,65 +2,49 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { LogOut } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", label: "会员仪表板", icon: LotusIcon },
-  { href: "/events", label: "活动列表", icon: CalendarIcon },
-  { href: "/rewards", label: "积分商城", icon: GiftIcon },
-  { href: "/admin/check-in", label: "管理控制台", icon: ScanIcon },
+  { href: "/dashboard", label: "仪表板", fullLabel: "会员仪表板", icon: LotusIcon },
+  { href: "/events", label: "活动", fullLabel: "活动列表", icon: CalendarIcon },
+  { href: "/rewards", label: "商城", fullLabel: "积分商城", icon: GiftIcon },
+  { href: "/admin/check-in", label: "管理", fullLabel: "管理控制台", icon: ScanIcon },
 ];
+
+function handleLogout() {
+  localStorage.removeItem("jbs_auth_user");
+  localStorage.removeItem("currentMemberId");
+  localStorage.removeItem("jbs_current_user_id");
+  localStorage.removeItem("jbs_current_user_name");
+  localStorage.removeItem("jbs_current_user_email");
+  localStorage.removeItem("jbs_current_member_id");
+  window.location.href = "/auth";
+}
 
 export function Navigation() {
   const pathname = usePathname();
-  const router = useRouter();
 
-  // 未登录 / 处于登录注册页时，完全隐藏内部导航栏
-  if (pathname === "/auth") {
-    return null;
-  }
-
-  const handleLogout = () => {
-    // 清理全部登录与会话状态
-    localStorage.removeItem("jbs_auth_user");
-    localStorage.removeItem("currentMemberId");
-    localStorage.removeItem("jbs_current_user_id");
-    localStorage.removeItem("jbs_current_user_name");
-    localStorage.removeItem("jbs_current_user_email");
-    localStorage.removeItem("jbs_current_member_id");
-    
-    // 立即跳转至登录页
-    window.location.href = "/auth";
-  };
+  if (pathname === "/auth") return null;
 
   return (
-    <header className="sticky top-0 z-50 border-b border-ocher/20 dark:border-white/10 bg-warm-white/90 dark:bg-[#0b0f19]/90 backdrop-blur-md transition-colors duration-500">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-        <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="relative h-11 w-11 overflow-hidden rounded-full ring-2 ring-golden-deep/30 transition-all group-hover:ring-golden-deep/60">
-            <Image
-              src="/logo.png"
-              alt="技大佛学会"
-              fill
-              className="object-cover"
-              priority
-            />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-charcoal dark:text-white">
-              技大佛学会
-            </h1>
-            <p className="text-[11px] font-medium text-muted dark:text-slate-400">
-              出勤 · 积分 · 奖励
-            </p>
-          </div>
-        </Link>
+    <>
+      {/* ── 顶部品牌栏 ── */}
+      <header className="sticky top-0 z-50 border-b border-ocher/20 bg-warm-white/90 backdrop-blur-md transition-colors duration-500">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+          <Link href="/dashboard" className="flex items-center gap-3 group">
+            <div className="relative h-10 w-10 overflow-hidden rounded-full ring-2 ring-golden-deep/30 transition-all group-hover:ring-golden-deep/60">
+              <Image src="/logo.png" alt="技大佛学会" fill className="object-cover" priority />
+            </div>
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-charcoal">技大佛学会</h1>
+              <p className="text-[10px] font-medium text-muted">出勤 · 积分 · 奖励</p>
+            </div>
+          </Link>
 
-        {/* 顶部导航 */}
-        <div className="flex items-center gap-3">
+          {/* 桌面端横向导航 */}
           <nav className="hidden items-center gap-1 md:flex">
-            {navItems.map(({ href, label, icon: Icon }) => {
+            {navItems.map(({ href, fullLabel, icon: Icon }) => {
               const isActive = pathname.startsWith(href);
               return (
                 <Link
@@ -68,52 +52,77 @@ export function Navigation() {
                   href={href}
                   className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all ${
                     isActive
-                      ? "bg-golden-deep/10 text-golden-rich dark:bg-golden-deep/20 dark:text-amber-300 dark:shadow-[0_0_12px_rgba(255,193,7,0.25)]"
-                      : "text-muted hover:bg-ocher-light/30 dark:hover:bg-slate-800 hover:text-charcoal dark:hover:text-white"
+                      ? "bg-golden-deep/10 text-golden-rich"
+                      : "text-muted hover:bg-ocher-light/30 hover:text-charcoal"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-                  {label}
+                  {fullLabel}
                 </Link>
               );
             })}
-            
             <button
               onClick={handleLogout}
               title="退出登录"
-              className="ml-2 flex items-center justify-center rounded-xl p-2 text-muted hover:bg-carmine/10 hover:text-carmine dark:hover:bg-carmine/20 transition-all"
+              className="ml-2 flex items-center justify-center rounded-xl p-2 text-muted hover:bg-carmine/10 hover:text-carmine transition-all"
             >
               <LogOut className="h-5 w-5" />
             </button>
           </nav>
         </div>
-      </div>
+      </header>
 
-      <nav className="flex border-t border-ocher/10 dark:border-white/10 md:hidden pb-safe">
+      {/* ── 移动端固定底部导航栏 ── */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 flex items-stretch md:hidden"
+        style={{
+          background: "rgba(255, 252, 245, 0.97)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          boxShadow: "0 -1px 0 rgba(201,162,39,0.18), 0 -8px 24px rgba(0,0,0,0.07)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
+      >
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
-              className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-all ${
-                isActive ? "text-golden-rich dark:text-amber-300" : "text-muted dark:text-slate-400"
-              }`}
+              className="mobile-nav-item relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 select-none transition-colors"
+              style={{ WebkitTapHighlightColor: "transparent", minHeight: "56px" }}
             >
-              <Icon className="h-5 w-5" />
-              {label}
+              {/* 顶部激活线 */}
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 h-[2.5px] w-8 rounded-full bg-golden-deep" />
+              )}
+              <Icon
+                className={`h-5 w-5 transition-all duration-200 ${
+                  isActive ? "text-golden-rich scale-110" : "text-muted"
+                }`}
+              />
+              <span
+                className={`text-[10px] font-semibold tracking-wide transition-colors duration-200 ${
+                  isActive ? "text-golden-rich" : "text-muted"
+                }`}
+              >
+                {label}
+              </span>
             </Link>
           );
         })}
+
+        {/* 退出登录 */}
         <button
           onClick={handleLogout}
-          className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-all text-muted hover:text-carmine dark:text-slate-400 dark:hover:text-red-400"
+          className="mobile-nav-item relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 select-none transition-colors"
+          style={{ WebkitTapHighlightColor: "transparent", minHeight: "56px" }}
         >
-          <LogOut className="h-5 w-5" />
-          登出
+          <LogOut className="h-5 w-5 text-muted" />
+          <span className="text-[10px] font-semibold tracking-wide text-muted">退出</span>
         </button>
       </nav>
-    </header>
+    </>
   );
 }
 

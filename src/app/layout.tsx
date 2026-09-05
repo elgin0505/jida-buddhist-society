@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthGuard } from "@/components/AuthGuard";
 import { PWAInstaller } from "@/components/PWAInstaller";
 import { CinematicNoise } from "@/components/CinematicNoise";
+import { BackToTop } from "@/components/BackToTop";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -21,6 +22,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover", // iPhone 刘海/安全区适配
 };
 
 export const metadata: Metadata = {
@@ -53,6 +55,7 @@ export default function RootLayout({
             <AuthGuard>
               <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
             </AuthGuard>
+            <BackToTop />
             <PWAInstaller />
             <CinematicNoise />
             <Toaster position="top-center" richColors />
@@ -62,3 +65,4 @@ export default function RootLayout({
     </html>
   );
 }
+

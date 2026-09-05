@@ -26,6 +26,8 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* iOS safe area support */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 
   :root {
@@ -35,6 +37,7 @@
     --bg-gradient-2: rgba(45, 106, 79, 0.10);
     --bg-gradient-3: rgba(232, 200, 114, 0.10);
     --bg-gradient-4: rgba(184, 134, 11, 0.08);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   /* ── 统一禅意暖金光泽 ── */
@@ -60,7 +63,28 @@
       radial-gradient(ellipse at 50% 50%, var(--bg-gradient-3) 0%, transparent 70%),
       radial-gradient(circle at 70% 10%, var(--bg-gradient-4) 0%, transparent 40%);
     min-height: 100vh;
+    /* 移动端为固定底部导航留出空间 */
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* 桌面端不需要 bottom padding */
+  @media (min-width: 768px) {
+    body {
+      padding-bottom: 0;
+    }
+  }
+
+  /* 表单输入框：最小 16px 防止 iOS 缩放 */
+  input, textarea, select {
+    font-size: max(16px, 1em);
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* 全局触摸优化 */
+  button, a {
+    touch-action: manipulation;
   }
 }
 
@@ -95,7 +119,34 @@
   }
 
   .btn-jade {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-jade px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-jade-light hover:shadow-lg dark:shadow-[0_0_16px_rgba(45,106,79,0.4)] active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-jade px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-jade-light hover:shadow-lg active:scale-[0.97] active:brightness-95;
+    touch-action: manipulation;
+    min-height: 44px;
+  }
+
+  /* ── 移动端底部导航触摸反馈 ── */
+  .mobile-nav-item:active {
+    background: rgba(201, 162, 39, 0.06);
+  }
+
+  /* ── 按钮涟漪效果 ── */
+  @keyframes ripple-anim {
+    0%   { transform: scale(0); opacity: 0.6; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  .ripple-container {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ripple-container .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(0);
+    animation: ripple-anim 0.55s linear forwards;
+    pointer-events: none;
   }
 
   /* ── 烛光呼吸发光光晕 (Candle Pulse Animation) ── */

@@ -6,7 +6,6 @@ import Confetti from "react-confetti";
 import { useWindowSize } from "react-use";
 import {
   Card,
-  StatCard,
   PageHeader,
   Badge,
   MemberAvatar,
@@ -24,6 +23,7 @@ import { GoldShimmerBorder } from "@/components/GoldShimmerBorder";
 import { DailyDharmaCard } from "@/components/DailyDharmaCard";
 import { DharmaBadges, DHARMA_LEVELS } from "@/components/DharmaBadges";
 import { TimelineView } from "@/components/TimelineView";
+import { Dashboard3DMenu } from "@/components/Dashboard3DMenu";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast as sonnerToast } from "sonner";
 import { Camera } from "lucide-react";
@@ -65,6 +65,7 @@ export default function DashboardPage() {
   const [toast, setToast] = useState<ToastData | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [showBirthdayConfetti, setShowBirthdayConfetti] = useState(false);
+  const [liveEventsCount, setLiveEventsCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { width, height } = useWindowSize();
 
@@ -82,6 +83,15 @@ export default function DashboardPage() {
     fetch(`/api/qrcode?memberId=${currentMember.memberId}`)
       .then((res) => res.json())
       .then((data) => setQrCode(data.qrDataUrl));
+      
+    fetch(`/api/events`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setLiveEventsCount(data.length);
+        }
+      })
+      .catch(() => setLiveEventsCount(0));
 
     // 生日检查逻辑
     if (currentMember.birthday) {
@@ -332,18 +342,6 @@ export default function DashboardPage() {
       <PageHeader
         title="会员仪表板"
         subtitle="查看个人资料、修持境界、积分汇总与出勤记录"
-        action={
-          <button
-            onClick={() => setShowScanner(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-jade/15 border border-jade/30 px-3.5 py-2 text-xs font-bold text-jade shadow-sm hover:bg-jade/25 transition-all active:scale-95"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
-              <rect x="7" y="7" width="10" height="10" rx="1" />
-            </svg>
-            扫一扫签到
-          </button>
-        }
       />
 
       {/* 会员信息卡 (3D 景深 + 鎏金流光边框) */}
@@ -480,47 +478,24 @@ export default function DashboardPage() {
         </Card3D>
       </motion.div>
 
-      {/* 统计卡 */}
+      {/* 3D 交互仪表盘菜单 */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.08, ease: "easeOut" }}
-        className="mb-8 grid gap-4 sm:grid-cols-3"
       >
-        <StatCard
-          label="总积分"
-          value={currentMember.totalPoints}
-          accent="golden"
-          icon={
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="出勤次数"
-          value={attendanceCount}
-          accent="jade"
-          icon={
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-              <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-            </svg>
-          }
-        />
-        <StatCard
-          label="兑换次数"
-          value={redemptionCount}
-          accent="sapphire"
-          icon={
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-              <path d="M20 12v8H4v-8M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" />
-            </svg>
-          }
+        <Dashboard3DMenu
+          points={currentMember.totalPoints}
+          attendanceCount={attendanceCount}
+          liveEventsCount={liveEventsCount}
+          registeredMembersCount={members.length}
+          onOpenScan={() => setShowScanner(true)}
         />
       </motion.div>
 
       {/* 每日菩提法语 3D 抽签 */}
       <motion.div
+        id="dharma-section"
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.12, ease: "easeOut" }}

@@ -376,6 +376,66 @@ function parseDateSafely(val: any): Date {
   return new Date();
 }
 
+function parseCsvRows(csvText: string): string[][] {
+  const lines = csvText.split(/\r?\n/);
+  const result: string[][] = [];
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const row: string[] = [];
+    let inQuotes = false;
+    let current = "";
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        row.push(current);
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    row.push(current);
+    result.push(row);
+  }
+  return result;
+}
+
+async function fetchSheetCsv(sheetName: string, gid?: string): Promise<string[][]> {
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID || DEFAULT_SHEET_ID;
+  const urls: string[] = [];
+  if (sheetName) {
+    urls.push(`https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`);
+  }
+  if (gid) {
+    urls.push(`https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gid}`);
+    urls.push(`https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`);
+  }
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (res.ok) {
+        const text = await res.text();
+        if (text && !text.includes("<!DOCTYPE html>")) {
+          const rows = parseCsvRows(text);
+          if (rows.length > 1) {
+            return rows.slice(1);
+          }
+        }
+      }
+    } catch (e) {
+      // try next
+    }
+  }
+  return [];
+}
+
 // ── 短时内存缓存机制 (TTL: 30 秒)，大幅降低高并发下 Google API 的网络延迟与请求开销 ──
 let lastEventsFetchTime = 0;
 let lastRewardsFetchTime = 0;
@@ -424,17 +484,39 @@ export async function syncEventsFromGoogleSheet(forceRefresh = false) {
         }));
       hasFetchedFromSheet = true;
     } else if (webhookUrl) {
-      const res = await fetch(`${webhookUrl}?action=getEvents`, { cache: "no-store" });
-      const json = await res.json();
-      if (json.success && Array.isArray(json.events)) {
-        eventRows = json.events.map((e: any) => ({
-          name: String(e.name || "").trim(),
-          dateTime: parseDateSafely(e.dateTime),
-          location: String(e.location || "").trim() || "待定",
-          points: parseInt(String(e.points || "1"), 10) || 1,
-          description: String(e.description || "").trim() || null,
-        }));
-        hasFetchedFromSheet = true;
+      try {
+        const res = await fetch(`${webhookUrl}?action=getEvents`, { cache: "no-store" });
+        const json = await res.json();
+        if (json.success && Array.isArray(json.events) && json.events.length > 0) {
+          eventRows = json.events.map((e: any) => ({
+            name: String(e.name || "").trim(),
+            dateTime: parseDateSafely(e.dateTime),
+            location: String(e.location || "").trim() || "待定",
+            points: parseInt(String(e.points || "1"), 10) || 1,
+            description: String(e.description || "").trim() || null,
+          }));
+          hasFetchedFromSheet = true;
+        }
+      } catch (e) {
+        // Fallback to CSV
+      }
+    }
+
+    if (!hasFetchedFromSheet) {
+      const csvRows = await fetchSheetCsv("Events", "1001");
+      if (csvRows.length > 0) {
+        eventRows = csvRows
+          .filter((r: any[]) => r && r[0] && String(r[0]).trim())
+          .map((r: any[]) => ({
+            name: String(r[0] || "").trim(),
+            dateTime: parseDateSafely(r[1]),
+            location: String(r[2] || "").trim() || "待定",
+            points: parseInt(String(r[3] || "1"), 10) || 1,
+            description: String(r[4] || "").trim() || null,
+          }));
+        if (eventRows.length > 0) {
+          hasFetchedFromSheet = true;
+        }
       }
     }
 
@@ -458,6 +540,9 @@ export async function syncEventsFromGoogleSheet(forceRefresh = false) {
         });
 
         if (existing) {
+          await prisma.event.deleteMany({
+            where: { name: ev.name, id: { not: existing.id } },
+          });
           await prisma.event.update({
             where: { id: existing.id },
             data: {
@@ -571,17 +656,39 @@ export async function syncRewardsFromGoogleSheet(forceRefresh = false) {
         }));
       hasFetchedFromSheet = true;
     } else if (webhookUrl) {
-      const res = await fetch(`${webhookUrl}?action=getRewards`, { cache: "no-store" });
-      const json = await res.json();
-      if (json.success && Array.isArray(json.rewards)) {
-        rewardRows = json.rewards.map((rw: any) => ({
-          name: String(rw.name || "").trim(),
-          pointsRequired: parseInt(String(rw.pointsRequired || "0"), 10) || 0,
-          stock: parseInt(String(rw.stock || "10"), 10) || 10,
-          description: String(rw.description || "").trim() || null,
-          image: formatImageUrl(rw.image),
-        }));
-        hasFetchedFromSheet = true;
+      try {
+        const res = await fetch(`${webhookUrl}?action=getRewards`, { cache: "no-store" });
+        const json = await res.json();
+        if (json.success && Array.isArray(json.rewards) && json.rewards.length > 0) {
+          rewardRows = json.rewards.map((rw: any) => ({
+            name: String(rw.name || "").trim(),
+            pointsRequired: parseInt(String(rw.pointsRequired || "0"), 10) || 0,
+            stock: parseInt(String(rw.stock || "10"), 10) || 10,
+            description: String(rw.description || "").trim() || null,
+            image: formatImageUrl(rw.image),
+          }));
+          hasFetchedFromSheet = true;
+        }
+      } catch (e) {
+        // Fallback to CSV
+      }
+    }
+
+    if (!hasFetchedFromSheet) {
+      const csvRows = await fetchSheetCsv("Rewards");
+      if (csvRows.length > 0) {
+        rewardRows = csvRows
+          .filter((r: any[]) => r && r[0] && String(r[0]).trim())
+          .map((r: any[]) => ({
+            name: String(r[0] || "").trim(),
+            pointsRequired: parseInt(String(r[1] || "0"), 10) || 0,
+            stock: parseInt(String(r[2] || "10"), 10) || 10,
+            description: String(r[3] || "").trim() || null,
+            image: formatImageUrl(r[4]),
+          }));
+        if (rewardRows.length > 0) {
+          hasFetchedFromSheet = true;
+        }
       }
     }
 

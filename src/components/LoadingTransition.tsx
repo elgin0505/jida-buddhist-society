@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import { CanvasLotusLoader } from "./CanvasLotusLoader";
 
 // ── 莲花花瓣路径（8片，围绕中心展开）
 const PETAL_COUNT = 8;
@@ -101,26 +102,20 @@ export function LotusFlower({ progress = 1 }: { progress?: number }) {
 export function LoadingTransition() {
   const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
-  const [petalProgress, setPetalProgress] = useState(0);
   const [prevPath, setPrevPath] = useState(pathname);
 
   useEffect(() => {
     if (pathname !== prevPath) {
       // 路由切换：展示 loading
       setIsVisible(true);
-      setPetalProgress(0);
 
-      // 莲花绽放
-      const bloom = setTimeout(() => setPetalProgress(1), 50);
-      // 650ms 后隐藏
+      // 延长一点展示时间以欣赏特效 (2.5秒)
       const hide = setTimeout(() => {
         setIsVisible(false);
-        setPetalProgress(0);
         setPrevPath(pathname);
-      }, 680);
+      }, 2500);
 
       return () => {
-        clearTimeout(bloom);
         clearTimeout(hide);
       };
     }
@@ -133,32 +128,11 @@ export function LoadingTransition() {
           key="loading-overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 0.96 }}
-          transition={{ duration: 0.22, ease: "easeInOut" }}
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
-          style={{
-            background:
-              "radial-gradient(ellipse at center, rgba(250,247,242,0.97) 0%, rgba(245,239,228,0.95) 100%)",
-            backdropFilter: "blur(12px)",
-          }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
+          className="fixed inset-0 z-[9999]"
         >
-          <motion.div
-            initial={{ scale: 0.7, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.8, opacity: 0 }}
-            transition={{ duration: 0.25, ease: "backOut" }}
-            className="flex flex-col items-center gap-4"
-          >
-            <LotusFlower progress={petalProgress} />
-            <motion.p
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.18, duration: 0.3 }}
-              className="text-xs font-medium tracking-widest text-golden-rich/70"
-            >
-              技大佛学会
-            </motion.p>
-          </motion.div>
+          <CanvasLotusLoader />
         </motion.div>
       )}
     </AnimatePresence>

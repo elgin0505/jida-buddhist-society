@@ -255,4 +255,53 @@
     background:
       radial-gradient(ellipse 60% 50% at 50% 50%, rgba(45, 106, 79, 0.03) 0%, transparent 70%);
   }
+
+  /* ──────────────────────────────────────────────────────────
+     组件库动效系统 (Component Library Animations)
+  ────────────────────────────────────────────────────────── */
+
+  /* Skeleton 骨架屏扫光动画 */
+  @keyframes skeleton-shimmer {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+
+  /* 莲花脉动 */
+  @keyframes lotus-pulse {
+    0%   { transform: scale(0.8); opacity: 0.6; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+
+  /* 水墨波纹 */
+  @keyframes ink-ripple {
+    0%   { width: 0; height: 0; opacity: 0.7; }
+    100% { width: 120px; height: 120px; opacity: 0; }
+  }
+
+  /* 禅意渐入 */
+  @keyframes zen-fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .zen-fade-in {
+    animation: zen-fade-in 0.5s ease-out both;
+  }
+
+  /* 晕染扩散（用于积分增加提示等） */
+  @keyframes bloom {
+    0%   { transform: scale(0.5); opacity: 0.8; }
+    60%  { transform: scale(1.1); opacity: 0.3; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+
+  .bloom {
+    animation: bloom 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* pb-safe 底部安全区工具类 */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
+

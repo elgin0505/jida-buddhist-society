@@ -11,6 +11,9 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:clean": "tsx prisma/cleanData.ts",
+    "db:use-sqlite": "node scripts/switch-db.js sqlite && prisma generate",
+    "db:use-postgres": "node scripts/switch-db.js postgres && prisma generate",
     "postinstall": "prisma generate"
   },
   "dependencies": {

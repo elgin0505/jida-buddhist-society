@@ -405,7 +405,7 @@ const LotusSeaCanvas: React.FC<{
       <Suspense fallback={null}>
         <LampScene {...props} />
 
-        <EffectComposer disableNormalPass multisampling={0}>
+        <EffectComposer enableNormalPass={false} multisampling={0}>
           <ToneMapping
             mode={ToneMappingMode.ACES_FILMIC}
             resolution={256}
@@ -419,7 +419,7 @@ const LotusSeaCanvas: React.FC<{
           <HueSaturation hue={0.02} saturation={0.25} blendFunction={BlendFunction.NORMAL} />
           <ChromaticAberration offset={new Vector2(0.0008, 0.0008)} blendFunction={BlendFunction.NORMAL} radialModulation={true} modulationOffset={0.15} />
           <Vignette eskil={false} offset={0.08} darkness={1.3} />
-          <Noise opacity={0.025} premultiplied blendFunction={BlendFunction.ADD} />
+          <Noise opacity={0.025} premultiply blendFunction={BlendFunction.ADD} />
         </EffectComposer>
       </Suspense>
     </Canvas>

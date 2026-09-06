@@ -7,7 +7,6 @@ import { Eye, EyeOff, Mail, Lock, User, Loader2, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { ZenLogo3D } from "@/components/ZenLogo3D";
 import { InkRippleButton } from "@/components/InkRippleButton";
-import { FloatingDharmaQuote } from "@/components/FloatingDharmaQuote";
 import { ForgotPasswordCard } from "@/components/ForgotPasswordCard";
 import { useZenAudio } from "@/hooks/useZenAudio";
 
@@ -28,9 +27,6 @@ export default function AuthPage() {
       <Suspense fallback={null}>
         <MindfulJourney />
       </Suspense>
-
-      {/* ── 1.5. 侘寂浮空文字 (Wabi-Sabi Whitespace) ── */}
-      <FloatingDharmaQuote />
 
       {/* ── 2. 3D 悬浮 Logo ── */}
       <ZenLogo3D />

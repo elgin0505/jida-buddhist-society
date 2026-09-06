@@ -9,6 +9,7 @@ import { PWAInstaller } from "@/components/PWAInstaller";
 import { CinematicNoise } from "@/components/CinematicNoise";
 import { BackToTop } from "@/components/BackToTop";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -61,6 +62,7 @@ export default function RootLayout({
             <Toaster position="top-center" richColors />
           </MemberProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );

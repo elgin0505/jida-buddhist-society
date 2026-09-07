@@ -97,3 +97,19 @@ model ZenGameScore {
 
   @@index([userId])
 }
+
+// ── Lotus Sea Lamp ───────────────────────────────────────────────
+model Lamp {
+  id          String   @id @default(cuid())
+  userId      String
+  userName    String   @default("同修")
+  posX        Float
+  posY        Float    @default(0)
+  posZ        Float
+  message     String?  @default("愿平安吉祥")
+  prayerCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}

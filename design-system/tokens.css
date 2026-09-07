@@ -1,0 +1,155 @@
+:root {
+  /* =========================================
+     1. 基准色相 (Hues) - 核心令牌层
+     只维护这 7 个色相，修改即可全站联动
+     ========================================= */
+  --hue-primary: 80;    /* 袈裟金 (Saffron Gold) */
+  --hue-secondary: 45;  /* 赭黄 (Ochre) */
+  --hue-success: 150;   /* 翠绿 (Jade Green) */
+  --hue-info: 250;      /* 蓝宝石 (Sapphire Blue) */
+  --hue-danger: 20;     /* 胭脂红 (Rouge Red) */
+  --hue-warning: 95;    /* 警示黄 (Warning Yellow) */
+  --hue-neutral: 70;    /* 暖灰 (Warm Gray) */
+
+  /* 定义基准色 (采用 OKLCH 色彩空间，保证感知亮度一致) */
+  --base-primary: oklch(0.75 0.15 var(--hue-primary));
+  --base-secondary: oklch(0.70 0.16 var(--hue-secondary));
+  --base-success: oklch(0.70 0.14 var(--hue-success));
+  --base-info: oklch(0.65 0.12 var(--hue-info));
+  --base-danger: oklch(0.65 0.16 var(--hue-danger));
+  --base-warning: oklch(0.85 0.15 var(--hue-warning));
+  --base-neutral: oklch(0.65 0.02 var(--hue-neutral)); /* 极低饱和度，融入环境色 */
+
+  /* =========================================
+     2. 自动派生色阶 (50 - 900)
+     使用 color-mix(in oklch) 保证过渡均匀不发灰
+     ========================================= */
+  /* Primary (袈裟金) */
+  --primary-50: color-mix(in oklch, var(--base-primary) 5%, white);
+  --primary-100: color-mix(in oklch, var(--base-primary) 15%, white);
+  --primary-200: color-mix(in oklch, var(--base-primary) 30%, white);
+  --primary-300: color-mix(in oklch, var(--base-primary) 50%, white);
+  --primary-400: color-mix(in oklch, var(--base-primary) 70%, white);
+  --primary-500: var(--base-primary);
+  --primary-600: color-mix(in oklch, var(--base-primary) 85%, black);
+  --primary-700: color-mix(in oklch, var(--base-primary) 70%, black);
+  --primary-800: color-mix(in oklch, var(--base-primary) 50%, black);
+  --primary-900: color-mix(in oklch, var(--base-primary) 30%, black);
+
+  /* Secondary (赭黄) */
+  --secondary-50: color-mix(in oklch, var(--base-secondary) 5%, white);
+  --secondary-100: color-mix(in oklch, var(--base-secondary) 15%, white);
+  --secondary-200: color-mix(in oklch, var(--base-secondary) 30%, white);
+  --secondary-300: color-mix(in oklch, var(--base-secondary) 50%, white);
+  --secondary-400: color-mix(in oklch, var(--base-secondary) 70%, white);
+  --secondary-500: var(--base-secondary);
+  --secondary-600: color-mix(in oklch, var(--base-secondary) 85%, black);
+  --secondary-700: color-mix(in oklch, var(--base-secondary) 70%, black);
+  --secondary-800: color-mix(in oklch, var(--base-secondary) 50%, black);
+  --secondary-900: color-mix(in oklch, var(--base-secondary) 30%, black);
+
+  /* Success (翠绿) */
+  --success-50: color-mix(in oklch, var(--base-success) 5%, white);
+  --success-100: color-mix(in oklch, var(--base-success) 15%, white);
+  --success-200: color-mix(in oklch, var(--base-success) 30%, white);
+  --success-300: color-mix(in oklch, var(--base-success) 50%, white);
+  --success-400: color-mix(in oklch, var(--base-success) 70%, white);
+  --success-500: var(--base-success);
+  --success-600: color-mix(in oklch, var(--base-success) 85%, black);
+  --success-700: color-mix(in oklch, var(--base-success) 70%, black);
+  --success-800: color-mix(in oklch, var(--base-success) 50%, black);
+  --success-900: color-mix(in oklch, var(--base-success) 30%, black);
+
+  /* Info (蓝宝石) */
+  --info-50: color-mix(in oklch, var(--base-info) 5%, white);
+  --info-100: color-mix(in oklch, var(--base-info) 15%, white);
+  --info-200: color-mix(in oklch, var(--base-info) 30%, white);
+  --info-300: color-mix(in oklch, var(--base-info) 50%, white);
+  --info-400: color-mix(in oklch, var(--base-info) 70%, white);
+  --info-500: var(--base-info);
+  --info-600: color-mix(in oklch, var(--base-info) 85%, black);
+  --info-700: color-mix(in oklch, var(--base-info) 70%, black);
+  --info-800: color-mix(in oklch, var(--base-info) 50%, black);
+  --info-900: color-mix(in oklch, var(--base-info) 30%, black);
+
+  /* Danger (胭脂红) */
+  --danger-50: color-mix(in oklch, var(--base-danger) 5%, white);
+  --danger-100: color-mix(in oklch, var(--base-danger) 15%, white);
+  --danger-200: color-mix(in oklch, var(--base-danger) 30%, white);
+  --danger-300: color-mix(in oklch, var(--base-danger) 50%, white);
+  --danger-400: color-mix(in oklch, var(--base-danger) 70%, white);
+  --danger-500: var(--base-danger);
+  --danger-600: color-mix(in oklch, var(--base-danger) 85%, black);
+  --danger-700: color-mix(in oklch, var(--base-danger) 70%, black);
+  --danger-800: color-mix(in oklch, var(--base-danger) 50%, black);
+  --danger-900: color-mix(in oklch, var(--base-danger) 30%, black);
+
+  /* Warning (警示黄) */
+  --warning-50: color-mix(in oklch, var(--base-warning) 5%, white);
+  --warning-100: color-mix(in oklch, var(--base-warning) 15%, white);
+  --warning-200: color-mix(in oklch, var(--base-warning) 30%, white);
+  --warning-300: color-mix(in oklch, var(--base-warning) 50%, white);
+  --warning-400: color-mix(in oklch, var(--base-warning) 70%, white);
+  --warning-500: var(--base-warning);
+  --warning-600: color-mix(in oklch, var(--base-warning) 85%, black);
+  --warning-700: color-mix(in oklch, var(--base-warning) 70%, black);
+  --warning-800: color-mix(in oklch, var(--base-warning) 50%, black);
+  --warning-900: color-mix(in oklch, var(--base-warning) 30%, black);
+
+  /* Neutral (暖灰) */
+  --neutral-50: color-mix(in oklch, var(--base-neutral) 3%, white);
+  --neutral-100: color-mix(in oklch, var(--base-neutral) 10%, white);
+  --neutral-200: color-mix(in oklch, var(--base-neutral) 25%, white);
+  --neutral-300: color-mix(in oklch, var(--base-neutral) 45%, white);
+  --neutral-400: color-mix(in oklch, var(--base-neutral) 65%, white);
+  --neutral-500: var(--base-neutral);
+  --neutral-600: color-mix(in oklch, var(--base-neutral) 85%, black);
+  --neutral-700: color-mix(in oklch, var(--base-neutral) 70%, black);
+  --neutral-800: color-mix(in oklch, var(--base-neutral) 50%, black);
+  --neutral-900: color-mix(in oklch, var(--base-neutral) 25%, black);
+  
+  /* =========================================
+     3. 语义别名 (Semantic Aliases) - 亮色模式
+     直接映射到具体的色阶，开发时使用语义别名
+     ========================================= */
+  --bg-default: var(--neutral-50);
+  --bg-surface: #ffffff;
+  --text-primary: var(--neutral-900);
+  --text-secondary: var(--neutral-600);
+  --border-default: var(--neutral-200);
+  
+  --brand-solid: var(--primary-500);
+  --brand-hover: var(--primary-600);
+  --brand-muted: var(--primary-100);
+
+  /* =========================================
+     4. 字体与流体排版 (Fluid Typography)
+     不写死固定字号，自动响应屏幕宽度
+     ========================================= */
+  --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  
+  /* clamp(最小字号, 视口缩放比例, 最大字号) */
+  --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --text-sm: clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
+  --text-base: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1rem + 0.625vw, 1.25rem);
+  --text-xl: clamp(1.25rem, 1.1rem + 0.75vw, 1.5rem);
+  --text-2xl: clamp(1.5rem, 1.3rem + 1vw, 2rem);
+  --text-3xl: clamp(1.875rem, 1.5rem + 1.875vw, 3rem);
+}
+
+/* =========================================
+   5. 深色模式 (Dark Mode)
+   重定义语义别名（翻转），核心色阶不变
+   ========================================= */
+html.dark {
+  --bg-default: var(--neutral-900);
+  --bg-surface: var(--neutral-800);
+  --text-primary: var(--neutral-50);
+  --text-secondary: var(--neutral-300);
+  --border-default: var(--neutral-700);
+  
+  --brand-solid: var(--primary-600); 
+  --brand-hover: var(--primary-500);
+  --brand-muted: var(--primary-900);
+}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { syncUserToGoogleSheet } from "@/lib/googleSheetsSync";
+import { createSessionToken } from "@/lib/auth";
 
 /**
  * 安全生成下一个会员编号 (例如 FXH0001, FXH0002)
@@ -111,10 +112,19 @@ export async function POST(request: Request) {
       totalPoints: member.totalPoints,
     }).catch((e) => console.error("Google Sheets syncUser error:", e));
 
-    // 6. 返回成功注册的会话信息
-    return NextResponse.json(
+    // 6. 生成 7 天有效期的真实 JWT Session Token
+    const token = createSessionToken({
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      memberId: member.id,
+      memberCode: member.memberId,
+    });
+
+    const response = NextResponse.json(
       {
         message: "注册成功",
+        token,
         id: user.id,
         name: user.name,
         email: user.email,
@@ -123,6 +133,17 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
+
+    // 7. 设置 HTTP-only 安全 Cookie
+    response.cookies.set("jbs_session_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60,
+      path: "/",
+    });
+
+    return response;
   } catch (error: any) {
     console.error("注册 API 发生严重错误:", error);
     return NextResponse.json(

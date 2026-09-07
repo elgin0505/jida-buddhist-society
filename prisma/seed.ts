@@ -29,6 +29,7 @@ async function main() {
   await prisma.reward.deleteMany();
   await prisma.event.deleteMany();
   await prisma.member.deleteMany();
+  await prisma.lamp.deleteMany();
   await prisma.user.deleteMany();
 
   console.log("🌱 正在初始化官方活动与商城法宝列表...");

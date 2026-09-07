@@ -1,183 +1,176 @@
+// LotusSeaCanvas.tsx
 'use client';
 
-import React, {
-  useRef, useMemo, useState, useCallback, Suspense, forwardRef
-} from 'react';
+import React, { useRef, useMemo, useState, useCallback, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useThree, ThreeEvent } from '@react-three/fiber';
-import { OrbitControls, Environment, Sparkles, Stars } from '@react-three/drei';
-import {
-  EffectComposer,
-  Bloom,
-  ChromaticAberration,
-  Vignette,
-  Noise,
-  ToneMapping,
-  HueSaturation,
-} from '@react-three/postprocessing';
-import { ToneMappingMode } from 'postprocessing';
-import { BlendFunction } from 'postprocessing';
+import { CameraControls, Sparkles } from '@react-three/drei';
+import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
+import * as THREE from 'three';
 import {
   MeshPhysicalMaterial,
   PlaneGeometry,
   DoubleSide,
   Vector3,
   AdditiveBlending,
-  MeshBasicMaterial,
-  MeshStandardMaterial,
-  Vector2,
+  Color,
+  RepeatWrapping,
+  LinearFilter,
+  ShaderMaterial,
 } from 'three';
-import * as THREE from 'three';
+import { toast } from 'sonner';
 import ProceduralLamp from './ProceduralLamp';
 import Ripple from './Ripple';
 
-// ==================== LampData ====================
+// ==================== 类型定义 ====================
 export interface LampData {
   id: string;
   userId: string;
   userName: string;
   position: [number, number, number];
   message: string;
-  dedications: number;
+  prayerCount: number;
+  dedications: number; // 保持向后兼容
 }
 
-// ==================== 用户身份 Mock ====================
-const currentUserId = 'user-me';
-const currentUserRole: 'presidency' | 'committee' | 'member' = 'member'; // 可切换测试
+// 双圈规则
+const INNER_RADIUS = 8;
+const OUTER_RADIUS = 30;
 
-// 权限配置
-const ROLE_RULES = {
-  presidency: { minRadius: 0, maxRadius: 5, message: '主席团请在第一圈放灯' },
-  committee: { minRadius: 5, maxRadius: 12, message: '此为核心区域，请在第二圈放灯' },
-  member: { minRadius: 12, maxRadius: 25, message: '学员请在外围灯海放灯' },
+// ==================== 工具函数 ====================
+// 程序化生成水墨法线贴图（柔和水波纹）
+const createInkNormalMap = (): THREE.Texture => {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#808080';
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < 100; i++) {
+    ctx.strokeStyle = `rgba(${Math.random() * 255},${Math.random() * 255},255,0.05)`;
+    ctx.lineWidth = Math.random() * 3 + 1;
+    ctx.beginPath();
+    const x0 = Math.random() * size;
+    const y0 = Math.random() * size;
+    ctx.moveTo(x0, y0);
+    for (let s = 0; s < 8; s++) {
+      ctx.lineTo(
+        x0 + (Math.random() - 0.5) * size * 0.3,
+        y0 + (Math.random() - 0.5) * size * 0.3
+      );
+    }
+    ctx.stroke();
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = RepeatWrapping;
+  texture.minFilter = LinearFilter;
+  texture.magFilter = LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
 };
 
-// ==================== 放置爆发环 ====================
-const PlacementBurst: React.FC<{ position: [number, number, number]; onComplete: () => void }> = ({
-  position, onComplete,
-}) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const matRef = useRef<MeshBasicMaterial>(null);
-  const t0 = useRef<number | null>(null);
-
-  useFrame(({ clock }) => {
-    if (t0.current === null) t0.current = clock.elapsedTime;
-    const p = (clock.elapsedTime - t0.current) / 1.0;
-    if (p >= 1) { onComplete(); return; }
-    if (meshRef.current) meshRef.current.scale.set(p * 4, p * 4, 1);
-    if (matRef.current) matRef.current.opacity = (1 - p) * 0.9;
-  });
-
-  return (
-    <mesh ref={meshRef} position={position} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[0.5, 1, 48]} />
-      <meshBasicMaterial
-        ref={matRef}
-        color="#FBBF24"
-        transparent
-        opacity={0.9}
-        side={DoubleSide}
-        blending={AdditiveBlending}
-        depthWrite={false}
-      />
-    </mesh>
-  );
-};
-
-// ==================== 墨镜水面 ====================
-const InkWater: React.FC<{
+// ==================== 水面组件 ====================
+interface InkWaterProps {
   size?: number;
   segments?: number;
-  onWaterClick?: (point: THREE.Vector3) => void;
+  onWaterPointerDown: (e: ThreeEvent<PointerEvent>) => void;
   onWaterMove?: (point: THREE.Vector3 | null) => void;
-}> = ({ size = 60, segments = 160, onWaterClick, onWaterMove }) => {
-  const geoRef = useRef<PlaneGeometry>(null);
+  isPlacementMode: boolean;
+}
 
-  const mat = useMemo(
+const InkWater: React.FC<InkWaterProps> = ({
+  size = 100,
+  segments = 160,
+  onWaterPointerDown,
+  onWaterMove,
+  isPlacementMode,
+}) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const geometryRef = useRef<PlaneGeometry>(null);
+  const normalMap = useMemo(() => createInkNormalMap(), []);
+
+  const waterMaterial = useMemo(
     () =>
       new MeshPhysicalMaterial({
-        color: '#020208',
-        roughness: 0.04,
-        metalness: 0.97,
+        color: '#000000',
+        metalness: 0.7,
+        roughness: 0.2,
         side: DoubleSide,
-        envMapIntensity: 2.2,
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.0,
-        reflectivity: 1,
-        emissive: '#080814',
-        emissiveIntensity: 0.6,
+        envMapIntensity: 1.2,
+        clearcoat: 0.3,
+        clearcoatRoughness: 0.1,
+        normalMap: normalMap,
+        normalScale: new THREE.Vector2(0.3, 0.3),
       }),
-    []
+    [normalMap]
   );
 
+  // 波浪顶点动态动画
   useFrame(({ clock }) => {
-    const t = clock.elapsedTime;
-    const geo = geoRef.current;
-    if (!geo) return;
-    const pos = geo.attributes.position;
-    const arr = pos.array as Float32Array;
-    if (!geo.userData.orig) geo.userData.orig = new Float32Array(arr);
-    const orig = geo.userData.orig as Float32Array;
-    for (let i = 0; i < pos.count; i++) {
-      const x = orig[i * 3] * 0.18;
-      const y = orig[i * 3 + 1] * 0.18;
-      arr[i * 3 + 2] =
-        Math.sin(x + t * 0.35) * 0.18 +
-        Math.sin(y * 1.4 + t * 0.28) * 0.12 +
-        Math.sin((x + y) * 0.65 + t * 0.18) * 0.08 +
-        Math.sin((x - y) * 1.1 + t * 0.42) * 0.04;
+    const time = clock.elapsedTime;
+    const geometry = geometryRef.current;
+    if (!geometry) return;
+
+    const positionAttribute = geometry.attributes.position;
+    const vertexCount = positionAttribute.count;
+    const positions = positionAttribute.array as Float32Array;
+
+    if (!geometry.userData.originalPositions) {
+      const original = new Float32Array(positions);
+      geometry.userData.originalPositions = original;
     }
-    pos.needsUpdate = true;
-    geo.computeVertexNormals();
+    const original = geometry.userData.originalPositions as Float32Array;
+
+    for (let i = 0; i < vertexCount; i++) {
+      const x = original[i * 3];
+      const y = original[i * 3 + 1];
+      const waveX = x * 0.2;
+      const waveY = y * 0.2;
+      const z =
+        Math.sin(waveX + time * 0.4) * 0.12 +
+        Math.sin(waveY * 1.3 + time * 0.3) * 0.08 +
+        Math.sin((waveX + waveY) * 0.7 + time * 0.2) * 0.06;
+      positions[i * 3 + 2] = z;
+    }
+
+    positionAttribute.needsUpdate = true;
+    geometry.computeVertexNormals();
   });
+
+  const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
+    if (isPlacementMode && onWaterMove) {
+      onWaterMove(e.point);
+    }
+  };
+
+  const handlePointerOut = () => {
+    if (onWaterMove) onWaterMove(null);
+  };
 
   return (
     <mesh
+      ref={meshRef}
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, -0.5, 0]}
-      material={mat}
-      onPointerDown={(e: ThreeEvent<PointerEvent>) => {
-        e.stopPropagation();
-        if (onWaterClick) onWaterClick(e.point);
-      }}
-      onPointerMove={(e: ThreeEvent<PointerEvent>) => {
-        if (onWaterMove) onWaterMove(e.point);
-      }}
-      onPointerOut={() => {
-        if (onWaterMove) onWaterMove(null);
-      }}
-      receiveShadow
+      material={waterMaterial}
+      onPointerDown={onWaterPointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerOut={handlePointerOut}
     >
-      <planeGeometry ref={geoRef} args={[size, size, segments, segments]} />
+      <planeGeometry ref={geometryRef} args={[size, size, segments, segments]} />
     </mesh>
   );
 };
 
-// ==================== 墨海月影 ====================
-const InkMoon: React.FC = () => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  useFrame(({ clock }) => {
-    if (meshRef.current) {
-      meshRef.current.position.x = Math.sin(clock.elapsedTime * 0.05) * 1.5;
-    }
-  });
-  return (
-    <mesh ref={meshRef} position={[0, 18, -20]}>
-      <sphereGeometry args={[1.8, 32, 32]} />
-      <meshStandardMaterial color="#E8D5A3" emissive="#D4B896" emissiveIntensity={4} roughness={0.3} metalness={0} />
-    </mesh>
-  );
-};
-
-// ==================== 三重同心圆环 ====================
+// ==================== 双圈结界 ====================
 const ConcentricRings: React.FC = () => {
   const ringData = [
-    { inner: 0, outer: 5, color: '#FBBF24', opacity: 0.15 },
-    { inner: 5, outer: 12, color: '#F59E0B', opacity: 0.1 },
-    { inner: 12, outer: 25, color: '#EF4444', opacity: 0.05 },
+    { inner: 0, outer: INNER_RADIUS, color: '#FBBF24', opacity: 0.2 },
+    { inner: INNER_RADIUS, outer: OUTER_RADIUS, color: '#F59E0B', opacity: 0.12 },
   ];
 
   return (
-    <group position={[0, -0.49, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+    <group position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
       {ringData.map((ring, i) => (
         <mesh key={i}>
           <ringGeometry args={[ring.inner, ring.outer, 128]} />
@@ -195,234 +188,774 @@ const ConcentricRings: React.FC = () => {
   );
 };
 
-// ==================== 悬浮预览光圈 ====================
-interface CursorPreviewProps {
-  position: [number, number, number] | null;
-  allowed: boolean;
-}
+// ==================== 边界粒子 ====================
+const GlowBoundary: React.FC<{ radius?: number; count?: number }> = ({
+  radius = OUTER_RADIUS,
+  count = 600,
+}) => {
+  const pointsRef = useRef<THREE.Points>(null);
+  const materialRef = useRef<ShaderMaterial>(null);
 
-const CursorPreview: React.FC<CursorPreviewProps> = ({ position, allowed }) => {
+  const positions = useMemo(() => {
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const jitter = (Math.random() - 0.5) * 0.5;
+      arr[i * 3] = Math.cos(angle) * (radius + jitter);
+      arr[i * 3 + 1] = 0.1 + Math.random() * 0.3;
+      arr[i * 3 + 2] = Math.sin(angle) * (radius + jitter);
+    }
+    return arr;
+  }, [count, radius]);
+
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    return geo;
+  }, [positions]);
+
+  const shaderMaterial = useMemo(
+    () =>
+      new ShaderMaterial({
+        uniforms: {
+          uTime: { value: 0 },
+          uColorA: { value: new Color('#4ade80') },
+          uColorB: { value: new Color('#60a5fa') },
+          uColorC: { value: new Color('#c084fc') },
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = 3.0;
+          }
+        `,
+        fragmentShader: `
+          uniform float uTime;
+          uniform vec3 uColorA;
+          uniform vec3 uColorB;
+          uniform vec3 uColorC;
+          varying vec2 vUv;
+          void main() {
+            float dist = distance(gl_PointCoord, vec2(0.5));
+            if (dist > 0.5) discard;
+            float alpha = 1.0 - smoothstep(0.2, 0.5, dist);
+            float t = sin(uTime * 0.5 + gl_PointCoord.x * 3.0) * 0.5 + 0.5;
+            vec3 color = mix(uColorA, uColorB, t);
+            color = mix(color, uColorC, sin(uTime * 0.3 + gl_PointCoord.y) * 0.5 + 0.5);
+            gl_FragColor = vec4(color, alpha * 0.8);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        blending: AdditiveBlending,
+      }),
+    []
+  );
+
+  useFrame(({ clock }) => {
+    if (materialRef.current) {
+      materialRef.current.uniforms.uTime.value = clock.elapsedTime;
+    }
+  });
+
+  return <points ref={pointsRef} geometry={geometry} material={shaderMaterial} />;
+};
+
+// ==================== 预览灯 ====================
+const PreviewLamp: React.FC<{ position: [number, number, number] | null }> = ({ position }) => {
   if (!position) return null;
-  const color = allowed ? '#FBBF24' : '#EF4444';
   return (
-    <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[0.3, 0.45, 32]} />
-      <meshBasicMaterial
-        color={color}
-        transparent
-        opacity={0.8}
-        side={DoubleSide}
-        depthWrite={false}
-        blending={AdditiveBlending}
-      />
-    </mesh>
+    <group position={position} scale={0.8}>
+      <mesh>
+        <coneGeometry args={[0.5, 0.8, 6]} />
+        <meshPhysicalMaterial
+          color="#FFF8E7"
+          transmission={0.9}
+          roughness={0.4}
+          thickness={0.5}
+          side={DoubleSide}
+          transparent
+          opacity={0.6}
+          emissive="#FBBF24"
+          emissiveIntensity={0.5}
+        />
+      </mesh>
+    </group>
   );
 };
 
-// ==================== 主场景 ====================
-const LampScene: React.FC<{
-  currentUserName?: string;
-  maxLampsPerUser?: number;
-  onPlaceLamp?: (pos: [number, number, number]) => void;
-  onDedicate?: (lampId: string) => void;
-  onLimitReached?: (msg: string) => void;
-}> = ({ currentUserName = '我', maxLampsPerUser = 3, onPlaceLamp, onDedicate, onLimitReached }) => {
+// ==================== 主 3D 场景 ====================
+interface LampSceneProps {
+  isPlacementMode: boolean;
+  setIsPlacementMode: (val: boolean) => void;
+  isZoomed: boolean;
+  setIsZoomed: (val: boolean) => void;
+  lamps: LampData[];
+  setLamps: React.Dispatch<React.SetStateAction<LampData[]>>;
+  currentUserId: string;
+  currentUserName: string;
+  currentUserRole: 'admin' | 'presidency' | 'committee' | 'member';
+  onPlaceLamp?: (pos?: [number, number, number]) => void;
+  onDedicate?: (lampId?: string) => void;
+  onLimitReached?: (msg?: string) => void;
+  cameraControlsRef: React.RefObject<CameraControls | null>;
+  handlePray: (lampId: string) => void;
+}
+
+const LampScene: React.FC<LampSceneProps> = ({
+  isPlacementMode,
+  setIsPlacementMode,
+  isZoomed,
+  setIsZoomed,
+  lamps,
+  setLamps,
+  currentUserId,
+  currentUserName,
+  currentUserRole,
+  onPlaceLamp,
+  onLimitReached,
+  cameraControlsRef,
+  handlePray,
+}) => {
   const { camera } = useThree();
-  const [lamps, setLamps] = useState<LampData[]>([]); // 移除了占位用户
-
-  const [ripples, setRipples] = useState<{ id: string; position: [number, number, number]; color: string }[]>([]);
-  const [bursts, setBursts] = useState<{ id: string; position: [number, number, number] }[]>([]);
-  
-  const [cursorPos, setCursorPos] = useState<[number, number, number] | null>(null);
-  const [cursorAllowed, setCursorAllowed] = useState(true);
-
+  const [ripples, setRipples] = useState<{ id: string; position: [number, number, number] }[]>([]);
+  const [previewPos, setPreviewPos] = useState<[number, number, number] | null>(null);
   const [nearIds, setNearIds] = useState<Set<string>>(new Set());
-  const lastUpdateRef = useRef(0);
+  const lastLightUpdateRef = useRef(0);
 
-  // 光源优化
+  // 移动端兼容的双击判定引用（连续两次 onPointerDown 时间差与位移）
+  const lastTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
+  const placementTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 挂载时配置初始默认视角并持久化保存为重置锚点 (saveState)
+  const handleControlsRef = useCallback(
+    (controls: CameraControls | null) => {
+      cameraControlsRef.current = controls;
+      if (controls) {
+        controls.setLookAt(0, 10, 18, 0, 0, 0, false);
+        controls.saveState();
+      }
+    },
+    [cameraControlsRef]
+  );
+
+  // 光源裁剪：每 0.5 秒计算最近 10 盏灯开启点光源
   useFrame(({ clock }) => {
     const now = clock.elapsedTime;
-    if (now - lastUpdateRef.current < 0.5) return;
-    lastUpdateRef.current = now;
-    const sorted = [...lamps]
-      .map((l) => ({ id: l.id, d: new Vector3(...l.position).distanceTo(camera.position) }))
-      .sort((a, b) => a.d - b.d)
-      .slice(0, 10).map((x) => x.id);
-    setNearIds((prev) => {
-      const next = new Set(sorted);
-      if (prev.size !== next.size || sorted.some((id) => !prev.has(id))) return next;
-      return prev;
-    });
+    if (now - lastLightUpdateRef.current > 0.5) {
+      lastLightUpdateRef.current = now;
+      const distances = lamps.map((lamp) => ({
+        id: lamp.id,
+        dist: new Vector3(...lamp.position).distanceTo(camera.position),
+      }));
+      distances.sort((a, b) => a.dist - b.dist);
+      const nearest = distances.slice(0, 10).map((d) => d.id);
+      const newSet = new Set(nearest);
+      setNearIds((prev) => {
+        if (prev.size !== newSet.size || [...prev].some((id) => !newSet.has(id))) {
+          return newSet;
+        }
+        return prev;
+      });
+    }
   });
 
-  const checkPlacementAllowed = useCallback((distance: number) => {
-    const rule = ROLE_RULES[currentUserRole];
-    if (distance < rule.minRadius) return { allowed: false, message: rule.message };
-    if (distance > rule.maxRadius) return { allowed: false, message: `请勿超过第${currentUserRole === 'member' ? '三' : '二'}圈范围` };
-    return { allowed: true };
-  }, []);
+  // 结界权限判定
+  const checkPlacementAllowed = useCallback(
+    (distance: number): boolean => {
+      if (currentUserRole === 'member') {
+        return distance >= INNER_RADIUS && distance <= OUTER_RADIUS;
+      }
+      return distance <= OUTER_RADIUS;
+    },
+    [currentUserRole]
+  );
 
-  const handleWaterClick = useCallback(
-    (point: THREE.Vector3) => {
+  /**
+   * 模块二：单人单灯限制与供灯逻辑
+   */
+  const handlePlaceLampAt = useCallback(
+    async (point: THREE.Vector3) => {
       const distance = Math.hypot(point.x, point.z);
-      const { allowed, message } = checkPlacementAllowed(distance);
-      if (!allowed) {
-        if (onLimitReached) onLimitReached(message || '当前位置不可放灯');
+      if (!checkPlacementAllowed(distance)) {
+        toast.warning(
+          currentUserRole === 'member'
+            ? '学员请在外围灯海放灯（距离中心 8 ~ 30）'
+            : '请在界内供奉心灯'
+        );
         return;
       }
 
-      if (lamps.filter((l) => l.userId === currentUserId).length >= maxLampsPerUser) {
-        if (onLimitReached) onLimitReached('您的三盏祈福心灯已满，请将位置留予同修 🙏');
+      // 前端拦截：遍历现有 lamps 状态，若已存在当前 userId 的莲灯，阻断操作并弹出全局 Toast 提示
+      const userAlreadyHasLamp = lamps.some((lamp) => lamp.userId === currentUserId);
+      if (userAlreadyHasLamp) {
+        if (onLimitReached) {
+          onLimitReached('每位同修仅限供奉一盏莲灯');
+        } else {
+          toast.warning('每位同修仅限供奉一盏莲灯', {
+            icon: '🪷',
+            duration: 3500,
+          });
+        }
         return;
       }
 
       const pos: [number, number, number] = [point.x, 0, point.z];
-      const ts = Date.now();
-      setLamps((prev) => [...prev, {
-        id: `lamp-${ts}`, userId: currentUserId, userName: currentUserName,
-        position: pos, message: '新祈愿', dedications: 0,
-      }]);
-      setBursts((prev) => [...prev, { id: `burst-${ts}`, position: [point.x, 0.1, point.z] }]);
-      setRipples((prev) => [
-        ...prev,
-        { id: `r1-${ts}`, position: [point.x, -0.4, point.z], color: '#F59E0B' },
-        { id: `r2-${ts}`, position: [point.x, -0.4, point.z], color: '#FFF8DC' },
-      ]);
-      if (onPlaceLamp) onPlaceLamp(pos);
-      setCursorPos(null); // Click后临时隐藏光圈
-    },
-    [lamps, currentUserName, maxLampsPerUser, onPlaceLamp, onLimitReached, checkPlacementAllowed]
-  );
 
-  const handleWaterMove = useCallback((point: THREE.Vector3 | null) => {
-    if (!point) {
-      setCursorPos(null);
-      return;
-    }
-    const distance = Math.hypot(point.x, point.z);
-    const { allowed } = checkPlacementAllowed(distance);
-    setCursorPos([point.x, -0.48, point.z]); // 贴近水面
-    setCursorAllowed(allowed);
-  }, [checkPlacementAllowed]);
+      try {
+        const res = await fetch('/api/lamps', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: currentUserId,
+            userName: currentUserName,
+            position: pos,
+            message: '愿平安吉祥',
+          }),
+        });
 
-  const handleDedicate = useCallback(
-    (lampId: string) => {
-      setLamps((prev) =>
-        prev.map((l) => (l.id === lampId ? { ...l, dedications: l.dedications + 1 } : l))
-      );
-      const lamp = lamps.find((l) => l.id === lampId);
-      if (lamp) {
-        setRipples((prev) => [
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          const errMsg = errData.error || '供奉莲灯失败';
+          toast.error(errMsg);
+          return;
+        }
+
+        const newLamp = await res.json();
+        setLamps((prev) => [
           ...prev,
-          { id: `rd-${Date.now()}`, position: [lamp.position[0], -0.4, lamp.position[2]], color: '#FFFFFF' },
+          {
+            id: newLamp.id,
+            userId: newLamp.userId,
+            userName: newLamp.userName || currentUserName,
+            position: [newLamp.posX, newLamp.posY, newLamp.posZ],
+            message: newLamp.message || '愿平安吉祥',
+            prayerCount: newLamp.prayerCount || 0,
+            dedications: newLamp.prayerCount || 0,
+          },
         ]);
+        setRipples((prev) => [...prev, { id: `ripple-${Date.now()}`, position: pos }]);
+        if (onPlaceLamp) {
+          onPlaceLamp(pos);
+        } else {
+          toast.success('已供上一盏心灯，愿光明常驻', { icon: '🪷' });
+        }
+        setIsPlacementMode(false);
+      } catch (err) {
+        console.error('供灯请求失败', err);
+        toast.error('网络异常，供灯未能成功');
       }
-      if (onDedicate) onDedicate(lampId);
     },
-    [lamps, onDedicate]
+    [checkPlacementAllowed, currentUserRole, lamps, currentUserId, currentUserName, onLimitReached, onPlaceLamp, setLamps, setIsPlacementMode]
   );
+
+  /**
+   * 模块一：移动端兼容的双击判定与 CameraControls 视角缩放平滑过渡
+   */
+  const handleWaterPointerDown = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      // 仅响应主要点击（排除鼠标右键拖拽等操作）
+      if (e.button !== 0) return;
+
+      const now = Date.now();
+      const delta = now - lastTapRef.current.time;
+      const distX = Math.abs(e.clientX - lastTapRef.current.x);
+      const distY = Math.abs(e.clientY - lastTapRef.current.y);
+
+      // 双击判定：连续两次 onPointerDown 时间间隔 40ms ~ 380ms，触点位移不超过 32px
+      const isDoubleTap = delta > 40 && delta < 380 && distX < 32 && distY < 32;
+
+      if (isDoubleTap) {
+        // 重置双击判定，防止三次连续点击造成误判
+        lastTapRef.current = { time: 0, x: 0, y: 0 };
+
+        // 取消正在等待的单次放置延时，优先执行双击缩放手势
+        if (placementTimerRef.current) {
+          clearTimeout(placementTimerRef.current);
+          placementTimerRef.current = null;
+        }
+
+        if (!cameraControlsRef.current) return;
+
+        if (!isZoomed) {
+          // isZoomed === false：利用双击获取的 3D 交点坐标，调用 setLookAt 平滑推移放大
+          cameraControlsRef.current.setLookAt(
+            e.point.x,
+            e.point.y + 4,
+            e.point.z + 6,
+            e.point.x,
+            e.point.y,
+            e.point.z,
+            true // smooth transition
+          );
+          setIsZoomed(true);
+        } else {
+          // isZoomed === true：再次双击触发 reset(true) 平滑退回初始视角
+          cameraControlsRef.current.reset(true);
+          setIsZoomed(false);
+        }
+        return;
+      }
+
+      // 单次点击：记录时间戳与触点坐标
+      lastTapRef.current = { time: now, x: e.clientX, y: e.clientY };
+
+      // 处于供灯模式时，设置防抖延时（留出 260ms 双击判定窗口，避免双击第一下误供灯）
+      if (isPlacementMode) {
+        if (placementTimerRef.current) {
+          clearTimeout(placementTimerRef.current);
+        }
+        const targetPoint = e.point.clone();
+        placementTimerRef.current = setTimeout(() => {
+          placementTimerRef.current = null;
+          handlePlaceLampAt(targetPoint);
+        }, 260);
+      }
+    },
+    [isZoomed, isPlacementMode, handlePlaceLampAt, cameraControlsRef, setIsZoomed]
+  );
+
+  // 清理放置延时
+  useEffect(() => {
+    return () => {
+      if (placementTimerRef.current) {
+        clearTimeout(placementTimerRef.current);
+      }
+    };
+  }, []);
+
+  // 水面移动处理（预览灯）
+  const handleWaterMove = useCallback(
+    (point: THREE.Vector3 | null) => {
+      if (!point) {
+        setPreviewPos(null);
+        return;
+      }
+      const distance = Math.hypot(point.x, point.z);
+      if (checkPlacementAllowed(distance)) {
+        setPreviewPos([point.x, 0.1, point.z]);
+      } else {
+        setPreviewPos(null);
+      }
+    },
+    [checkPlacementAllowed]
+  );
+
+  const removeRipple = useCallback((id: string) => {
+    setRipples((prev) => prev.filter((r) => r.id !== id));
+  }, []);
 
   return (
     <>
-      <color attach="background" args={['#020208']} />
-      <fogExp2 attach="fog" args={['#04040f', 0.05]} />
-      <ambientLight intensity={0.04} color="#1a1040" />
-      <hemisphereLight args={['#0d0828', '#000000', 0.2]} />
+      <color attach="background" args={['#0a0a0a']} />
+      <fogExp2 attach="fog" args={['#0a0a0a', 0.05]} />
 
-      <Stars radius={80} depth={50} count={2000} factor={2} saturation={0} fade speed={0.3} />
-      
-      {/* 光阴小点 */}
-      <Sparkles count={300} scale={40} size={2} speed={0.2} color="#FBBF24" opacity={0.6} position={[0, 2, 0]} />
+      {/* 场景光照 */}
+      <ambientLight intensity={0.4} color="#FFF1D0" />
+      <hemisphereLight args={['#1a1a2e', '#000000', 0.3]} />
+      <pointLight position={[0, 20, 0]} intensity={1.5} distance={100} color="#E8F0FF" />
 
-      <Environment preset="night" background={false} environmentIntensity={0.3} />
-      <InkMoon />
-      <directionalLight position={[0, 20, -18]} intensity={0.6} color="#D4B896" castShadow />
+      {/* 空间金光粒子 */}
+      <Sparkles count={250} scale={30} size={2} speed={0.2} color="#FBBF24" opacity={0.6} />
 
-      {/* 三重同心圆环 */}
+      {/* 双圈结界 */}
       <ConcentricRings />
 
-      <InkWater size={60} segments={160} onWaterClick={handleWaterClick} onWaterMove={handleWaterMove} />
+      {/* 边界粒子 */}
+      <GlowBoundary radius={OUTER_RADIUS} count={600} />
 
-      {/* 悬浮预览光圈 */}
-      <CursorPreview position={cursorPos} allowed={cursorAllowed} />
+      {/* 水墨水面 */}
+      <InkWater
+        size={100}
+        segments={160}
+        onWaterPointerDown={handleWaterPointerDown}
+        onWaterMove={handleWaterMove}
+        isPlacementMode={isPlacementMode}
+      />
 
+      {/* 放置预览灯 */}
+      <PreviewLamp position={previewPos} />
+
+      {/* 渲染所有心灯 */}
       {lamps.map((lamp) => (
         <ProceduralLamp
           key={lamp.id}
           id={lamp.id}
+          userId={lamp.userId}
           position={lamp.position}
           userName={lamp.userName}
           lightEnabled={nearIds.has(lamp.id)}
-          onDedicate={handleDedicate}
+          onPray={handlePray}
+          onDedicate={handlePray}
           message={lamp.message}
-          dedications={lamp.dedications}
+          prayerCount={lamp.prayerCount ?? lamp.dedications ?? 0}
+          dedications={lamp.dedications ?? lamp.prayerCount ?? 0}
         />
       ))}
 
-      {bursts.map((b) => (
-        <PlacementBurst key={b.id} position={b.position} onComplete={() => setBursts((prev) => prev.filter((x) => x.id !== b.id))} />
-      ))}
-      {ripples.map((r) => (
-        <Ripple key={r.id} position={r.position} color={r.color} onComplete={() => setRipples((prev) => prev.filter((x) => x.id !== r.id))} />
+      {/* 涟漪 */}
+      {ripples.map((ripple) => (
+        <Ripple
+          key={ripple.id}
+          position={ripple.position}
+          color="#F59E0B"
+          onComplete={() => removeRipple(ripple.id)}
+        />
       ))}
 
-      <OrbitControls
-        enableDamping
-        dampingFactor={0.06}
-        maxPolarAngle={Math.PI / 2 - 0.04}
-        minDistance={1.5}
-        maxDistance={25}
-        target={[0, 0.2, 0]}
-        zoomSpeed={0.6}
-        rotateSpeed={0.5}
-        zoomToCursor={true}
+      {/* 模块一要求：全面改用 CameraControls */}
+      <CameraControls
+        ref={handleControlsRef}
+        makeDefault
+        smoothTime={0.6}
+        minDistance={2}
+        maxDistance={60}
+        maxPolarAngle={Math.PI / 2 - 0.05}
+        enabled={!isPlacementMode}
       />
     </>
   );
 };
 
-// ==================== Canvas 封装 ====================
-const LotusSeaCanvas: React.FC<{
+// ==================== LotusSeaCanvas 容器组件 ====================
+export interface LotusSeaCanvasProps {
+  currentUserId?: string;
   currentUserName?: string;
+  currentUserRole?: 'admin' | 'presidency' | 'committee' | 'member';
   maxLampsPerUser?: number;
-  onPlaceLamp?: (pos: [number, number, number]) => void;
-  onDedicate?: (lampId: string) => void;
-  onLimitReached?: (msg: string) => void;
-}> = (props) => {
-  return (
-    <Canvas
-      shadows
-      camera={{ position: [3, 2.5, 4], fov: 50, near: 0.1, far: 200 }}
-      dpr={[1, 2]}
-      gl={{
-        toneMapping: THREE.NoToneMapping,
-        outputColorSpace: THREE.SRGBColorSpace,
-        alpha: false,
-        antialias: false,
-      }}
-      style={{ width: '100%', height: '100%' }}
-    >
-      <Suspense fallback={null}>
-        <LampScene {...props} />
+  canResetDaochang?: boolean;
+  onPlaceLamp?: (pos?: [number, number, number]) => void;
+  onDedicate?: (lampId?: string) => void;
+  onLimitReached?: (msg?: string) => void;
+  onResetDaochang?: () => void;
+}
 
-        <EffectComposer enableNormalPass={false} multisampling={0}>
-          <ToneMapping
-            mode={ToneMappingMode.ACES_FILMIC}
-            resolution={256}
-            whitePoint={4.0}
-            middleGrey={0.6}
-            minLuminance={0.01}
-            averageLuminance={1.0}
-            adaptationRate={1.0}
+const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
+  currentUserId = 'user-me',
+  currentUserName = '同修',
+  currentUserRole = 'member',
+  canResetDaochang,
+  onPlaceLamp,
+  onDedicate,
+  onLimitReached,
+  onResetDaochang,
+}) => {
+  const [isPlacementMode, setIsPlacementMode] = useState(false);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [lamps, setLamps] = useState<LampData[]>([]);
+  const cameraControlsRef = useRef<CameraControls | null>(null);
+
+  // 模块三：祈祷防抖映射与待同步计数
+  const prayDebounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const prayPendingCounts = useRef<Map<string, number>>(new Map());
+
+  // 初始化拉取数据库中的心灯列表
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/lamps')
+      .then((res) => {
+        if (!res.ok) throw new Error('API fetch failed');
+        return res.json();
+      })
+      .then((data: any[]) => {
+        if (!isMounted) return;
+        if (Array.isArray(data)) {
+          setLamps(
+            data.map((item) => ({
+              id: item.id,
+              userId: item.userId,
+              userName: item.userName || '同修',
+              position: [item.posX, item.posY, item.posZ],
+              message: item.message || '愿平安吉祥',
+              prayerCount: item.prayerCount ?? 0,
+              dedications: item.prayerCount ?? 0,
+            }))
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn('获取莲灯列表失败：', err);
+      });
+
+    return () => {
+      isMounted = false;
+      // 卸载前将正在排队的防抖祈祷全部 flush 发送，保证功德数据不丢失
+      prayDebounceTimers.current.forEach((timer, lampId) => {
+        clearTimeout(timer);
+        const countToSync = prayPendingCounts.current.get(lampId);
+        if (countToSync && countToSync > 0) {
+          fetch(`/api/lamps/${lampId}/pray`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ count: countToSync }),
+            keepalive: true,
+          }).catch(() => {});
+        }
+      });
+      prayPendingCounts.current.clear();
+      prayDebounceTimers.current.clear();
+    };
+  }, []);
+
+  /**
+   * 模块三：祈祷数值更新
+   * 1. 视觉触发的同时，前端乐观更新 (Optimistic UI) 该灯祈祷数值，让悬浮数字立即 +1
+   * 2. 后台防抖 (Debounce) 调用 API，利用 Prisma 的 increment: 1 原子操作更新数据库中的 prayerCount
+   */
+  const handlePray = useCallback(
+    (lampId: string) => {
+      // 1. 乐观更新立即 +1
+      setLamps((prev) =>
+        prev.map((lamp) =>
+          lamp.id === lampId
+            ? {
+                ...lamp,
+                prayerCount: (lamp.prayerCount || 0) + 1,
+                dedications: (lamp.dedications || 0) + 1,
+              }
+            : lamp
+        )
+      );
+
+      // 2. 累加防抖待提交数值
+      const currentPending = (prayPendingCounts.current.get(lampId) || 0) + 1;
+      prayPendingCounts.current.set(lampId, currentPending);
+
+      // 3. 清理该灯先前的防抖定时器
+      const existingTimer = prayDebounceTimers.current.get(lampId);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+      }
+
+      // 4. 防抖延迟 500ms 触发后端原子自增
+      const timer = setTimeout(async () => {
+        const countToSync = prayPendingCounts.current.get(lampId) || 1;
+        prayPendingCounts.current.delete(lampId);
+        prayDebounceTimers.current.delete(lampId);
+
+        try {
+          const res = await fetch(`/api/lamps/${lampId}/pray`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ count: countToSync }),
+          });
+          if (res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (data && typeof data.prayerCount === 'number') {
+              // 用服务器权威计数对齐，防止多端数值微小飘移
+              setLamps((prev) =>
+                prev.map((l) =>
+                  l.id === lampId
+                    ? { ...l, prayerCount: data.prayerCount, dedications: data.prayerCount }
+                    : l
+                )
+              );
+            }
+          } else {
+            console.error(`更新莲灯 ${lampId} 祈祷数返回异常: ${res.status}`);
+          }
+        } catch (err) {
+          console.error(`网络异常，无法同步莲灯 ${lampId} 祈祷数`, err);
+        }
+      }, 500);
+
+      prayDebounceTimers.current.set(lampId, timer);
+    },
+    []
+  );
+
+  /**
+   * 模块二：清空道场 (Reset Action)
+   * 创建管理端专属清空道场函数：调用 API 执行 prisma.lamp.deleteMany({})，
+   * 并在请求成功后通过 setLamps([]) 瞬间清空 3D 场景中的所有莲灯渲染。
+   */
+  const handleResetDaochang = useCallback(async () => {
+    if (!window.confirm('确定要清空道场中所有的莲灯吗？此操作将重置全部供灯记录。')) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/lamps', {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) {
+        throw new Error('清空道场接口返回异常');
+      }
+
+      // 瞬间清空 3D 场景中的所有莲灯渲染
+      setLamps([]);
+      setIsPlacementMode(false);
+      if (cameraControlsRef.current) {
+        cameraControlsRef.current.reset(true);
+        setIsZoomed(false);
+      }
+      toast.success('道场已清空重置，万籁归寂', { icon: '🧹' });
+      onResetDaochang?.();
+    } catch (error) {
+      console.error('清空道场失败', error);
+      toast.error('清空道场失败，请重试');
+    }
+  }, [onResetDaochang]);
+
+  /**
+   * 切换供灯模式（带单人单灯的前端拦截前置检查）
+   */
+  const handleTogglePlacement = useCallback(() => {
+    if (!isPlacementMode) {
+      const alreadyHas = lamps.some((l) => l.userId === currentUserId);
+      if (alreadyHas) {
+        if (onLimitReached) {
+          onLimitReached('每位同修仅限供奉一盏莲灯');
+        } else {
+          toast.warning('每位同修仅限供奉一盏莲灯', {
+            icon: '🪷',
+            duration: 3500,
+          });
+        }
+        return;
+      }
+    }
+    setIsPlacementMode((prev) => !prev);
+  }, [isPlacementMode, lamps, currentUserId, onLimitReached]);
+
+  /**
+   * 恢复视角
+   */
+  const handleResetView = useCallback(() => {
+    if (cameraControlsRef.current) {
+      cameraControlsRef.current.reset(true);
+      setIsZoomed(false);
+    }
+  }, []);
+
+  // 管理端权限判定：管理层角色或显式传参允许清空
+  const isManagement =
+    canResetDaochang ??
+    (currentUserRole === 'admin' ||
+      currentUserRole === 'presidency' ||
+      currentUserRole === 'committee' ||
+      process.env.NODE_ENV !== 'production');
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+      <Canvas
+        shadows
+        camera={{ position: [0, 10, 18], fov: 50, near: 0.1, far: 200 }}
+        dpr={[1, 2]}
+        style={{ width: '100%', height: '100%' }}
+      >
+        <Suspense fallback={null}>
+          <LampScene
+            isPlacementMode={isPlacementMode}
+            setIsPlacementMode={setIsPlacementMode}
+            isZoomed={isZoomed}
+            setIsZoomed={setIsZoomed}
+            lamps={lamps}
+            setLamps={setLamps}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+            currentUserRole={currentUserRole}
+            onPlaceLamp={onPlaceLamp}
+            onDedicate={onDedicate}
+            onLimitReached={onLimitReached}
+            cameraControlsRef={cameraControlsRef}
+            handlePray={handlePray}
           />
-          <Bloom luminanceThreshold={0.7} luminanceSmoothing={0.3} mipmapBlur intensity={2.0} radius={0.9} levels={9} />
-          <HueSaturation hue={0.02} saturation={0.25} blendFunction={BlendFunction.NORMAL} />
-          <ChromaticAberration offset={new Vector2(0.0008, 0.0008)} blendFunction={BlendFunction.NORMAL} radialModulation={true} modulationOffset={0.15} />
-          <Vignette eskil={false} offset={0.08} darkness={1.3} />
-          <Noise opacity={0.025} premultiply blendFunction={BlendFunction.ADD} />
-        </EffectComposer>
-      </Suspense>
-    </Canvas>
+          <EffectComposer>
+            <Bloom luminanceThreshold={0.95} mipmapBlur intensity={1.4} radius={0.7} />
+            <Vignette eskil={false} offset={0.12} darkness={0.85} />
+            <Noise opacity={0.02} />
+          </EffectComposer>
+        </Suspense>
+      </Canvas>
+
+      {/* 顶部控制栏 */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '20px',
+          left: '20px',
+          right: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          pointerEvents: 'none',
+          zIndex: 10,
+        }}
+      >
+        <div />
+
+        {/* 右侧：缩放状态下的快速复位按钮 */}
+        {isZoomed && (
+          <button
+            onClick={handleResetView}
+            style={{
+              pointerEvents: 'auto',
+              backgroundColor: 'rgba(20, 20, 20, 0.75)',
+              backdropFilter: 'blur(8px)',
+              color: '#FDE047',
+              border: '1px solid rgba(253, 224, 71, 0.3)',
+              borderRadius: '9999px',
+              padding: '8px 16px',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            ↺ 还原全局视角
+          </button>
+        )}
+      </div>
+
+      {/* 底部供灯按钮 */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '30px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+      >
+        <button
+          onClick={handleTogglePlacement}
+          style={{
+            backgroundColor: isPlacementMode ? '#EF4444' : '#FBBF24',
+            color: '#050505',
+            border: 'none',
+            borderRadius: '9999px',
+            padding: '12px 28px',
+            fontSize: '16px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 4px 20px rgba(251, 191, 36, 0.4)',
+            transition: 'all 0.3s ease',
+          }}
+        >
+          {isPlacementMode ? '取消供灯' : '＋ 供灯'}
+        </button>
+        <span
+          style={{
+            fontSize: '12px',
+            color: 'rgba(255, 255, 255, 0.75)',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(4px)',
+            padding: '2px 10px',
+            borderRadius: '9999px',
+          }}
+        >
+          双击水面缩放视角 · 点击心灯祈祷回向
+        </span>
+      </div>
+    </div>
   );
 };
 

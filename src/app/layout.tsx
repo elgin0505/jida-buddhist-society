@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import { Navigation } from "@/components/Navigation";
 import { MemberProvider } from "@/components/MemberContext";
 import { LoadingTransition } from "@/components/LoadingTransition";
@@ -11,11 +10,8 @@ import { BackToTop } from "@/components/BackToTop";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-});
+// Removed next/font/google to prevent ENOTFOUND fonts.googleapis.com
+// We will rely on system fonts defined in globals.css
 
 export const viewport: Viewport = {
   themeColor: "#c9a227",
@@ -46,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN" className={plusJakarta.variable} suppressHydrationWarning>
+    <html lang="zh-CN" suppressHydrationWarning>
       <body className="font-sans">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <MemberProvider>

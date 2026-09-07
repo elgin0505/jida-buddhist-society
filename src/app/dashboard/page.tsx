@@ -18,6 +18,7 @@ import { LotusLoading } from "@/components/LotusLoading";
 import { QRModal } from "@/components/QRModal";
 import { QRScanner } from "@/components/QRScanner";
 import { CheckInToast } from "@/components/CheckInToast";
+import LiquidOrbButton from "@/components/LiquidOrbButton";
 import { Card3D } from "@/components/Card3D";
 import { GoldShimmerBorder } from "@/components/GoldShimmerBorder";
 import { DailyDharmaCard } from "@/components/DailyDharmaCard";
@@ -30,8 +31,9 @@ import { Camera } from "lucide-react";
 import { KaresansuiBackground } from "@/components/KaresansuiBackground";
 import { LivingBodhiTree } from "@/components/LivingBodhiTree";
 import dynamic from "next/dynamic";
+import type { LotusSeaCanvasProps } from "@/components/LotusSeaCanvas";
 
-const LotusSeaCanvas = dynamic(() => import("@/components/LotusSeaCanvas"), { ssr: false });
+const LotusSeaCanvas = dynamic<LotusSeaCanvasProps>(() => import("@/components/LotusSeaCanvas"), { ssr: false });
 
 interface AttendanceRecord {
   id: string;
@@ -632,17 +634,7 @@ export default function DashboardPage() {
       )}
       
       {/* 供灯祈福入口按钮 */}
-      <button
-        onClick={() => setShowLotusCanvas(true)}
-        className="fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-golden-deep to-golden-rich text-white shadow-[0_8px_20px_rgba(201,162,39,0.4)] transition-all hover:scale-110 active:scale-95"
-        style={{
-          left: "20px",
-          bottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
-        }}
-        title="供灯祈福"
-      >
-        <span className="text-2xl drop-shadow-md">🪷</span>
-      </button>
+      <LiquidOrbButton onClick={() => setShowLotusCanvas(true)} />
 
       {/* 供灯祈福全屏 3D 模态框 */}
       <AnimatePresence>
@@ -667,15 +659,16 @@ export default function DashboardPage() {
 
               {/* 环境提示文本 */}
               <div className="absolute left-1/2 top-6 z-50 -translate-x-1/2 rounded-full bg-black/40 px-4 py-1.5 text-xs tracking-widest text-golden-rich backdrop-blur-md">
-                点击水面供灯 · 点击心灯回向
+                双击水面缩放视角 · 点击心灯功德+1 · 每位同修限供一灯
               </div>
               
               <LotusSeaCanvas 
-                currentUserName={currentMember?.name ?? "我"}
-                maxLampsPerUser={3}
+                currentUserId={currentMember?.id || "user-me"}
+                currentUserName={currentMember?.name ?? "同修"}
+                maxLampsPerUser={1}
                 onPlaceLamp={() => sonnerToast.success("已供上一盏心灯", { icon: "🪷" })}
                 onDedicate={() => sonnerToast.success("功德已回向", { icon: "✨" })}
-                onLimitReached={() => sonnerToast.warning("您的三盏祈福心灯已满，请将位置留予同修 🙏", { duration: 4000 })}
+                onLimitReached={() => sonnerToast.warning("每位同修仅限供奉一盏莲灯", { duration: 4000 })}
               />
             </div>
           </motion.div>

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma, recalculateMemberPoints } from "@/lib/prisma";
 import { logRedemptionToGoogleSheet, syncRewardsFromGoogleSheet, updateRewardStockInGoogleSheet } from "@/lib/googleSheets";
+import { requireAuth } from "@/lib/auth";
+import { verifyAdminPin } from "@/lib/adminAuth";
 
 export async function GET() {
   try {
@@ -30,6 +32,20 @@ export async function POST(request: Request) {
     const member = await prisma.member.findUnique({ where: { id: memberId } });
     if (!member) {
       return NextResponse.json({ error: "会员不存在" }, { status: 404 });
+    }
+
+    // 0. 安全鉴权拦截：必须登录自身账号或具备管理员权限
+    const adminAuth = verifyAdminPin(request);
+    if (!adminAuth.isValid) {
+      const { session, errorResponse } = requireAuth(request);
+      if (errorResponse) return errorResponse;
+
+      if (session?.memberId && session.memberId !== member.id && session.userId !== member.userId) {
+        return NextResponse.json(
+          { error: "越权操作拒绝：仅允许为已认证的本人账户兑换结缘品" },
+          { status: 403 }
+        );
+      }
     }
 
     // 1. 规范化兑换清单 (支持单品选择数量 或 多选批量兑换)

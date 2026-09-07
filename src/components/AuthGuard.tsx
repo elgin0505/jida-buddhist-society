@@ -14,36 +14,80 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [authorized, setAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // 检查本地登录会话凭据
-    let isAuthenticated = false;
-    try {
-      const authData = localStorage.getItem("jbs_auth_user");
-      isAuthenticated = !!authData;
-    } catch (e) {
-      console.warn("localStorage access denied or failed", e);
+    let isMounted = true;
+
+    async function checkAuth() {
+      const isAuthPage = pathname === "/auth" || pathname === "/auth/";
+
+      // 1. 读取本地存储凭据
+      let storedUser: any = null;
+      try {
+        const raw = localStorage.getItem("jbs_auth_user");
+        if (raw) storedUser = JSON.parse(raw);
+      } catch {
+        localStorage.removeItem("jbs_auth_user");
+      }
+
+      // 未携带任何本地数据
+      if (!storedUser || !storedUser.token) {
+        if (isAuthPage) {
+          if (isMounted) setAuthorized(true);
+        } else {
+          if (isMounted) {
+            setAuthorized(false);
+            router.replace("/auth");
+          }
+        }
+        return;
+      }
+
+      // 2. 向服务端验证真实 JWT Session 有效性（彻底杜绝仅凭 DevTools 伪造 localStorage 绕过鉴权）
+      try {
+        const res = await fetch("/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${storedUser.token}`,
+          },
+        });
+
+        if (!isMounted) return;
+
+        if (res.ok) {
+          // Token 真实有效且匹配数据库修行者用户
+          if (isAuthPage) {
+            setAuthorized(false);
+            router.replace("/dashboard");
+          } else {
+            setAuthorized(true);
+          }
+        } else {
+          // Token 无效或已过期：清除伪造/失效凭据并强制踢回登录页
+          localStorage.removeItem("jbs_auth_user");
+          localStorage.removeItem("currentMemberId");
+
+          if (isAuthPage) {
+            setAuthorized(true);
+          } else {
+            setAuthorized(false);
+            router.replace("/auth");
+          }
+        }
+      } catch (err) {
+        // 网络异常时，如果有本地有效 token 则保持降级可用
+        if (!isMounted) return;
+        if (isAuthPage) {
+          setAuthorized(false);
+          router.replace("/dashboard");
+        } else {
+          setAuthorized(true);
+        }
+      }
     }
 
-    const isAuthPage = pathname === "/auth" || pathname === "/auth/";
+    checkAuth();
 
-    if (isAuthPage) {
-      if (isAuthenticated) {
-        // 已登录用户访问登录页 -> 自动重定向至会员仪表板
-        setAuthorized(false);
-        router.replace("/dashboard");
-      } else {
-        // 未登录用户允许停留在登录/注册页
-        setAuthorized(true);
-      }
-    } else {
-      if (!isAuthenticated) {
-        // 未登录用户访问任何受保护页面 -> 强行拦截并重定向至 /auth
-        setAuthorized(false);
-        router.replace("/auth");
-      } else {
-        // 已认证用户允许访问内部页面
-        setAuthorized(true);
-      }
-    }
+    return () => {
+      isMounted = false;
+    };
   }, [pathname, router]);
 
   // 鉴权中状态：展示优雅的禅意莲花加载动效，避免任何页面私密内容闪烁

@@ -7,35 +7,53 @@ interface AdminPinLockProps {
   children: ReactNode;
 }
 
-const DEFAULT_PIN = "1080"; // 默认 4 位管理员密码 (常用于佛教 108 寓意)
 const PIN_LENGTH = 4;
 
 export function AdminPinLock({ children }: AdminPinLockProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pin, setPin] = useState<string>("");
   const [error, setError] = useState(false);
-  const [isSettingNewPin, setIsSettingNewPin] = useState(false);
-  const [customPin, setCustomPin] = useState<string>(DEFAULT_PIN);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 检查本地是否有保存自定义密码
-    const savedPin = localStorage.getItem("jbs_admin_custom_pin") || DEFAULT_PIN;
-    setCustomPin(savedPin);
-
-    // 检查当前 session 是否已解锁
+    // 检查当前 session 是否有保存验证码并向服务端确认有效性
     const sessionAuth = sessionStorage.getItem("jbs_admin_authenticated");
-    if (sessionAuth === "true") {
-      setIsAuthenticated(true);
+    const savedPin = sessionStorage.getItem("jbs_admin_pin");
+
+    if (sessionAuth === "true" && savedPin) {
+      fetch("/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "x-admin-pin": savedPin },
+      })
+        .then((res) => {
+          if (res.ok) {
+            setIsAuthenticated(true);
+          } else {
+            sessionStorage.removeItem("jbs_admin_authenticated");
+            sessionStorage.removeItem("jbs_admin_pin");
+            setIsAuthenticated(false);
+          }
+        })
+        .catch(() => {
+          setIsAuthenticated(false);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const handleKeyPress = (num: string) => {
+    if (isVerifying || loading) return;
     if (pin.length < PIN_LENGTH) {
       const nextPin = pin + num;
       setPin(nextPin);
       setError(false);
+      setErrorMessage("");
 
       if (nextPin.length === PIN_LENGTH) {
         verifyPin(nextPin);
@@ -44,28 +62,53 @@ export function AdminPinLock({ children }: AdminPinLockProps) {
   };
 
   const handleDelete = () => {
+    if (isVerifying) return;
     setPin((prev) => prev.slice(0, -1));
     setError(false);
+    setErrorMessage("");
   };
 
   const handleClear = () => {
+    if (isVerifying) return;
     setPin("");
     setError(false);
+    setErrorMessage("");
   };
 
-  const verifyPin = (inputPin: string) => {
-    if (inputPin === customPin) {
-      // 验证成功
-      setIsAuthenticated(true);
-      sessionStorage.setItem("jbs_admin_authenticated", "true");
-      sessionStorage.setItem("jbs_admin_pin", inputPin);
-      setPin("");
-    } else {
-      // 密码错误：触发抖动
+  const verifyPin = async (inputPin: string) => {
+    setIsVerifying(true);
+    try {
+      const res = await fetch("/api/admin/verify-pin", {
+        method: "POST",
+        headers: { "x-admin-pin": inputPin },
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        // 服务端校验通过
+        setIsAuthenticated(true);
+        sessionStorage.setItem("jbs_admin_authenticated", "true");
+        sessionStorage.setItem("jbs_admin_pin", inputPin);
+        setPin("");
+      } else {
+        // 密码错误：服务端拒绝
+        setError(true);
+        setErrorMessage(data.error || "通行码错误，请重新输入");
+        setTimeout(() => {
+          setPin("");
+          setError(false);
+        }, 600);
+      }
+    } catch {
       setError(true);
+      setErrorMessage("网络异常，无法连接鉴权服务器");
       setTimeout(() => {
         setPin("");
-      }, 500);
+        setError(false);
+      }, 600);
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -164,7 +207,7 @@ export function AdminPinLock({ children }: AdminPinLockProps) {
                 exit={{ opacity: 0 }}
                 className="text-xs font-semibold text-carmine"
               >
-                通行码错误，请重新输入
+                {errorMessage || "通行码错误，请重新输入"}
               </motion.p>
             )}
           </AnimatePresence>

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir, readdir, unlink } from "fs/promises";
-import { join, extname } from "path";
+import { extname } from "path";
 import { prisma } from "@/lib/prisma";
+import { verifyAdminPin } from "@/lib/adminAuth";
+import { requireAuth } from "@/lib/auth";
+import { uploadAvatarFile, cleanupLocalOldAvatar } from "@/lib/storage";
 
 export async function POST(
   request: Request,
@@ -10,7 +12,7 @@ export async function POST(
   try {
     const { id } = await params;
 
-    // 兼容通过 cuid (id) 或会员编号 (memberId) 查询
+    // 1. 兼容通过 cuid (id) 或会员编号 (memberId) 查询
     const member = await prisma.member.findFirst({
       where: {
         OR: [{ id }, { memberId: id }],
@@ -18,28 +20,34 @@ export async function POST(
     });
 
     if (!member) {
-      return NextResponse.json({ error: "会员不存在" }, { status: 404 });
+      return NextResponse.json({ error: "会员档案不存在" }, { status: 404 });
     }
 
-    const contentType = request.headers.get("content-type") || "";
-    let photoUrl = "";
+    // 2. 严格安全鉴权：仅允许会员本人或持有合法管理员 PIN 码操作
+    const adminCheck = verifyAdminPin(request);
+    if (!adminCheck.isValid) {
+      const { session, errorResponse } = requireAuth(request);
+      if (errorResponse) return errorResponse;
 
-    const avatarDir = join(process.cwd(), "public", "avatars");
-
-    // 尝试清理本地开发环境中的历史头像文件（非阻塞）
-    try {
-      await mkdir(avatarDir, { recursive: true });
-      const existingFiles = await readdir(avatarDir);
-      const safePrefix = member.memberId.replace(/[^a-zA-Z0-9-_]/g, "_");
-      for (const f of existingFiles) {
-        if (f.startsWith(`${safePrefix}_`) || f.startsWith(`${safePrefix}.`)) {
-          await unlink(join(avatarDir, f)).catch(() => {});
-        }
+      if (
+        session?.memberId &&
+        session.memberId !== member.id &&
+        session.userId !== member.userId
+      ) {
+        return NextResponse.json(
+          { error: "越权操作拒绝：您仅能更新自己的会员头像" },
+          { status: 403 }
+        );
       }
-    } catch {}
+    }
 
-    if (contentType.includes("application/json")) {
-      // 1. JSON Base64 格式（全平台及 Vercel Serverless / PostgreSQL 强保证）
+    const contentTypeHeader = request.headers.get("content-type") || "";
+    let buffer: Buffer;
+    let mimeType: string = "image/jpeg";
+    let fileExt: string = "jpg";
+
+    if (contentTypeHeader.includes("application/json")) {
+      // JSON Base64 格式
       const body = await request.json();
       const { photoData } = body;
 
@@ -47,27 +55,16 @@ export async function POST(
         return NextResponse.json({ error: "无效的图片数据" }, { status: 400 });
       }
 
-      // 限制 Base64 体积不超过 2MB
-      if (photoData.length > 2 * 1024 * 1024 * 1.37) {
-        return NextResponse.json({ error: "图片文件过大，请上传小于 2MB 的头像图片" }, { status: 400 });
+      const base64Match = photoData.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+      if (!base64Match) {
+        return NextResponse.json({ error: "图片格式错误，必须为合法的图片数据" }, { status: 400 });
       }
 
-      // 直接以标准 Data URL 存入数据库，具备永久可用性，完全免疫无状态容器重置与只读文件系统
-      photoUrl = photoData;
-
-      // 尝试在本地环境写入静态文件备份（只读环境自动忽略）
-      try {
-        const base64Match = photoData.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
-        if (base64Match) {
-          const fileExt = base64Match[1] === "jpeg" ? "jpg" : base64Match[1];
-          const buffer = Buffer.from(base64Match[2], "base64");
-          const safePrefix = member.memberId.replace(/[^a-zA-Z0-9-_]/g, "_");
-          const fileName = `${safePrefix}_${Date.now()}.${fileExt}`;
-          await writeFile(join(avatarDir, fileName), buffer).catch(() => {});
-        }
-      } catch {}
+      mimeType = `image/${base64Match[1]}`;
+      fileExt = base64Match[1] === "jpeg" ? "jpg" : base64Match[1];
+      buffer = Buffer.from(base64Match[2], "base64");
     } else {
-      // 2. FormData 文件流上传
+      // FormData 文件上传
       const formData = await request.formData();
       const file = formData.get("avatar") as File | null;
 
@@ -75,32 +72,33 @@ export async function POST(
         return NextResponse.json({ error: "未提供图片文件" }, { status: 400 });
       }
 
-      // 限制文件体积不超过 2MB
-      if (file.size > 2 * 1024 * 1024) {
-        return NextResponse.json({ error: "图片文件过大，请上传小于 2MB 的头像图片" }, { status: 400 });
-      }
-
-      if (!file.type.startsWith("image/") && !file.name.match(/\.(jpg|jpeg|png|webp|gif|heic|heif)$/i)) {
-        return NextResponse.json({ error: "请上传有效的图片文件" }, { status: 400 });
-      }
+      mimeType = file.type || "image/jpeg";
+      let rawExt = extname(file.name).replace(".", "").toLowerCase() || "jpg";
+      if (rawExt === "heic" || rawExt === "heif") rawExt = "jpg";
+      fileExt = rawExt;
 
       const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const mimeType = file.type || "image/jpeg";
-      const base64String = buffer.toString("base64");
-      photoUrl = `data:${mimeType};base64,${base64String}`;
-
-      // 尝试在本地环境写入静态文件备份
-      try {
-        let rawExt = extname(file.name).replace(".", "").toLowerCase() || "jpg";
-        if (rawExt === "heic" || rawExt === "heif") rawExt = "jpg";
-        const safePrefix = member.memberId.replace(/[^a-zA-Z0-9-_]/g, "_");
-        const fileName = `${safePrefix}_${Date.now()}.${rawExt}`;
-        await writeFile(join(avatarDir, fileName), buffer).catch(() => {});
-      } catch {}
+      buffer = Buffer.from(arrayBuffer);
     }
 
-    // 更新数据库中该会员的头像记录
+    // 3. 限制文件体积不超过 2MB
+    if (buffer.length > 2 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "图片文件过大，请上传小于 2MB 的头像图片" },
+        { status: 400 }
+      );
+    }
+
+    // 4. 清理旧头像本地文件（若存在）
+    await cleanupLocalOldAvatar(member.memberId);
+
+    // 5. 将文件上传至存储媒介 (Vercel Blob / Supabase Storage / 本地静态目录 public/avatars/)
+    // 彻底从数据库消除 2MB Base64 大文本存储，仅保留轻量级 URL 引用！
+    const safePrefix = member.memberId.replace(/[^a-zA-Z0-9-_]/g, "_");
+    const fileName = `${safePrefix}_${Date.now()}.${fileExt}`;
+    const photoUrl = await uploadAvatarFile(fileName, buffer, mimeType);
+
+    // 6. 更新数据库中该会员的头像 URL 引用
     const updatedMember = await prisma.member.update({
       where: { id: member.id },
       data: { photo: photoUrl },

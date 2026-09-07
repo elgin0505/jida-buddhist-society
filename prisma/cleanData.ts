@@ -17,7 +17,9 @@ async function main() {
   console.log(`- 成功清理 Member 会员记录: ${deletedMembers.count} 条`);
 
   const deletedUsers = await prisma.user.deleteMany({});
-  console.log(`- 成功清理 User 登录账户: ${deletedUsers.count} 条`);
+  // 清理心灯记录
+  const deletedLamps = await prisma.lamp.deleteMany({});
+  console.log(`- 成功清理 Lamp 心灯记录: ${deletedLamps.count} 条`);
 
   console.log("✨ 数据库测试数据清理完毕！");
 }

@@ -6,6 +6,8 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, OrbitControls, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import { MathUtils } from 'three';
+import SacredTrees from './SacredTrees';
+import SacredFlowers from './SacredFlowers';
 
 // ==================== 安全的 GLTF 加载 Hook ====================
 function useSafeGLTF(url: string): THREE.Group | null {
@@ -640,6 +642,12 @@ const SceneContent: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
 
       {/* 有机曲线苔藓半岛 */}
       <MossyPeninsula />
+
+      {/* 五树环绕（菩提树、高榕、贝叶棕、槟榔树、糖棕） */}
+      <SacredTrees />
+
+      {/* 六花浮水（莲花、文殊兰、黄姜花、鸡蛋花、缅桂花、地涌金莲） */}
+      <SacredFlowers />
 
       {/* 360° 环形群山 */}
       <DistantMountains timeOfDay={timeOfDay} />

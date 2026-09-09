@@ -7,6 +7,7 @@ import * as THREE from 'three';
 
 export interface IonSunProps {
   position?: [number, number, number];
+  rotation?: [number, number, number];
   coreRadius?: number;
   particleCount?: number;
   maxRadius?: number;
@@ -14,10 +15,11 @@ export interface IonSunProps {
 }
 
 export const IonSun: React.FC<IonSunProps> = ({
-  position = [-80, 60, -150],
-  coreRadius = 10,
+  position = [0, 8, -38],
+  rotation = [0.35, 0, 0.15],
+  coreRadius = 3.5,
   particleCount = 30000,
-  maxRadius = 45,
+  maxRadius = 16,
   spiralArms = 3,
 }) => {
   const groupRef = useRef<THREE.Group>(null);
@@ -46,15 +48,15 @@ export const IonSun: React.FC<IonSunProps> = ({
         r = t * maxRadius;
 
         // 螺旋角度：半径越大旋转越多，加上随机扰动
-        const angle = r * (spiralArms * 0.3) + Math.random() * Math.PI * 0.5;
+        const angle = r * (spiralArms * 0.35) + Math.random() * Math.PI * 0.5;
 
         // 盘面厚度随半径增加而减小
-        const thickness = (1 - t) * 6 + 0.5;
+        const thickness = (1 - t) * 4 + 0.3;
         y = (Math.random() - 0.5) * thickness * 2;
 
         // 形成椭圆盘：在 XZ 平面拉伸
-        const flatX = Math.cos(angle) * r * (0.8 + Math.random() * 0.4);
-        const flatZ = Math.sin(angle) * r * (0.6 + Math.random() * 0.3);
+        const flatX = Math.cos(angle) * r * (0.85 + Math.random() * 0.3);
+        const flatZ = Math.sin(angle) * r * (0.65 + Math.random() * 0.3);
 
         x = flatX;
         z = flatZ;
@@ -105,10 +107,10 @@ export const IonSun: React.FC<IonSunProps> = ({
   const particleMaterial = useMemo(
     () =>
       new THREE.PointsMaterial({
-        size: 0.25,
+        size: 0.22,
         vertexColors: true,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.88,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         sizeAttenuation: true,
@@ -120,32 +122,37 @@ export const IonSun: React.FC<IonSunProps> = ({
   // ==================== 缓慢自转 ====================
   useFrame((_, delta) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.02;
-      groupRef.current.rotation.z -= delta * 0.005;
+      groupRef.current.rotation.y += delta * 0.025;
+      groupRef.current.rotation.z -= delta * 0.008;
     }
     if (coreRef.current) {
-      const scale = 1 + Math.sin(Date.now() * 0.001) * 0.02;
+      const scale = 1 + Math.sin(Date.now() * 0.0012) * 0.02;
       coreRef.current.scale.setScalar(scale);
     }
   });
 
   return (
-    <group ref={groupRef} position={position}>
-      {/* 高能发光内核 */}
-      <mesh ref={coreRef}>
-        <sphereGeometry args={[coreRadius, 32, 32]} />
-        <meshStandardMaterial
-          color="#ff8800"
-          emissive="#ffaa00"
-          emissiveIntensity={4}
-          roughness={0.2}
-          metalness={0.1}
-          fog={false}
-        />
-      </mesh>
+    <group position={position} rotation={rotation}>
+      <group ref={groupRef}>
+        {/* 高能发光内核 */}
+        <mesh ref={coreRef}>
+          <sphereGeometry args={[coreRadius, 32, 32]} />
+          <meshStandardMaterial
+            color="#ff8800"
+            emissive="#ffaa00"
+            emissiveIntensity={3.5}
+            roughness={0.2}
+            metalness={0.1}
+            fog={false}
+          />
+        </mesh>
 
-      {/* 螺旋离子云 */}
-      <points geometry={geometry} material={particleMaterial} />
+        {/* 螺旋离子云 */}
+        <points geometry={geometry} material={particleMaterial} />
+
+        {/* 照射莲花水面的金光光源 */}
+        <pointLight color="#ff9900" intensity={2.5} distance={100} decay={2} />
+      </group>
     </group>
   );
 };

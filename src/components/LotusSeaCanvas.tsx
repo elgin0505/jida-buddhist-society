@@ -20,6 +20,7 @@ import {
 import { toast } from 'sonner';
 import ProceduralLamp from './ProceduralLamp';
 import Ripple from './Ripple';
+import IonSun from './IonSun';
 
 // ==================== 类型定义 ====================
 export interface LampData {
@@ -592,6 +593,16 @@ const LampScene: React.FC<LampSceneProps> = ({
 
       {/* 空间金光粒子 */}
       <Sparkles count={250} scale={30} size={2} speed={0.2} color="#FBBF24" opacity={0.6} />
+
+      {/* 苍穹高能螺旋离子日轮（IonSun 天体发光特效） */}
+      <IonSun
+        position={[0, 8, -38]}
+        rotation={[0.35, 0, 0.15]}
+        coreRadius={3.5}
+        maxRadius={16}
+        particleCount={30000}
+        spiralArms={3}
+      />
 
       {/* 双圈结界 */}
       <ConcentricRings />

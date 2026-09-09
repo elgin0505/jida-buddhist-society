@@ -8,7 +8,6 @@ import * as THREE from 'three';
 import { MathUtils } from 'three';
 import SacredTrees from './SacredTrees';
 import SacredFlowers from './SacredFlowers';
-import IonSun from './IonSun';
 
 // ==================== 安全的 GLTF 加载 Hook ====================
 function useSafeGLTF(url: string): THREE.Group | null {
@@ -652,9 +651,6 @@ const SceneContent: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
 
       {/* 360° 环形群山 */}
       <DistantMountains timeOfDay={timeOfDay} />
-
-      {/* 高密度螺旋离子日轮（IonSun） */}
-      <IonSun position={[-80, 60, -150]} />
 
       {/* 八角双层重檐亭（含八角挂灯） */}
       <PavilionWithLanterns timeOfDay={timeOfDay} />

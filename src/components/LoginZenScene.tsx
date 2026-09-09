@@ -373,14 +373,19 @@ const Lantern: React.FC<LanternProps> = ({ position, timeOfDay }) => {
 };
 
 // ==================== 八角双层重檐亭 ====================
-const PavilionWithLanterns: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
+interface PavilionWithLanternsProps {
+  timeOfDay: TimeOfDay;
+}
+
+const PavilionWithLanterns: React.FC<PavilionWithLanternsProps> = ({ timeOfDay }) => {
   const model = useSafeGLTF('/models/pavilion.glb');
   const [lightIntensity, setLightIntensity] = useState(0.8);
 
   useFrame(({ clock }) => {
-    setLightIntensity(0.75 + Math.sin(clock.elapsedTime * 0.6) * 0.25);
+    setLightIntensity(0.7 + Math.sin(clock.elapsedTime * 0.5) * 0.3);
   });
 
+  // 灯笼位置（保持不变）
   const lanternPositions = useMemo(() => {
     const arr: [number, number, number][] = [];
     const count = 8;
@@ -393,11 +398,52 @@ const PavilionWithLanterns: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay })
     return arr;
   }, []);
 
+  // 如果是 GLTF 模型，遍历并覆盖材质
+  useEffect(() => {
+    if (model) {
+      model.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          // 根据名称判断屋顶（包含 roof / 瓦 / 顶 等关键词）
+          const name = mesh.name.toLowerCase();
+          const isRoof = name.includes('roof') || name.includes('瓦') || name.includes('顶');
+          const material = new THREE.MeshStandardMaterial({
+            color: isRoof ? '#2F4F4F' : '#FFD700', // 屋顶深瓦灰，主体鎏金
+            metalness: isRoof ? 0.1 : 0.6,
+            roughness: isRoof ? 0.8 : 0.3,
+          });
+          mesh.material = material;
+        }
+      });
+    }
+  }, [model]);
+
+  // 程序化回退亭子的材质参数（直接修改）
+  const bodyMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#FFD700',
+        metalness: 0.6,
+        roughness: 0.3,
+      }),
+    []
+  );
+
+  const roofMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#2F4F4F',
+        metalness: 0.1,
+        roughness: 0.8,
+      }),
+    []
+  );
+
   if (model) {
     return (
       <group position={[12, 0.2, -35]} scale={2.2} rotation={[0, Math.PI / 4, 0]}>
         <primitive object={model} castShadow receiveShadow />
-        <pointLight position={[0, 2, 0]} intensity={lightIntensity} color="#FFD28A" distance={12} decay={2} castShadow />
+        <pointLight position={[0, 2, 0]} intensity={lightIntensity} color="#FFD28A" distance={10} decay={2} castShadow />
         {lanternPositions.map((pos, i) => (
           <Lantern key={i} position={pos} timeOfDay={timeOfDay} />
         ))}
@@ -405,43 +451,50 @@ const PavilionWithLanterns: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay })
     );
   }
 
+  // 程序化回退：八角双层重檐亭（仅材质更新，形状位置不变）
   return (
     <group position={[12, 0.2, -35]} scale={2.2} rotation={[0, Math.PI / 8, 0]}>
-      {/* 八边形基座 */}
+      {/* 基座：八角形，主体金色 */}
       <mesh position={[0, 0, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[2.4, 2.8, 0.4, 8]} />
-        <meshStandardMaterial color="#553a2d" roughness={0.7} />
+        <primitive object={bodyMaterial} attach="material" />
       </mesh>
 
-      {/* 八根立柱 */}
+      {/* 八根立柱：金色 */}
       {Array.from({ length: 8 }).map((_, i) => {
         const angle = (i / 8) * Math.PI * 2;
+        const x = Math.cos(angle) * 1.9;
+        const z = Math.sin(angle) * 1.9;
         return (
-          <mesh key={i} position={[Math.cos(angle) * 1.9, 1.5, Math.sin(angle) * 1.9]} castShadow receiveShadow>
+          <mesh key={i} position={[x, 1.5, z]} castShadow receiveShadow>
             <cylinderGeometry args={[0.12, 0.18, 3, 8]} />
-            <meshStandardMaterial color="#704e30" roughness={0.6} />
+            <primitive object={bodyMaterial} attach="material" />
           </mesh>
         );
       })}
 
-      {/* 第一层檐 */}
+      {/* 第一层屋檐（下层）：深瓦灰 */}
       <mesh position={[0, 3.0, 0]} castShadow receiveShadow>
         <coneGeometry args={[2.8, 0.8, 8]} />
-        <meshStandardMaterial color="#633e1e" roughness={0.5} flatShading />
+        <primitive object={roofMaterial} attach="material" />
       </mesh>
-      {/* 第二层檐 */}
+
+      {/* 第二层屋檐（上层）：深瓦灰 */}
       <mesh position={[0, 4.0, 0]} castShadow receiveShadow>
         <coneGeometry args={[1.8, 1.0, 8]} />
-        <meshStandardMaterial color="#7e4f22" roughness={0.4} flatShading />
+        <primitive object={roofMaterial} attach="material" />
       </mesh>
-      {/* 宝顶 */}
+
+      {/* 宝顶：金色 */}
       <mesh position={[0, 4.8, 0]} castShadow>
         <coneGeometry args={[0.4, 0.8, 8]} />
-        <meshStandardMaterial color="#b87333" roughness={0.3} metalness={0.25} />
+        <primitive object={bodyMaterial} attach="material" />
       </mesh>
 
-      <pointLight position={[0, 2.2, 0]} intensity={lightIntensity} color="#FFD28A" distance={12} decay={2} castShadow />
+      {/* 内部常明灯（保持不变） */}
+      <pointLight position={[0, 2.2, 0]} intensity={lightIntensity} color="#FFD28A" distance={10} decay={2} castShadow />
 
+      {/* 灯笼（保持不变） */}
       {lanternPositions.map((pos, i) => (
         <Lantern key={i} position={pos} timeOfDay={timeOfDay} />
       ))}

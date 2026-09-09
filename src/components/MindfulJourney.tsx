@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import { Sun, Sunset, Moon } from "lucide-react";
 
 const LoginZenScene = dynamic(() => import("@/components/LoginZenScene"), {
@@ -37,61 +37,45 @@ export function MindfulJourney({
 
   const timeMode: TimeOfDay = forcedTimeMode || manualTime || detectedTime;
 
-  // ── 2. 鼠标视差物理平滑过渡 (Smooth Parallax Physics) ──
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  const springX = useSpring(mouseX, { stiffness: 30, damping: 25 });
-  const springY = useSpring(mouseY, { stiffness: 30, damping: 25 });
-
-  const skyX = useTransform(springX, (v) => v * 0.012);
-  const skyY = useTransform(springY, (v) => v * 0.008);
-  const celestialX = useTransform(springX, (v) => v * 0.02);
-  const celestialY = useTransform(springY, (v) => v * 0.015);
-  const mountainX = useTransform(springX, (v) => v * 0.035);
-  const mountainY = useTransform(springY, (v) => v * 0.02);
-  const riverX = useTransform(springX, (v) => v * 0.06);
-  const riverY = useTransform(springY, (v) => v * 0.025);
-  const pathX = useTransform(springX, (v) => v * 0.08);
-  const pathY = useTransform(springY, (v) => v * 0.03);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      mouseX.set(e.clientX - centerX);
-      mouseY.set(e.clientY - centerY);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [mouseX, mouseY]);
+  // ── 2. 静止平稳视角（不随鼠标晃动） ──
+  const skyX = 0;
+  const skyY = 0;
+  const celestialX = 0;
+  const celestialY = 0;
+  const mountainX = 0;
+  const mountainY = 0;
+  const riverX = 0;
+  const riverY = 0;
+  const pathX = 0;
+  const pathY = 0;
 
   // ── 5. 主题色彩方案 (白昼、黄昏、夜晚) ──
   const theme = useMemo(() => {
     switch (timeMode) {
       case "dusk":
         return {
-          sky: "bg-gradient-to-b from-[#2E1065] via-[#7C2D12] via-[#C2410C] to-[#FED7AA]",
-          sunMoon: "from-[#FEF08A] via-[#F97316] to-[#DC2626]",
-          sunHalo: "rgba(249, 115, 22, 0.35)",
-          farMountains: "#581C87",
-          midGhats: "#701A75",
-          riverGradStart: "#9A3412",
-          riverGradMid: "#C2410C",
-          riverGradEnd: "#431407",
-          waveColor1: "rgba(254, 215, 170, 0.25)",
-          waveColor2: "rgba(251, 146, 60, 0.2)",
-          ground1: "#431407",
-          ground2: "#78350F",
-          pathColor: "#D97706",
-          waterGleam: "#FDBA74",
+          skyGradient:
+            "linear-gradient(180deg, #F43F5E 0%, #FB7185 16%, #FB923C 44%, #FDBA74 68%, #FDE047 88%, #FEF9C3 100%)",
+          sunMoon: "from-[#FFF7ED] via-[#FDBA74] to-[#F97316]",
+          sunHalo: "rgba(251, 146, 60, 0.85)",
+          farMountains: "#FB923C",
+          midGhats: "#EA580C",
+          riverGradStart: "#EA580C",
+          riverGradMid: "#F97316",
+          riverGradEnd: "#C2410C",
+          waveColor1: "rgba(254, 215, 170, 0.55)",
+          waveColor2: "rgba(251, 146, 60, 0.45)",
+          ground1: "#7C2D12",
+          ground2: "#9A3412",
+          pathColor: "#F59E0B",
+          waterGleam: "#FED7AA",
         };
       case "night":
         return {
-          sky: "bg-gradient-to-b from-[#030712] via-[#0B0F19] via-[#0F172A] to-[#1E293B]",
+          skyGradient:
+            "linear-gradient(180deg, #030712 0%, #0B132B 35%, #0F172A 70%, #1E293B 100%)",
           sunMoon: "from-[#FEF9C3] via-[#FEF08A] to-[#E2E8F0]",
-          sunHalo: "rgba(254, 240, 138, 0.2)",
+          sunHalo: "rgba(254, 240, 138, 0.25)",
           farMountains: "#0B1329",
           midGhats: "#0F1E36",
           riverGradStart: "#0F172A",
@@ -107,19 +91,20 @@ export function MindfulJourney({
       case "day":
       default:
         return {
-          sky: "bg-gradient-to-b from-[#38BDF8] via-[#7DD3FC] via-[#BAE6FD] to-[#E0F2FE]",
-          sunMoon: "from-[#FEF08A] via-[#FDE047] to-[#F59E0B]",
-          sunHalo: "rgba(253, 224, 71, 0.4)",
-          farMountains: "#047857",
-          midGhats: "#065F46",
+          skyGradient:
+            "linear-gradient(180deg, #38BDF8 0%, #7DD3FC 28%, #BAE6FD 58%, #E0F2FE 82%, #FFFFFF 100%)",
+          sunMoon: "from-[#FFFBEB] via-[#FDE047] to-[#F59E0B]",
+          sunHalo: "rgba(253, 224, 71, 0.85)",
+          farMountains: "#10B981",
+          midGhats: "#059669",
           riverGradStart: "#0284C7",
-          riverGradMid: "#0EA5E9",
-          riverGradEnd: "#0369A1",
-          waveColor1: "rgba(255, 255, 255, 0.4)",
-          waveColor2: "rgba(224, 242, 254, 0.3)",
-          ground1: "#14532D",
-          ground2: "#166534",
-          pathColor: "#D97706",
+          riverGradMid: "#38BDF8",
+          riverGradEnd: "#0EA5E9",
+          waveColor1: "rgba(255, 255, 255, 0.65)",
+          waveColor2: "rgba(224, 242, 254, 0.55)",
+          ground1: "#166534",
+          ground2: "#15803D",
+          pathColor: "#F59E0B",
           waterGleam: "#FEF08A",
         };
     }
@@ -127,8 +112,11 @@ export function MindfulJourney({
 
   return (
     <div className="fixed inset-0 z-0 select-none overflow-hidden transition-colors duration-1000">
-      {/* ── 1. 天空渐变背景 ── */}
-      <div className={`absolute inset-0 ${theme.sky} transition-all duration-1000`} />
+      {/* ── 1. 天空渐变背景（保证百分百高亮通透） ── */}
+      <div
+        className="absolute inset-0 transition-all duration-1000"
+        style={{ background: theme.skyGradient }}
+      />
 
       {/* 夜间繁星微光 */}
       {timeMode === "night" && (
@@ -163,17 +151,21 @@ export function MindfulJourney({
       >
         <div className="relative flex items-center justify-center">
           <motion.div
-            animate={{ scale: [1, 1.08, 1], opacity: [0.7, 0.9, 0.7] }}
+            animate={{ scale: [1, 1.12, 1], opacity: [0.75, 0.95, 0.75] }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute h-44 w-44 rounded-full blur-2xl"
+            className="absolute h-52 w-52 rounded-full blur-2xl"
             style={{ background: theme.sunHalo }}
           />
 
           {timeMode === "night" ? (
             <div className="relative h-20 w-20 rounded-full bg-gradient-to-tr from-amber-100 via-amber-50 to-white shadow-[0_0_35px_rgba(254,240,138,0.6)]" />
+          ) : timeMode === "dusk" ? (
+            <div
+              className={`h-24 w-24 rounded-full bg-gradient-to-tr ${theme.sunMoon} shadow-[0_0_65px_rgba(251,146,60,0.85)]`}
+            />
           ) : (
             <div
-              className={`h-24 w-24 rounded-full bg-gradient-to-tr ${theme.sunMoon} shadow-[0_0_45px_rgba(245,158,11,0.6)]`}
+              className={`h-24 w-24 rounded-full bg-gradient-to-tr ${theme.sunMoon} shadow-[0_0_75px_rgba(253,224,71,0.95)]`}
             />
           )}
         </div>
@@ -182,7 +174,7 @@ export function MindfulJourney({
       {/* ── 3. 远天游云 ── */}
       <motion.div
         style={{ x: skyX, y: skyY }}
-        className="pointer-events-none absolute inset-x-0 top-[14%] flex justify-between px-8 opacity-70"
+        className="pointer-events-none absolute inset-x-0 top-[14%] flex justify-between px-8 opacity-80"
       >
         <motion.svg
           animate={{ x: [-25, 25, -25] }}
@@ -191,12 +183,12 @@ export function MindfulJourney({
           height="80"
           viewBox="0 0 240 80"
           fill="none"
-          className="opacity-60"
+          className="opacity-75"
         >
           <path
             d="M20 55 C 30 35, 60 30, 80 40 C 95 25, 135 25, 155 45 C 175 35, 205 40, 215 55 C 225 65, 20 65, 20 55 Z"
-            fill={timeMode === "night" ? "#1E293B" : "#FFFFFF"}
-            opacity={timeMode === "night" ? 0.35 : 0.75}
+            fill={timeMode === "night" ? "#334155" : "#FFFFFF"}
+            opacity={timeMode === "night" ? 0.35 : 0.85}
           />
         </motion.svg>
       </motion.div>

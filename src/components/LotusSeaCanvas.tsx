@@ -3,7 +3,7 @@
 
 import React, { useRef, useMemo, useState, useCallback, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useThree, ThreeEvent } from '@react-three/fiber';
-import { CameraControls, Sparkles } from '@react-three/drei';
+import { CameraControls, Sparkles, Line } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import {
@@ -18,7 +18,7 @@ import {
   ShaderMaterial,
 } from 'three';
 import { toast } from 'sonner';
-import ProceduralLamp from './ProceduralLamp';
+import ProceduralLamp, { createLotusPetalsGeometry } from './ProceduralLamp';
 import Ripple from './Ripple';
 import IonSun from './IonSun';
 
@@ -292,25 +292,95 @@ const GlowBoundary: React.FC<{ radius?: number; count?: number }> = ({
   return <points ref={pointsRef} geometry={geometry} material={shaderMaterial} />;
 };
 
-// ==================== 预览灯 ====================
+// ==================== 放置预览灯（盛开莲花灯） ====================
 const PreviewLamp: React.FC<{ position: [number, number, number] | null }> = ({ position }) => {
+  const lotusGeometry = useMemo(() => createLotusPetalsGeometry(), []);
+
   if (!position) return null;
   return (
-    <group position={position} scale={0.8}>
-      <mesh>
-        <coneGeometry args={[0.5, 0.8, 6]} />
-        <meshPhysicalMaterial
-          color="#FFF8E7"
-          transmission={0.9}
-          roughness={0.4}
-          thickness={0.5}
+    <group position={position} scale={0.9}>
+      <mesh geometry={lotusGeometry}>
+        <meshStandardMaterial
+          vertexColors
+          roughness={0.35}
+          metalness={0.1}
           side={DoubleSide}
           transparent
-          opacity={0.6}
-          emissive="#FBBF24"
-          emissiveIntensity={0.5}
+          opacity={0.7}
+          emissive="#ff5500"
+          emissiveIntensity={1.8}
         />
       </mesh>
+      <mesh position={[0, 0.26, 0]}>
+        <coneGeometry args={[0.13, 0.44, 8]} />
+        <meshStandardMaterial
+          color="#fffbe6"
+          emissive="#ffaa00"
+          emissiveIntensity={3.5}
+          transparent
+          opacity={0.85}
+        />
+      </mesh>
+      <pointLight color="#ff8833" intensity={2.5} distance={6} position={[0, 0.3, 0]} />
+    </group>
+  );
+};
+
+// ==================== 莲花灯神经网络光纤连接（因陀罗网） ====================
+const NeuralConnections: React.FC<{ lamps: LampData[] }> = ({ lamps }) => {
+  const lines = useMemo(() => {
+    const lineList: { points: [number, number, number][] }[] = [];
+    const connectedPairs = new Set<string>();
+
+    for (let i = 0; i < lamps.length; i++) {
+      const lamp = lamps[i];
+      const neighbors = lamps
+        .map((other, j) => ({
+          index: j,
+          dist: Math.hypot(other.position[0] - lamp.position[0], other.position[2] - lamp.position[2]),
+        }))
+        .filter((n) => n.index !== i && n.dist < 20)
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, 3);
+
+      for (const n of neighbors) {
+        const pairKey = i < n.index ? `${i}-${n.index}` : `${n.index}-${i}`;
+        if (connectedPairs.has(pairKey)) continue;
+        connectedPairs.add(pairKey);
+
+        const p1 = lamp.position;
+        const p2 = lamps[n.index].position;
+        const dist = n.dist;
+        const arcHeight = Math.min(dist * 0.16, 1.6);
+        const midY = Math.max(p1[1], p2[1]) + 0.25 + arcHeight;
+
+        const curve = new THREE.CatmullRomCurve3([
+          new THREE.Vector3(p1[0], p1[1] + 0.3, p1[2]),
+          new THREE.Vector3((p1[0] + p2[0]) / 2, midY, (p1[2] + p2[2]) / 2),
+          new THREE.Vector3(p2[0], p2[1] + 0.3, p2[2]),
+        ]);
+
+        const sampledPoints = curve.getPoints(16);
+        lineList.push({ points: sampledPoints.map((p) => [p.x, p.y, p.z]) });
+      }
+    }
+    return lineList;
+  }, [lamps]);
+
+  return (
+    <group>
+      {lines.map((line, i) => (
+        <Line
+          key={i}
+          points={line.points}
+          color="#ffa255"
+          lineWidth={1.2}
+          transparent
+          opacity={0.65}
+          blending={AdditiveBlending}
+          depthWrite={false}
+        />
+      ))}
     </group>
   );
 };
@@ -638,6 +708,9 @@ const LampScene: React.FC<LampSceneProps> = ({
           dedications={lamp.dedications ?? lamp.prayerCount ?? 0}
         />
       ))}
+
+      {/* 莲花灯神经网络光纤连接（因陀罗网） */}
+      <NeuralConnections lamps={lamps} />
 
       {/* 涟漪 */}
       {ripples.map((ripple) => (

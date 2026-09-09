@@ -4,7 +4,7 @@ import React, { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
 import { Billboard, Text, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
-import { MeshPhysicalMaterial, DoubleSide } from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 export interface ProceduralLampProps {
   position: [number, number, number];
@@ -19,6 +19,88 @@ export interface ProceduralLampProps {
   prayerCount?: number;
 }
 
+/**
+ * 构建高质感多层水上盛开莲花灯几何体（参考真实样本图 media_1788944003877.jpg）：
+ * 1. 外层 10 瓣：宽展深绯红（#d32f2f），倾角 60°
+ * 2. 中层 8 瓣：炽烈橙红（#ff5722），倾角 40°
+ * 3. 内层 6 瓣：金橙暖色（#ff9800），倾角 20°
+ * 4. 底托基座：暗青绿荷座（#2e4a22）
+ */
+export function createLotusPetalsGeometry(): THREE.BufferGeometry {
+  const geoms: THREE.BufferGeometry[] = [];
+
+  function createPetal(
+    length: number,
+    width: number,
+    cupCurve: number,
+    tiltOut: number,
+    yaw: number,
+    colorHex: string
+  ): THREE.BufferGeometry {
+    const geom = new THREE.PlaneGeometry(width, length, 3, 5);
+    const pos = geom.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+      const ny = (y + length / 2) / length;
+      let widthScale = Math.sin(ny * Math.PI);
+      if (ny > 0.7) widthScale = ((1 - ny) / 0.3) * Math.sin(0.7 * Math.PI);
+      pos.setX(i, x * Math.max(widthScale, 0.08));
+      pos.setZ(i, Math.sin(ny * Math.PI) * cupCurve);
+    }
+    geom.translate(0, length / 2, 0);
+    geom.rotateX(tiltOut);
+    geom.rotateY(yaw);
+    geom.computeVertexNormals();
+
+    const colors = new Float32Array(pos.count * 3);
+    const col = new THREE.Color(colorHex);
+    for (let i = 0; i < pos.count; i++) {
+      const ny = pos.getY(i) / length;
+      const factor = 0.85 + 0.35 * Math.min(Math.max(ny, 0), 1);
+      colors[i * 3] = Math.min(col.r * factor, 1);
+      colors[i * 3 + 1] = Math.min(col.g * factor, 1);
+      colors[i * 3 + 2] = Math.min(col.b * factor, 1);
+    }
+    geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    return geom;
+  }
+
+  // 第一层：外展大花瓣（10 瓣，深绯红色）
+  for (let i = 0; i < 10; i++) {
+    const yaw = (i / 10) * Math.PI * 2;
+    geoms.push(createPetal(0.9, 0.4, 0.14, 1.05, yaw, '#d32f2f'));
+  }
+
+  // 第二层：中层捧心瓣（8 瓣，炽烈橙红色）
+  for (let i = 0; i < 8; i++) {
+    const yaw = (i / 8) * Math.PI * 2 + 0.314;
+    geoms.push(createPetal(0.72, 0.33, 0.11, 0.7, yaw, '#ff5722'));
+  }
+
+  // 第三层：内层直立护心瓣（6 瓣，金橙暖色）
+  for (let i = 0; i < 6; i++) {
+    const yaw = (i / 6) * Math.PI * 2 + 0.15;
+    geoms.push(createPetal(0.55, 0.26, 0.08, 0.35, yaw, '#ff9800'));
+  }
+
+  // 莲座底托（暗青绿荷座）
+  const baseGeom = new THREE.CylinderGeometry(0.32, 0.42, 0.08, 8);
+  baseGeom.translate(0, 0.04, 0);
+  baseGeom.computeVertexNormals();
+  const baseColors = new Float32Array(baseGeom.attributes.position.count * 3);
+  const baseCol = new THREE.Color('#2e4a22');
+  for (let i = 0; i < baseGeom.attributes.position.count; i++) {
+    baseColors[i * 3] = baseCol.r;
+    baseColors[i * 3 + 1] = baseCol.g;
+    baseColors[i * 3 + 2] = baseCol.b;
+  }
+  baseGeom.setAttribute('color', new THREE.BufferAttribute(baseColors, 3));
+  geoms.push(baseGeom);
+
+  return mergeGeometries(geoms, false);
+}
+
 const ProceduralLamp: React.FC<ProceduralLampProps> = ({
   position,
   id = 'lamp',
@@ -26,13 +108,15 @@ const ProceduralLamp: React.FC<ProceduralLampProps> = ({
   lightEnabled = true,
   onDedicate,
   onPray,
+  message,
   dedications,
   prayerCount,
 }) => {
   const groupRef = useRef<THREE.Group>(null);
+  const flameRef = useRef<THREE.Mesh>(null);
   const lightRef = useRef<THREE.PointLight>(null);
-  const bodyMaterialRef = useRef<MeshPhysicalMaterial | null>(null);
-  const trayMaterialRef = useRef<MeshPhysicalMaterial | null>(null);
+  const lotusMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
+  const flameMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
   const sparklesGroupRef = useRef<THREE.Group>(null);
   const sparklesPointsRef = useRef<THREE.Points>(null);
   const plusOneRef = useRef<THREE.Group>(null);
@@ -43,87 +127,85 @@ const ProceduralLamp: React.FC<ProceduralLampProps> = ({
   const [sparklesActive, setSparklesActive] = useState(false);
   const [floatingPlusOne, setFloatingPlusOne] = useState(false);
 
-  // 祈祷数量（优先 prayerCount，向下兼容 dedications）
   const currentCount = prayerCount ?? dedications ?? 0;
 
-  // 六角锥灯身材质（稳定创建，避免 lightEnabled 抖动引发 GPU 材质重建）
-  const bodyMaterial = useMemo(() => {
-    const mat = new MeshPhysicalMaterial({
-      color: '#FFF8E7',
-      transmission: 0.9,
-      opacity: 1,
-      roughness: 0.4,
-      thickness: 0.5,
-      side: DoubleSide,
-      transparent: false,
-      envMapIntensity: 0.4,
-      clearcoat: 0.1,
-      clearcoatRoughness: 0.2,
-      emissive: new THREE.Color('#FBBF24'),
-      emissiveIntensity: lightEnabled ? 0.6 : 0.3,
+  // 莲花花瓣几何体
+  const lotusGeometry = useMemo(() => createLotusPetalsGeometry(), []);
+
+  // 水面泛光倒影几何体
+  const haloGeometry = useMemo(() => {
+    const geom = new THREE.RingGeometry(0.1, 1.45, 16);
+    geom.rotateX(-Math.PI / 2);
+    return geom;
+  }, []);
+
+  const baseEmissive = lightEnabled ? 1.4 : 0.8;
+
+  // 莲花花瓣温润材质（带顶点色）
+  const lotusMaterial = useMemo(() => {
+    const mat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.32,
+      metalness: 0.08,
+      side: THREE.DoubleSide,
+      emissive: new THREE.Color('#ff4500'),
+      emissiveIntensity: baseEmissive,
     });
-    bodyMaterialRef.current = mat;
+    lotusMaterialRef.current = mat;
+    return mat;
+  }, [baseEmissive]);
+
+  // 中心烛火材质
+  const flameMaterial = useMemo(() => {
+    const mat = new THREE.MeshStandardMaterial({
+      color: '#fffbe6',
+      emissive: new THREE.Color('#ffaa00'),
+      emissiveIntensity: 3.2,
+      roughness: 0.1,
+      metalness: 0.05,
+    });
+    flameMaterialRef.current = mat;
     return mat;
   }, []);
 
-  // 金色莲托材质
-  const trayMaterial = useMemo(() => {
-    const mat = new MeshPhysicalMaterial({
-      color: '#FFD580',
-      emissive: new THREE.Color('#FFA500'),
-      emissiveIntensity: 0.5,
-      roughness: 0.4,
-      metalness: 0.4,
+  // 水面倒影光晕材质
+  const haloMaterial = useMemo(() => {
+    return new THREE.MeshBasicMaterial({
+      color: '#ff5500',
+      transparent: true,
+      opacity: 0.38,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
     });
-    trayMaterialRef.current = mat;
-    return mat;
   }, []);
 
-  // 火苗材质
-  const flameMaterial = useMemo(
-    () =>
-      new MeshPhysicalMaterial({
-        color: '#FFFDE7',
-        emissive: new THREE.Color('#FBBF24'),
-        emissiveIntensity: 3,
-        roughness: 0.1,
-        transmission: 0.3,
-        transparent: true,
-        opacity: 0.9,
-      }),
-    []
-  );
-
-  // 释放 WebGL 显存
   useEffect(() => {
     return () => {
-      bodyMaterial.dispose();
-      trayMaterial.dispose();
+      lotusGeometry.dispose();
+      haloGeometry.dispose();
+      lotusMaterial.dispose();
       flameMaterial.dispose();
+      haloMaterial.dispose();
     };
-  }, [bodyMaterial, trayMaterial, flameMaterial]);
-
-  const baseEmissive = lightEnabled ? 0.6 : 0.3;
+  }, [lotusGeometry, haloGeometry, lotusMaterial, flameMaterial, haloMaterial]);
 
   useEffect(() => {
-    if (bodyMaterialRef.current && vfxStartTimeRef.current === null) {
-      bodyMaterialRef.current.emissiveIntensity = baseEmissive;
+    if (lotusMaterialRef.current && vfxStartTimeRef.current === null) {
+      lotusMaterialRef.current.emissiveIntensity = baseEmissive;
     }
   }, [baseEmissive]);
 
   /**
-   * 模块三：精确交互绑定与点击特效
-   * 必须包含 e.stopPropagation()，防止事件穿透触发水面的双击或放置逻辑
+   * 点击交互绑定与祈祷特效
    */
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
 
-    // 记录特效起始绝对时间
     vfxStartTimeRef.current = performance.now() / 1000;
     setSparklesActive(true);
     setFloatingPlusOne(true);
 
-    // 触发祈祷回调（带乐观更新与防抖同步）
     if (onPray) {
       onPray(id);
     } else if (onDedicate) {
@@ -137,20 +219,20 @@ const ProceduralLamp: React.FC<ProceduralLampProps> = ({
     const light = lightRef.current;
     if (!group) return;
 
-    // 水波微浪浮动（每盏灯根据坐标产生不同相位）
+    // 水波微浪浮动与倾摇
     const baseY = position[1] ?? 0;
     group.position.y = baseY + Math.sin(t * 1.5 + position[0]) * 0.08;
-    group.rotation.y = Math.sin(t * 0.5 + position[2]) * 0.1;
+    group.rotation.y = Math.sin(t * 0.5 + position[2]) * 0.08;
+    group.rotation.z = Math.cos(t * 0.7 + position[0]) * 0.02;
 
-    // 火苗闪烁
-    const flame = group.getObjectByName('flame') as THREE.Mesh | undefined;
-    if (flame) {
-      const f = 0.88 + Math.sin(t * 8.3 + position[0]) * 0.12 + Math.random() * 0.04;
-      flame.scale.set(f, f + Math.sin(t * 13) * 0.1, f);
+    // 火苗灵动闪烁
+    if (flameRef.current) {
+      const f = 0.9 + Math.sin(t * 8.5 + position[0]) * 0.12 + Math.random() * 0.05;
+      flameRef.current.scale.set(f, f + Math.sin(t * 12.0) * 0.12, f);
     }
 
     // 基础光源呼吸律动
-    const baseLightIntensity = 2.5 + Math.sin(t * 7.1 + position[2]) * 0.5;
+    const baseLightIntensity = 3.0 + Math.sin(t * 6.5 + position[2]) * 0.6;
     if (light && vfxStartTimeRef.current === null) {
       light.intensity = baseLightIntensity;
     }
@@ -162,47 +244,35 @@ const ProceduralLamp: React.FC<ProceduralLampProps> = ({
       const duration = 1.5;
 
       if (elapsed <= duration) {
-        const progress = elapsed / duration; // 0 -> 1
-        // 瞬间高亮并呈指数平滑衰减
+        const progress = elapsed / duration;
         const decay = Math.pow(1 - progress, 2.5);
-        const dynamicEmissive = baseEmissive + decay * 3.5;
+        const dynamicEmissive = baseEmissive + decay * 3.8;
 
-        if (bodyMaterialRef.current) {
-          bodyMaterialRef.current.emissiveIntensity = dynamicEmissive;
+        if (lotusMaterialRef.current) {
+          lotusMaterialRef.current.emissiveIntensity = dynamicEmissive;
         }
 
-        if (trayMaterialRef.current) {
-          trayMaterialRef.current.emissiveIntensity = 0.5 + decay * 1.6;
+        if (flameMaterialRef.current) {
+          flameMaterialRef.current.emissiveIntensity = 3.2 + decay * 3.0;
         }
 
         if (light) {
-          light.intensity = baseLightIntensity + decay * 6.0;
+          light.intensity = baseLightIntensity + decay * 6.5;
         }
 
-        // 莲灯轻微跃动放大
+        // 莲灯微幅跃动放大
         const scalePulse = 1 + Math.sin(progress * Math.PI) * 0.18 * (1 - progress);
         group.scale.setScalar(scalePulse);
 
-        // 微小金光 Sparkles 环向外极速扩散
+        // 金光 Sparkles 环向外扩散
         if (sparklesGroupRef.current) {
-          const ringScale = 0.6 + Math.sqrt(progress) * 3.8;
+          const ringScale = 0.8 + Math.sqrt(progress) * 3.5;
           sparklesGroupRef.current.scale.set(ringScale, 0.4, ringScale);
         }
 
-        // 粒子透明度随扩散向外平滑消散 (Dissipation)
-        if (sparklesPointsRef.current?.geometry?.attributes?.opacity) {
-          const opAttr = sparklesPointsRef.current.geometry.attributes.opacity as THREE.BufferAttribute;
-          const targetAlpha = Math.max(0, 1 - progress) * 0.95;
-          const arr = opAttr.array as Float32Array;
-          for (let i = 0; i < arr.length; i++) {
-            arr[i] = targetAlpha;
-          }
-          opAttr.needsUpdate = true;
-        }
-
-        // 浮动 +1 功德缓缓上升并渐隐淡出
+        // 浮动 +1 功德缓缓升腾并淡出
         if (plusOneRef.current) {
-          plusOneRef.current.position.y = 1.4 + progress * 0.7;
+          plusOneRef.current.position.y = 1.5 + progress * 0.8;
         }
         if (plusOneTextRef.current) {
           const fadeAlpha = Math.max(0, 1 - progress * 1.15);
@@ -210,13 +280,13 @@ const ProceduralLamp: React.FC<ProceduralLampProps> = ({
           plusOneTextRef.current.outlineOpacity = fadeAlpha;
         }
       } else {
-        // 1.5 秒后自动回归初始稳态
+        // 回归稳态
         vfxStartTimeRef.current = null;
-        if (bodyMaterialRef.current) {
-          bodyMaterialRef.current.emissiveIntensity = baseEmissive;
+        if (lotusMaterialRef.current) {
+          lotusMaterialRef.current.emissiveIntensity = baseEmissive;
         }
-        if (trayMaterialRef.current) {
-          trayMaterialRef.current.emissiveIntensity = 0.5;
+        if (flameMaterialRef.current) {
+          flameMaterialRef.current.emissiveIntensity = 3.2;
         }
         if (light) {
           light.intensity = baseLightIntensity;
@@ -230,58 +300,53 @@ const ProceduralLamp: React.FC<ProceduralLampProps> = ({
 
   return (
     <group ref={groupRef} position={position} onPointerDown={handlePointerDown}>
-      {/* 六角锥琉璃灯身 */}
-      <mesh material={bodyMaterial} castShadow receiveShadow onPointerDown={handlePointerDown}>
-        <coneGeometry args={[0.5, 0.8, 6]} />
+      {/* 三层盛开莲花花瓣（绯红至橘红多层结构） */}
+      <mesh
+        geometry={lotusGeometry}
+        material={lotusMaterial}
+        castShadow
+        receiveShadow
+        onPointerDown={handlePointerDown}
+      />
+
+      {/* 中心明亮烛芯火苗 */}
+      <mesh
+        ref={flameRef}
+        material={flameMaterial}
+        position={[0, 0.26, 0]}
+        onPointerDown={handlePointerDown}
+      >
+        <coneGeometry args={[0.13, 0.44, 8]} />
       </mesh>
 
-      {/* 底部托盘 */}
-      <mesh material={trayMaterial} position={[0, -0.42, 0]} receiveShadow onPointerDown={handlePointerDown}>
-        <cylinderGeometry args={[0.55, 0.45, 0.08, 12]} />
-      </mesh>
+      {/* 水面倒影光晕（还原水波光晕） */}
+      <mesh
+        geometry={haloGeometry}
+        material={haloMaterial}
+        position={[0, -0.02, 0]}
+      />
 
-      {/* 莲座 6 瓣 */}
-      {Array.from({ length: 6 }).map((_, i) => {
-        const ang = (i / 6) * Math.PI * 2;
-        return (
-          <mesh
-            key={i}
-            material={trayMaterial}
-            position={[Math.cos(ang) * 0.48, -0.46, Math.sin(ang) * 0.48]}
-            rotation={[Math.PI / 2, ang, 0]}
-            onPointerDown={handlePointerDown}
-          >
-            <circleGeometry args={[0.16, 6]} />
-          </mesh>
-        );
-      })}
-
-      {/* 火苗 */}
-      <mesh name="flame" material={flameMaterial} position={[0, 0.45, 0]} onPointerDown={handlePointerDown}>
-        <sphereGeometry args={[0.05, 8, 8]} />
-      </mesh>
-
-      {/* 核心点光源 */}
+      {/* 核心温润金红点光源 */}
       {lightEnabled && (
         <pointLight
           ref={lightRef}
-          color="#FBBF24"
-          intensity={3}
-          distance={6}
+          color="#ff7722"
+          intensity={3.2}
+          distance={8}
           decay={2}
-          position={[0, 0.2, 0]}
+          position={[0, 0.35, 0]}
           castShadow
         />
       )}
 
       {/* 点击释放的金光扩散消散粒子环 Sparkles */}
       {sparklesActive && (
-        <group ref={sparklesGroupRef} position={[0, 0.05, 0]}>
+        <group ref={sparklesGroupRef} position={[0, 0.15, 0]}>
           <Sparkles
             ref={sparklesPointsRef}
-            count={60}
-            scale={[1.6, 0.2, 1.6]}
-            size={2.8}
+            count={65}
+            scale={[1.8, 0.3, 1.8]}
+            size={3.0}
             speed={2.2}
             noise={0.3}
             color="#FFD700"
@@ -292,28 +357,28 @@ const ProceduralLamp: React.FC<ProceduralLampProps> = ({
 
       {/* 浮动祈福 +1 功德特效 */}
       {floatingPlusOne && (
-        <group ref={plusOneRef} position={[0, 1.4, 0]}>
+        <group ref={plusOneRef} position={[0, 1.5, 0]}>
           <Billboard onPointerDown={handlePointerDown}>
             <Text
               ref={plusOneTextRef}
-              fontSize={0.24}
+              fontSize={0.26}
               color="#FDE047"
               anchorX="center"
               anchorY="middle"
               material-depthTest={false}
-              outlineWidth={0.02}
+              outlineWidth={0.025}
               outlineColor="#78350F"
               fillOpacity={1}
               outlineOpacity={1}
             >
-              +1 功德
+              +1 随喜功德
             </Text>
           </Billboard>
         </group>
       )}
 
-      {/* 悬浮名称与祈祷计数 Billboard */}
-      <Billboard position={[0, 1.15, 0]} onPointerDown={handlePointerDown}>
+      {/* 悬浮同修姓名与祈祷计数 Billboard */}
+      <Billboard position={[0, 1.25, 0]} onPointerDown={handlePointerDown}>
         {userName && (
           <Text
             fontSize={0.28}
@@ -341,6 +406,22 @@ const ProceduralLamp: React.FC<ProceduralLampProps> = ({
         >
           {`🙏 ${currentCount}`}
         </Text>
+        {message && (
+          <Text
+            fontSize={0.16}
+            color="#FEF08A"
+            anchorX="center"
+            anchorY="middle"
+            material-depthTest={false}
+            outlineWidth={0.01}
+            outlineColor="#1c1917"
+            fillOpacity={0.85}
+            position={[0, -0.58, 0]}
+            maxWidth={3.5}
+          >
+            {message}
+          </Text>
+        )}
       </Billboard>
     </group>
   );

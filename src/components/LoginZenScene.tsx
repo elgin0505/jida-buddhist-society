@@ -129,11 +129,11 @@ const SceneLighting: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
-        shadow-camera-far={80}
-        shadow-camera-left={-30}
-        shadow-camera-right={30}
-        shadow-camera-top={30}
-        shadow-camera-bottom={-30}
+        shadow-camera-far={120}
+        shadow-camera-left={-40}
+        shadow-camera-right={40}
+        shadow-camera-top={40}
+        shadow-camera-bottom={-40}
       />
     </>
   );
@@ -181,57 +181,14 @@ const WaterSurface: React.FC = () => {
 
   return (
     <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} material={material}>
-      <planeGeometry args={[120, 120, 100, 100]} />
+      <planeGeometry args={[180, 180, 100, 100]} />
     </mesh>
   );
 };
 
-// ==================== 河岸地形组件 ====================
-const RiverBank: React.FC = () => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const geometry = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(40, 25, 60, 40);
-    const pos = geo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const y = pos.getY(i);
-      let height = 0;
-      if (x > -5) {
-        height = Math.sin(x * 0.5) * 0.8 + Math.cos(y * 0.7) * 0.5;
-        height = Math.max(0, height);
-      }
-      pos.setZ(i, height);
-    }
-    geo.computeVertexNormals();
-    return geo;
-  }, []);
-
-  const material = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#4a5d3a',
-        roughness: 0.9,
-        metalness: 0.1,
-      }),
-    []
-  );
-
-  return (
-    <mesh
-      ref={meshRef}
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[15, 0, -10]}
-      geometry={geometry}
-      material={material}
-      receiveShadow
-    />
-  );
-};
-
-// ==================== 远山组件 ====================
+// ==================== 1. DistantMountains（360° 环形群山） ====================
 const DistantMountains: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
-  const groupRef = useRef<THREE.Group>(null);
-
+  // 根据时间调整山脉颜色
   const color = useMemo(() => {
     const map: Record<TimeOfDay, string> = {
       day: '#5a7a6a',
@@ -241,43 +198,125 @@ const DistantMountains: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => 
     return map[timeOfDay];
   }, [timeOfDay]);
 
+  // 360 度环形山脉数据
   const mountains = useMemo(() => {
-    const arr = [];
-    const count = 12;
+    const count = 36;
+    const baseRadius = 130;
+    const arr: { position: [number, number, number]; scale: [number, number, number]; rotationY: number }[] = [];
     for (let i = 0; i < count; i++) {
-      const x = (i - count / 2) * 12 + Math.random() * 5;
-      const z = -80 - Math.random() * 60;
-      const height = 15 + Math.random() * 25;
-      const radius = 8 + Math.random() * 10;
-      arr.push({ x, z, height, radius });
+      const angle = (i / count) * Math.PI * 2;
+      // 半径随机偏移，使山脉不在完美圆上
+      const radiusOffset = (Math.random() - 0.5) * 25;
+      const radius = baseRadius + radiusOffset;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      // 高度和宽度随机
+      const height = 15 + Math.random() * 35;
+      const width = 8 + Math.random() * 15;
+      // 随机旋转（让圆锥的棱角错落）
+      const rotationY = Math.random() * Math.PI * 2;
+      arr.push({
+        position: [x, height / 2 - 5, z],
+        scale: [width, height, width],
+        rotationY,
+      });
     }
     return arr;
   }, []);
 
   return (
-    <group ref={groupRef}>
+    <group>
       {mountains.map((m, i) => (
-        <mesh key={i} position={[m.x, m.height / 2 - 2, m.z]} castShadow receiveShadow>
-          <coneGeometry args={[m.radius, m.height, 5]} />
-          <meshStandardMaterial color={color} roughness={0.8} metalness={0.1} flatShading />
+        <mesh
+          key={i}
+          position={m.position}
+          rotation={[0, m.rotationY, 0]}
+          scale={m.scale}
+          castShadow
+          receiveShadow
+        >
+          <coneGeometry args={[1, 1, 5]} />
+          <meshStandardMaterial
+            color={color}
+            roughness={0.8}
+            metalness={0.1}
+            flatShading
+          />
         </mesh>
       ))}
     </group>
   );
 };
 
-// ==================== 灯笼组件 ====================
-const Lantern: React.FC<{ position: [number, number, number]; timeOfDay: TimeOfDay }> = ({
-  position,
-  timeOfDay,
-}) => {
-  const lightRef = useRef<THREE.PointLight>(null);
+// ==================== 2. 有机曲线苔藓半岛（MossyPeninsula，替代原 RiverBank） ====================
+const MossyPeninsula: React.FC = () => {
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  // 使用 THREE.Shape 绘制月牙形/S形曲线半岛
+  const geometry = useMemo(() => {
+    const shape = new THREE.Shape();
+    // 从岸上起点开始（左侧）
+    shape.moveTo(-15, 0);
+    // 平滑曲线向湖心延伸
+    shape.bezierCurveTo(-10, 8, 0, 15, 10, 12);
+    shape.bezierCurveTo(15, 10, 18, 5, 15, -2);
+    // 回程曲线形成月牙
+    shape.bezierCurveTo(12, -8, 5, -12, -5, -10);
+    shape.bezierCurveTo(-12, -8, -15, -4, -15, 0);
+
+    // 使用 ExtrudeGeometry 增加厚度
+    const extrudeSettings = {
+      depth: 0.6,
+      bevelEnabled: true,
+      bevelSegments: 3,
+      bevelSize: 0.3,
+      bevelThickness: 0.3,
+    };
+    const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    // 旋转使 shape 在 XZ 平面展开（原本在 XY 平面）
+    geom.rotateX(-Math.PI / 2);
+    geom.translate(0, 0, 0);
+    geom.computeVertexNormals();
+    return geom;
+  }, []);
+
+  // 湿润苔藓材质
+  const material = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#2d4c1e',
+        roughness: 0.55,
+        metalness: 0.05,
+      }),
+    []
+  );
+
+  return (
+    <mesh
+      ref={meshRef}
+      geometry={geometry}
+      material={material}
+      position={[5, -0.5, -15]}
+      rotation={[0, -Math.PI / 3, 0]}
+      receiveShadow
+      castShadow
+    />
+  );
+};
+
+// ==================== 3. 灯笼组件（保持时间联动） ====================
+interface LanternProps {
+  position: [number, number, number];
+  timeOfDay: TimeOfDay;
+}
+
+const Lantern: React.FC<LanternProps> = ({ position, timeOfDay }) => {
   const emissiveIntensity = timeOfDay === 'night' ? 2.5 : 0.2;
 
   return (
     <group position={position}>
       <mesh castShadow>
-        <sphereGeometry args={[0.4, 8, 8]} />
+        <sphereGeometry args={[0.35, 8, 8]} />
         <meshStandardMaterial
           color="#cc3300"
           roughness={0.5}
@@ -285,23 +324,27 @@ const Lantern: React.FC<{ position: [number, number, number]; timeOfDay: TimeOfD
           emissiveIntensity={emissiveIntensity}
         />
       </mesh>
-      <mesh position={[0, 0.4, 0]}>
-        <cylinderGeometry args={[0.2, 0.25, 0.2, 8]} />
+      <mesh position={[0, 0.35, 0]} castShadow>
+        <cylinderGeometry args={[0.18, 0.22, 0.15, 8]} />
         <meshStandardMaterial color="#8b4513" />
       </mesh>
-      <mesh position={[0, -0.4, 0]}>
-        <cylinderGeometry args={[0.2, 0.25, 0.2, 8]} />
+      <mesh position={[0, -0.35, 0]} castShadow>
+        <cylinderGeometry args={[0.18, 0.22, 0.15, 8]} />
         <meshStandardMaterial color="#8b4513" />
       </mesh>
       {timeOfDay === 'night' && (
-        <pointLight ref={lightRef} color="#ffaa00" intensity={2} distance={15} decay={2} position={[0, 0, 0.5]} />
+        <pointLight color="#ffaa00" intensity={2} distance={15} decay={2} position={[0, 0, 0.5]} />
       )}
     </group>
   );
 };
 
-// ==================== 亭子组件（含灯笼） ====================
-const PavilionWithLanterns: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
+// ==================== 4. PavilionWithLanterns（八角双层重檐亭） ====================
+interface PavilionWithLanternsProps {
+  timeOfDay: TimeOfDay;
+}
+
+const PavilionWithLanterns: React.FC<PavilionWithLanternsProps> = ({ timeOfDay }) => {
   const model = useSafeGLTF('/models/pavilion.glb');
   const [lightIntensity, setLightIntensity] = useState(0.8);
 
@@ -309,51 +352,77 @@ const PavilionWithLanterns: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay })
     setLightIntensity(0.7 + Math.sin(clock.elapsedTime * 0.5) * 0.3);
   });
 
+  // 八角灯笼位置（精确挂在飞檐角上）
   const lanternPositions = useMemo(() => {
     const arr: [number, number, number][] = [];
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2;
-      const x = Math.cos(angle) * 2.5;
-      const z = Math.sin(angle) * 2.5;
-      arr.push([x, 3.5, z]);
+    const count = 8;
+    const radius = 2.2; // 飞檐半径
+    const y = 3.6; // 飞檐下方适当高度
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      arr.push([x, y, z]);
     }
     return arr;
   }, []);
 
+  if (model) {
+    return (
+      <group position={[12, 0.2, -35]} scale={2.2} rotation={[0, Math.PI / 4, 0]}>
+        <primitive object={model} castShadow receiveShadow />
+        {/* 内部常明灯 */}
+        <pointLight position={[0, 2, 0]} intensity={lightIntensity} color="#FFD28A" distance={10} decay={2} castShadow />
+        {/* 灯笼（仍手动添加，因为 GLTF 可能不含灯笼点光源） */}
+        {lanternPositions.map((pos, i) => (
+          <Lantern key={i} position={pos} timeOfDay={timeOfDay} />
+        ))}
+      </group>
+    );
+  }
+
+  // 回退：程序化八角双层重檐亭
   return (
-    <group position={[12, 0.2, -35]} scale={2.2} rotation={[0, Math.PI / 4, 0]}>
-      {model ? (
-        <primitive object={model} />
-      ) : (
-        <>
-          <mesh position={[0, 0, 0]} castShadow receiveShadow>
-            <cylinderGeometry args={[2, 2.5, 0.3, 6]} />
-            <meshStandardMaterial color="#5c4033" roughness={0.8} />
+    <group position={[12, 0.2, -35]} scale={2.2} rotation={[0, Math.PI / 8, 0]}>
+      {/* 基座：八边形 */}
+      <mesh position={[0, 0, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[2.4, 2.8, 0.4, 8]} />
+        <meshStandardMaterial color="#5c4033" roughness={0.7} />
+      </mesh>
+
+      {/* 八根立柱 */}
+      {Array.from({ length: 8 }).map((_, i) => {
+        const angle = (i / 8) * Math.PI * 2;
+        const x = Math.cos(angle) * 1.9;
+        const z = Math.sin(angle) * 1.9;
+        return (
+          <mesh key={i} position={[x, 1.5, z]} castShadow receiveShadow>
+            <cylinderGeometry args={[0.12, 0.18, 3, 8]} />
+            <meshStandardMaterial color="#7a5a3a" roughness={0.6} />
           </mesh>
-          {Array.from({ length: 6 }).map((_, i) => {
-            const angle = (i / 6) * Math.PI * 2;
-            const x = Math.cos(angle) * 1.8;
-            const z = Math.sin(angle) * 1.8;
-            return (
-              <mesh key={i} position={[x, 1.5, z]} castShadow>
-                <cylinderGeometry args={[0.15, 0.2, 3, 6]} />
-                <meshStandardMaterial color="#7a5a3a" roughness={0.7} />
-              </mesh>
-            );
-          })}
-          {[1.5, 2.0].map((y, idx) => (
-            <mesh key={idx} position={[0, 2.8 + idx * 0.8, 0]} castShadow>
-              <coneGeometry args={[2.5 - idx * 0.4, 1.2, 6]} />
-              <meshStandardMaterial color={idx === 0 ? '#6b4423' : '#8b5a2b'} roughness={0.6} />
-            </mesh>
-          ))}
-          <mesh position={[0, 3.8, 0]} castShadow>
-            <coneGeometry args={[0.3, 0.6, 8]} />
-            <meshStandardMaterial color="#b87333" roughness={0.4} />
-          </mesh>
-        </>
-      )}
-      <pointLight position={[0, 1.8, 0]} intensity={lightIntensity} color="#FFD28A" distance={8} decay={2} />
+        );
+      })}
+
+      {/* 第一层屋檐（下层） */}
+      <mesh position={[0, 3.0, 0]} castShadow receiveShadow>
+        <coneGeometry args={[2.8, 0.8, 8]} />
+        <meshStandardMaterial color="#6b4423" roughness={0.5} flatShading />
+      </mesh>
+      {/* 第二层屋檐（上层，较小） */}
+      <mesh position={[0, 4.0, 0]} castShadow receiveShadow>
+        <coneGeometry args={[1.8, 1.0, 8]} />
+        <meshStandardMaterial color="#8b5a2b" roughness={0.4} flatShading />
+      </mesh>
+      {/* 宝顶 */}
+      <mesh position={[0, 4.8, 0]} castShadow>
+        <coneGeometry args={[0.4, 0.8, 8]} />
+        <meshStandardMaterial color="#b87333" roughness={0.3} metalness={0.2} />
+      </mesh>
+
+      {/* 内部常明灯 */}
+      <pointLight position={[0, 2.2, 0]} intensity={lightIntensity} color="#FFD28A" distance={10} decay={2} castShadow />
+
+      {/* 灯笼 */}
       {lanternPositions.map((pos, i) => (
         <Lantern key={i} position={pos} timeOfDay={timeOfDay} />
       ))}
@@ -563,19 +632,19 @@ const KoiFish: React.FC<{ initialPosition: [number, number, number] }> = ({ init
 const SceneContent: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
   return (
     <>
-      {/* 雾效 */}
-      <fog attach="fog" args={['#b0c4de', 10, 120]} />
+      {/* 雾效：配合 360° 环形山脉范围设置 */}
+      <fog attach="fog" args={['#b0c4de', 20, 200]} />
 
       {/* 水面 */}
       <WaterSurface />
 
-      {/* 河岸 */}
-      <RiverBank />
+      {/* 有机曲线苔藓半岛 */}
+      <MossyPeninsula />
 
-      {/* 远山 */}
+      {/* 360° 环形群山 */}
       <DistantMountains timeOfDay={timeOfDay} />
 
-      {/* 亭子（含灯笼） */}
+      {/* 八角双层重檐亭（含八角挂灯） */}
       <PavilionWithLanterns timeOfDay={timeOfDay} />
 
       {/* 休息的天鹅（3只） */}
@@ -608,7 +677,7 @@ const LoginZenScene: React.FC<LoginZenSceneProps> = ({ timeOfDay, timeMode }) =>
   return (
     <Canvas
       shadows
-      camera={{ position: [0, 8, 25], fov: 45, near: 0.1, far: 200 }}
+      camera={{ position: [0, 8, 25], fov: 45, near: 0.1, far: 300 }}
       dpr={[1, 2]}
       gl={{ alpha: true, antialias: true }}
       style={{ width: '100%', height: '100%' }}
@@ -621,7 +690,7 @@ const LoginZenScene: React.FC<LoginZenSceneProps> = ({ timeOfDay, timeMode }) =>
           dampingFactor={0.05}
           maxPolarAngle={Math.PI / 2.2}
           minDistance={10}
-          maxDistance={80}
+          maxDistance={120}
           enableZoom={false}
           target={[0, 1, 0]}
         />

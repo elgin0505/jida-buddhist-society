@@ -15,11 +15,11 @@ export interface IonSunProps {
 }
 
 export const IonSun: React.FC<IonSunProps> = ({
-  position = [0, 8, -38],
+  position = [-80, 60, -150],
   rotation = [0.35, 0, 0.15],
-  coreRadius = 3.5,
+  coreRadius = 10,
   particleCount = 30000,
-  maxRadius = 16,
+  maxRadius = 45,
   spiralArms = 3,
 }) => {
   const groupRef = useRef<THREE.Group>(null);

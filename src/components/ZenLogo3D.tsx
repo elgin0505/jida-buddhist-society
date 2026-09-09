@@ -63,7 +63,7 @@ export function ZenLogo3D({ className = "" }: ZenLogo3DProps) {
       initial={{ opacity: 0, y: -30, scale: 0.8 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className={`relative z-10 mb-8 flex flex-col items-center text-center ${className}`}
+      className={`relative z-10 mb-4 sm:mb-8 flex flex-col items-center text-center ${className}`}
       style={{ perspective: 800 }}
     >
       {/* 3D 倾斜容器 */}
@@ -73,7 +73,7 @@ export function ZenLogo3D({ className = "" }: ZenLogo3DProps) {
           rotateY,
           transformStyle: "preserve-3d",
         }}
-        className="relative mb-5"
+        className="relative mb-3 sm:mb-5"
       >
         {/* 外层呼吸金色光晕 */}
         <motion.div
@@ -89,7 +89,7 @@ export function ZenLogo3D({ className = "" }: ZenLogo3DProps) {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="h-[88px] w-[88px] rounded-full overflow-hidden"
+          className="h-[74px] w-[74px] sm:h-[88px] sm:w-[88px] rounded-full overflow-hidden"
         >
           {/* Logo 图像或占位符 */}
           {!imgError ? (
@@ -123,7 +123,7 @@ export function ZenLogo3D({ className = "" }: ZenLogo3DProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.5 }}
-        className="text-[26px] font-bold tracking-tight text-white sm:text-3xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]"
+        className="text-[22px] font-bold tracking-tight text-white sm:text-3xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]"
       >
         技大佛学会
       </motion.h1>
@@ -131,7 +131,7 @@ export function ZenLogo3D({ className = "" }: ZenLogo3DProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.45, duration: 0.5 }}
-        className="mt-1.5 text-sm font-medium text-white/80 sm:text-base drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]"
+        className="mt-1 text-xs font-medium text-white/80 sm:text-sm drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)]"
       >
         出勤与积分追踪 · 会员系统
       </motion.p>

@@ -21,6 +21,7 @@ import { MathUtils } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import SacredTrees from './SacredTrees';
 import SacredFlowers from './SacredFlowers';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 // ==================== 安全的 GLTF 加载 Hook ====================
 function useSafeGLTF(url: string): THREE.Group | null {
@@ -208,8 +209,12 @@ const AtmosphereParticles: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) 
 
 
 
-// ==================== 真实水面组件（镜像反射） ====================
-const WaterSurface: React.FC = () => {
+// ==================== 真实水面组件（镜像反射与移动端降级） ====================
+interface WaterSurfaceProps {
+  isMobile?: boolean;
+}
+
+const WaterSurface: React.FC<WaterSurfaceProps> = ({ isMobile = false }) => {
   const meshRef = useRef<THREE.Mesh>(null);
 
   useFrame(({ clock }) => {
@@ -222,19 +227,31 @@ const WaterSurface: React.FC = () => {
   return (
     <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
       <planeGeometry args={[140, 140]} />
-      <MeshReflectorMaterial
-        blur={[300, 100]}
-        resolution={1024}
-        mixBlur={1}
-        mixStrength={40}
-        roughness={0.1}
-        depthScale={1.2}
-        minDepthThreshold={0.4}
-        maxDepthThreshold={1.4}
-        color="#0077b6"      // 清澈湖蓝
-        metalness={0.5}
-        mirror={0.5}         // 反射强度
-      />
+      {isMobile ? (
+        // 移动端降级：使用半透明标准材质，不计算实时高开销反射
+        <meshStandardMaterial
+          color="#0077b6"
+          metalness={0.3}
+          roughness={0.2}
+          transparent
+          opacity={0.85}
+        />
+      ) : (
+        // PC 端：使用 MeshReflectorMaterial 获得高精度真实倒影
+        <MeshReflectorMaterial
+          blur={[300, 100]}
+          resolution={1024}
+          mixBlur={1}
+          mixStrength={40}
+          roughness={0.1}
+          depthScale={1.2}
+          minDepthThreshold={0.4}
+          maxDepthThreshold={1.4}
+          color="#0077b6" // 清澈湖蓝
+          metalness={0.5}
+          mirror={0.5} // 反射强度
+        />
+      )}
     </mesh>
   );
 };
@@ -282,6 +299,68 @@ const DistantMountains: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => 
             roughness={0.9} // 磨砂质感
             metalness={0.05} // 轻微金属，避免塑料感
             flatShading
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+// ==================== 远山浮云（3D 环形禅意轻云） ====================
+const DistantZenClouds3D: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
+  const cloudColor = useMemo(() => {
+    switch (timeOfDay) {
+      case 'dusk':
+        return '#fed7aa'; // 晚霞暖桃金
+      case 'night':
+        return '#475569'; // 夜幕青黛
+      case 'day':
+      default:
+        return '#ffffff'; // 晴空白云
+    }
+  }, [timeOfDay]);
+
+  const groupRef = useRef<THREE.Group>(null);
+
+  // 极轻微的极轴自转，模拟天幕流云缓缓漂移
+  useFrame((_, delta) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y += delta * 0.008;
+    }
+  });
+
+  const cloudClusters = useMemo(() => {
+    const list: { position: [number, number, number]; scale: [number, number, number] }[] = [];
+    const count = 12;
+    const radius = 110;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + (Math.sin(i) * 0.3);
+      const r = radius + (i % 3) * 8;
+      const x = Math.cos(angle) * r;
+      const z = Math.sin(angle) * r;
+      const y = 22 + (i % 4) * 4;
+      const scaleX = 14 + (i % 5) * 3;
+      const scaleY = 3.5 + (i % 3) * 1.5;
+      const scaleZ = 8 + (i % 4) * 2;
+      list.push({
+        position: [x, y, z],
+        scale: [scaleX, scaleY, scaleZ],
+      });
+    }
+    return list;
+  }, []);
+
+  return (
+    <group ref={groupRef}>
+      {cloudClusters.map((c, idx) => (
+        <mesh key={idx} position={c.position} scale={c.scale}>
+          <sphereGeometry args={[1, 12, 8]} />
+          <meshStandardMaterial
+            color={cloudColor}
+            transparent
+            opacity={timeOfDay === 'night' ? 0.35 : 0.65}
+            roughness={0.9}
+            depthWrite={false}
           />
         </mesh>
       ))}
@@ -1075,19 +1154,20 @@ const DharmaNet: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
 };
 
 // ==================== 主场景内容 ====================
-const SceneContent: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
+const SceneContent: React.FC<{ timeOfDay: TimeOfDay; isMobile: boolean }> = ({ timeOfDay, isMobile }) => {
   return (
     <>
       {/* 昼夜光照与动态雾 */}
       <SceneLighting timeOfDay={timeOfDay} />
       <DynamicFog timeOfDay={timeOfDay} />
 
-      {/* 涟漪水面与有机苔藓半岛 */}
-      <WaterSurface />
+      {/* 涟漪水面与有机苔藓半岛（移动端降级反射） */}
+      <WaterSurface isMobile={isMobile} />
       <MossyPeninsula />
 
-      {/* 360° 环形群山 */}
+      {/* 360° 环形群山与天际浮云 */}
       <DistantMountains timeOfDay={timeOfDay} />
+      <DistantZenClouds3D timeOfDay={timeOfDay} />
 
       {/* 八角双层重檐亭与挂灯 */}
       <PavilionWithLanterns timeOfDay={timeOfDay} />
@@ -1123,16 +1203,21 @@ const SceneContent: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
 };
 
 // ==================== 电影级后期处理 ====================
-const PostProcessingEffects: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
+interface PostProcessingEffectsProps {
+  timeOfDay: TimeOfDay;
+  isMobile?: boolean;
+}
+
+const PostProcessingEffects: React.FC<PostProcessingEffectsProps> = ({ timeOfDay, isMobile = false }) => {
   const isNight = timeOfDay === 'night';
   const isDusk = timeOfDay === 'dusk';
 
   return (
     <EffectComposer enableNormalPass={false} multisampling={0}>
-      {/* 辉光效果：仅针对高亮发光体（莲花烛火、神经网络光线、亭阁挂灯）产生空灵温润光晕 */}
+      {/* 辉光效果：移动端降低强度 */}
       <Bloom
         luminanceThreshold={isNight ? 0.35 : isDusk ? 0.6 : 0.85}
-        intensity={isNight ? 1.6 : isDusk ? 1.2 : 0.8}
+        intensity={isNight ? (isMobile ? 1.0 : 1.6) : isDusk ? (isMobile ? 0.8 : 1.2) : (isMobile ? 0.5 : 0.8)}
         mipmapBlur
       />
       {/* 白天与黄昏彻底禁用暗角与噪点，保证全画面百分之百通透明亮；夜晚施加轻度柔和暗角 */}
@@ -1141,21 +1226,47 @@ const PostProcessingEffects: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }
   );
 };
 
+// ==================== 响应式相机自适应控制器 ====================
+const ResponsiveCameraController: React.FC<{ isPhone: boolean }> = ({ isPhone }) => {
+  const { camera, size } = useThree();
+
+  useEffect(() => {
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const isNarrow = isPhone || size.width < 768 || size.width < size.height;
+      // 手机竖屏时，适度拓宽 FOV（45° -> 50°），配合相机轨道距离后移，使画面缩小约 20%，尽览远山与生灵全景
+      const targetFov = isNarrow ? 50 : 45;
+      if (Math.abs(camera.fov - targetFov) > 0.1) {
+        camera.fov = targetFov;
+        camera.updateProjectionMatrix();
+      }
+    }
+  }, [camera, size, isPhone]);
+
+  return null;
+};
+
 // ==================== 默认导出根组件 ====================
 const LoginZenScene: React.FC<LoginZenSceneProps> = ({ timeOfDay, timeMode }) => {
   const effectiveTime: TimeOfDay = timeOfDay || timeMode || 'day';
+  const isMobile = useIsMobile();
+
+  // 手机端优化：相机距离拉远至 31.0（原本 26.25，增大约 18%），配合 FOV 50°，画面整体缩减约 20%
+  const currentDistance = isMobile ? 31.0 : 26.25;
+  const initialPosition: [number, number, number] = isMobile ? [0, 9.36, 29.85] : [0, 8, 25];
+  const initialFov = isMobile ? 50 : 45;
 
   return (
     <Canvas
       shadows
-      camera={{ position: [0, 8, 25], fov: 45, near: 0.1, far: 300 }}
-      dpr={[1, 2]}
+      camera={{ position: initialPosition, fov: initialFov, near: 0.1, far: 300 }}
+      dpr={[1, Math.min(isMobile ? 1.5 : 2, typeof window !== 'undefined' ? window.devicePixelRatio || 2 : 2)]}
       gl={{ alpha: true, antialias: true }}
       style={{ width: '100%', height: '100%' }}
     >
       <Suspense fallback={null}>
-        <SceneContent timeOfDay={effectiveTime} />
-        <PostProcessingEffects timeOfDay={effectiveTime} />
+        <ResponsiveCameraController isPhone={isMobile} />
+        <SceneContent timeOfDay={effectiveTime} isMobile={isMobile} />
+        <PostProcessingEffects timeOfDay={effectiveTime} isMobile={isMobile} />
         <OrbitControls
           enableDamping
           dampingFactor={0.05}
@@ -1164,8 +1275,8 @@ const LoginZenScene: React.FC<LoginZenSceneProps> = ({ timeOfDay, timeMode }) =>
           enablePan={false}
           minPolarAngle={Math.PI / 4}
           maxPolarAngle={Math.PI / 2.2}
-          minDistance={26.25}
-          maxDistance={26.25}
+          minDistance={currentDistance}
+          maxDistance={currentDistance}
           target={[0, 1, 0]}
         />
       </Suspense>

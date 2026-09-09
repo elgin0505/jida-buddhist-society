@@ -58,6 +58,9 @@ export function MindfulJourney({
             "linear-gradient(180deg, #F43F5E 0%, #FB7185 16%, #FB923C 44%, #FDBA74 68%, #FDE047 88%, #FEF9C3 100%)",
           sunMoon: "from-[#FFF7ED] via-[#FDBA74] to-[#F97316]",
           sunHalo: "rgba(251, 146, 60, 0.85)",
+          cloudColor1: "rgba(254, 215, 170, 0.88)",
+          cloudColor2: "rgba(251, 146, 60, 0.65)",
+          cloudColor3: "rgba(253, 186, 116, 0.45)",
           farMountains: "#FB923C",
           midGhats: "#EA580C",
           riverGradStart: "#EA580C",
@@ -76,6 +79,9 @@ export function MindfulJourney({
             "linear-gradient(180deg, #030712 0%, #0B132B 35%, #0F172A 70%, #1E293B 100%)",
           sunMoon: "from-[#FEF9C3] via-[#FEF08A] to-[#E2E8F0]",
           sunHalo: "rgba(254, 240, 138, 0.25)",
+          cloudColor1: "rgba(51, 65, 85, 0.55)",
+          cloudColor2: "rgba(30, 41, 59, 0.45)",
+          cloudColor3: "rgba(148, 163, 184, 0.25)",
           farMountains: "#0B1329",
           midGhats: "#0F1E36",
           riverGradStart: "#0F172A",
@@ -95,6 +101,9 @@ export function MindfulJourney({
             "linear-gradient(180deg, #38BDF8 0%, #7DD3FC 28%, #BAE6FD 58%, #E0F2FE 82%, #FFFFFF 100%)",
           sunMoon: "from-[#FFFBEB] via-[#FDE047] to-[#F59E0B]",
           sunHalo: "rgba(253, 224, 71, 0.85)",
+          cloudColor1: "rgba(255, 255, 255, 0.94)",
+          cloudColor2: "rgba(240, 249, 255, 0.78)",
+          cloudColor3: "rgba(224, 242, 254, 0.55)",
           farMountains: "#10B981",
           midGhats: "#059669",
           riverGradStart: "#0284C7",
@@ -144,54 +153,158 @@ export function MindfulJourney({
         </div>
       )}
 
-      {/* ── 2. 金阳暖日 / 清辉明月 ── */}
-      <motion.div
-        style={{ x: celestialX, y: celestialY }}
-        className="pointer-events-none absolute top-[7%] left-[10%] md:left-[16%]"
-      >
-        <div className="relative flex items-center justify-center">
-          <motion.div
-            animate={{ scale: [1, 1.12, 1], opacity: [0.75, 0.95, 0.75] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute h-52 w-52 rounded-full blur-2xl"
-            style={{ background: theme.sunHalo }}
-          />
-
-          {timeMode === "night" ? (
-            <div className="relative h-20 w-20 rounded-full bg-gradient-to-tr from-amber-100 via-amber-50 to-white shadow-[0_0_35px_rgba(254,240,138,0.6)]" />
-          ) : timeMode === "dusk" ? (
-            <div
-              className={`h-24 w-24 rounded-full bg-gradient-to-tr ${theme.sunMoon} shadow-[0_0_65px_rgba(251,146,60,0.85)]`}
-            />
-          ) : (
-            <div
-              className={`h-24 w-24 rounded-full bg-gradient-to-tr ${theme.sunMoon} shadow-[0_0_75px_rgba(253,224,71,0.95)]`}
-            />
-          )}
-        </div>
-      </motion.div>
-
-      {/* ── 3. 远天游云 ── */}
-      <motion.div
-        style={{ x: skyX, y: skyY }}
-        className="pointer-events-none absolute inset-x-0 top-[14%] flex justify-between px-8 opacity-80"
-      >
-        <motion.svg
-          animate={{ x: [-25, 25, -25] }}
-          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
-          width="260"
-          height="80"
-          viewBox="0 0 240 80"
-          fill="none"
-          className="opacity-75"
+      {/* ── 2. 天际暖阳/清辉月轮与远天游云 ── */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {/* ── 太阳 / 月轮 ── */}
+        <motion.div
+          style={{ x: celestialX, y: celestialY }}
+          className="absolute top-[6%] md:top-[7%] left-[8%] md:left-[13%] z-0"
         >
-          <path
-            d="M20 55 C 30 35, 60 30, 80 40 C 95 25, 135 25, 155 45 C 175 35, 205 40, 215 55 C 225 65, 20 65, 20 55 Z"
-            fill={timeMode === "night" ? "#334155" : "#FFFFFF"}
-            opacity={timeMode === "night" ? 0.35 : 0.85}
-          />
-        </motion.svg>
-      </motion.div>
+          <div className="relative flex items-center justify-center">
+            {/* 温暖天体漫射光晕 */}
+            <motion.div
+              animate={{ scale: [1, 1.12, 1], opacity: [0.7, 0.9, 0.7] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute h-52 w-52 rounded-full blur-2xl pointer-events-none"
+              style={{ background: theme.sunHalo }}
+            />
+
+            {/* 太阳 / 月亮圆盘主体 */}
+            <motion.div
+              animate={{ x: [-8, 8, -8], y: [-2, 2, -2] }}
+              transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+              className="relative flex items-center justify-center"
+            >
+              {timeMode === "night" ? (
+                <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-amber-100 via-amber-50 to-white shadow-[0_0_30px_rgba(254,240,138,0.5)]" />
+              ) : timeMode === "dusk" ? (
+                <div
+                  className={`h-22 w-22 sm:h-24 sm:w-24 rounded-full bg-gradient-to-tr ${theme.sunMoon} shadow-[0_0_55px_rgba(251,146,60,0.85)]`}
+                />
+              ) : (
+                <div
+                  className={`h-22 w-22 sm:h-24 sm:w-24 rounded-full bg-gradient-to-tr ${theme.sunMoon} shadow-[0_0_60px_rgba(253,224,71,0.9)]`}
+                />
+              )}
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* 云朵 2：高空右上祥云（轻盈流线，对流反向浮动） */}
+        <motion.div
+          style={{ x: skyX, y: skyY }}
+          className="absolute top-[4%] md:top-[5%] right-[5%] md:right-[12%]"
+        >
+          <motion.svg
+            animate={{ x: [25, -25, 25], y: [2, -2, 2] }}
+            transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
+            width="320"
+            height="100"
+            viewBox="0 0 320 100"
+            fill="none"
+          >
+            <path
+              d="M30 75 C 15 75, 5 62, 18 50 C 15 32, 38 22, 60 30 C 80 12, 118 10, 140 26 C 165 14, 205 16, 222 34 C 248 24, 280 32, 290 52 C 310 55, 318 70, 302 75 Z"
+              fill={theme.cloudColor1}
+              opacity={0.88}
+            />
+            <path
+              d="M60 75 C 75 52, 110 48, 135 58 C 160 46, 200 48, 218 62 C 240 55, 270 60, 278 75 Z"
+              fill={theme.cloudColor2}
+              opacity={0.6}
+            />
+          </motion.svg>
+        </motion.div>
+
+        {/* 云朵 3：左上轻灵薄云 */}
+        <motion.div
+          style={{ x: skyX, y: skyY }}
+          className="absolute top-[13%] left-[3%] md:left-[6%]"
+        >
+          <motion.svg
+            animate={{ x: [-18, 18, -18], y: [-2, 2, -2] }}
+            transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+            width="250"
+            height="80"
+            viewBox="0 0 250 80"
+            fill="none"
+          >
+            <path
+              d="M25 60 C 12 60, 5 48, 16 38 C 14 24, 34 16, 52 22 C 68 8, 100 8, 118 20 C 138 10, 170 12, 185 26 C 205 18, 230 26, 235 42 C 248 45, 252 56, 240 60 Z"
+              fill={theme.cloudColor2}
+              opacity={0.82}
+            />
+          </motion.svg>
+        </motion.div>
+
+        {/* 云朵 4：中空右侧悠然叠云 */}
+        <motion.div
+          style={{ x: skyX, y: skyY }}
+          className="absolute top-[16%] md:top-[14%] right-[22%] md:right-[26%]"
+        >
+          <motion.svg
+            animate={{ x: [20, -20, 20], y: [3, -3, 3] }}
+            transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
+            width="280"
+            height="85"
+            viewBox="0 0 280 85"
+            fill="none"
+          >
+            <path
+              d="M30 65 C 18 65, 8 52, 20 42 C 18 28, 38 18, 56 25 C 72 10, 105 8, 124 22 C 144 12, 178 14, 194 28 C 215 20, 245 28, 252 45 C 266 48, 270 60, 258 65 Z"
+              fill={theme.cloudColor1}
+              opacity={0.85}
+            />
+            <path
+              d="M50 65 C 65 44, 98 40, 120 50 C 142 40, 175 42, 190 54 C 210 48, 235 52, 242 65 Z"
+              fill={theme.cloudColor3}
+              opacity={0.65}
+            />
+          </motion.svg>
+        </motion.div>
+
+        {/* 云朵 5：近山脉微风薄雾（山脊上方平缓缭绕的轻纱云带） */}
+        <motion.div
+          style={{ x: mountainX, y: mountainY }}
+          className="absolute top-[22%] md:top-[18%] left-[25%] md:left-[35%]"
+        >
+          <motion.svg
+            animate={{ x: [-35, 35, -35] }}
+            transition={{ duration: 34, repeat: Infinity, ease: "easeInOut" }}
+            width="360"
+            height="70"
+            viewBox="0 0 360 70"
+            fill="none"
+          >
+            <path
+              d="M20 50 C 50 32, 90 35, 120 42 C 150 28, 200 28, 230 38 C 260 25, 310 30, 340 50 C 310 52, 60 52, 20 50 Z"
+              fill={theme.cloudColor3}
+              opacity={0.75}
+            />
+          </motion.svg>
+        </motion.div>
+
+        {/* 云朵 6：右侧天际远山薄岚 */}
+        <motion.div
+          style={{ x: mountainX, y: mountainY }}
+          className="absolute top-[24%] md:top-[20%] right-[4%]"
+        >
+          <motion.svg
+            animate={{ x: [15, -15, 15] }}
+            transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
+            width="240"
+            height="60"
+            viewBox="0 0 240 60"
+            fill="none"
+          >
+            <path
+              d="M15 45 C 40 30, 75 32, 100 38 C 125 26, 165 26, 190 35 C 210 24, 230 35, 235 45 Z"
+              fill={theme.cloudColor2}
+              opacity={0.6}
+            />
+          </motion.svg>
+        </motion.div>
+      </div>
 
       {/* ── 4. 恒河对岸远山与古印度佛塔剪影 ── */}
       <motion.div

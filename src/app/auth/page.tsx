@@ -22,7 +22,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState<Mode>("login");
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-8 sm:py-12">
       {/* ── 1. 恒河圣境与 3D 禅境湖泊融合全景背景 ── */}
       <Suspense fallback={null}>
         <MindfulJourney />
@@ -85,7 +85,7 @@ export default function AuthPage() {
 const GLASS_CARD_CLASS =
   "rounded-3xl border border-white/80 " +
   "bg-white/90 backdrop-blur-2xl " +
-  "p-8 " +
+  "p-6 sm:p-8 " +
   "shadow-[0_20px_60px_-15px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.7)_inset]";
 
 const INPUT_CLASS =

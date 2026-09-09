@@ -414,13 +414,33 @@ export default function DashboardPage() {
                     <h3 className="text-2xl font-bold text-charcoal dark:text-white">
                       {currentMember.name}
                     </h3>
-                    <span className="inline-flex items-center rounded-full bg-gradient-to-r from-amber-200 to-amber-400 px-2.5 py-0.5 text-xs font-black text-amber-950 shadow-sm border border-amber-300">
-                      {memberLevelTitle}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-center sm:justify-start">
+                      <span className="inline-flex items-center rounded-full bg-gradient-to-r from-amber-200 to-amber-400 px-2.5 py-0.5 text-xs font-black text-amber-950 shadow-sm border border-amber-300">
+                        {memberLevelTitle}
+                      </span>
+                      {currentMember.role === "理事" && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 text-xs font-black text-amber-900 dark:text-amber-200 shadow-sm">
+                          <span>🪷</span> 理事
+                        </span>
+                      )}
+                      {currentMember.role === "学长姐" && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-indigo-500/20 border border-indigo-500/40 px-2.5 py-0.5 text-xs font-black text-indigo-900 dark:text-indigo-200 shadow-sm">
+                          <span>🏮</span> 学长姐
+                        </span>
+                      )}
+                      {(!currentMember.role || currentMember.role === "学员") && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-500/20 border border-emerald-500/40 px-2.5 py-0.5 text-xs font-black text-emerald-900 dark:text-emerald-200 shadow-sm">
+                          <span>🌱</span> 学员
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className="mt-1 text-sm text-muted dark:text-slate-400">{currentMember.email}</p>
                   <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                     <Badge variant="golden">{currentMember.memberId}</Badge>
+                    <Badge variant={currentMember.role === "理事" ? "carmine" : currentMember.role === "学长姐" ? "golden" : "jade"}>
+                      {currentMember.role === "理事" ? "🪷 护持理事" : currentMember.role === "学长姐" ? "🏮 资深学长姐" : "🌱 佛学社员"}
+                    </Badge>
                     <Badge variant="jade">活跃会员</Badge>
                   </div>
                   <AnimatePresence>
@@ -665,6 +685,7 @@ export default function DashboardPage() {
               <LotusSeaCanvas 
                 currentUserId={currentMember?.id || "user-me"}
                 currentUserName={currentMember?.name ?? "同修"}
+                currentUserRole={(currentMember?.role as any) || "学员"}
                 maxLampsPerUser={1}
                 onPlaceLamp={() => sonnerToast.success("已供上一盏心灯", { icon: "🪷" })}
                 onDedicate={() => sonnerToast.success("功德已回向", { icon: "✨" })}

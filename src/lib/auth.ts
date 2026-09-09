@@ -13,6 +13,7 @@ export interface SessionPayload {
   name: string;
   memberId?: string | null;
   memberCode?: string | null;
+  role?: string | null;
 }
 
 /**

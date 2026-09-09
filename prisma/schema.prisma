@@ -14,6 +14,7 @@ model Member {
   email       String          @unique
   photo       String?
   birthday    DateTime?
+  role        String          @default("学员")
   totalPoints Int             @default(0)
   userId      String?         @unique
   user        User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -75,6 +76,7 @@ model User {
   name            String
   email           String         @unique
   birthday        DateTime?
+  role            String         @default("学员")
   passwordHash    String
   resetCode       String?
   resetCodeExpiry DateTime?

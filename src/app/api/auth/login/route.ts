@@ -68,6 +68,8 @@ export async function POST(request: Request) {
       where: { email: normalizedEmail },
     });
 
+    const role = member?.role ?? user.role ?? "学员";
+
     // 6. 生成 7 天有效期的真实 JWT Session Token
     const token = createSessionToken({
       userId: user.id,
@@ -75,6 +77,7 @@ export async function POST(request: Request) {
       email: user.email,
       memberId: member?.id ?? null,
       memberCode: member?.memberId ?? null,
+      role,
     });
 
     const response = NextResponse.json({
@@ -82,6 +85,7 @@ export async function POST(request: Request) {
       id: user.id,
       name: user.name,
       email: user.email,
+      role,
       memberId: member?.id ?? null,
       memberCode: member?.memberId ?? null,
     });

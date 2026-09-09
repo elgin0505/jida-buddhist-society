@@ -31,7 +31,10 @@ async function generateNextMemberId(): Promise<string> {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, password, birthday } = body;
+    const { name, email, password, birthday, role } = body;
+
+    const validRoles = ["理事", "学员", "学长姐"];
+    const userRole = typeof role === "string" && validRoles.includes(role.trim()) ? role.trim() : "学员";
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -72,6 +75,7 @@ export async function POST(request: Request) {
         email: normalizedEmail,
         passwordHash,
         birthday: parsedBirthday,
+        role: userRole,
       },
     });
 
@@ -87,6 +91,7 @@ export async function POST(request: Request) {
             name: name.trim(),
             email: normalizedEmail,
             birthday: parsedBirthday,
+            role: userRole,
             totalPoints: 0,
             userId: user.id,
           },
@@ -119,6 +124,7 @@ export async function POST(request: Request) {
       email: user.email,
       memberId: member.id,
       memberCode: member.memberId,
+      role: userRole,
     });
 
     const response = NextResponse.json(
@@ -128,6 +134,7 @@ export async function POST(request: Request) {
         id: user.id,
         name: user.name,
         email: user.email,
+        role: userRole,
         memberId: member.id,
         memberCode: member.memberId,
       },

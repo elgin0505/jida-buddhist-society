@@ -10,7 +10,7 @@ import { InkRippleButton } from "@/components/InkRippleButton";
 import { ForgotPasswordCard } from "@/components/ForgotPasswordCard";
 import { useZenAudio } from "@/hooks/useZenAudio";
 
-// Dynamic import MindfulJourney (佛陀与十大弟子的恒河行脚)
+// Dynamic import MindfulJourney (恒河圣境 · 视差互动背景)
 const MindfulJourney = dynamic(
   () => import("@/components/MindfulJourney").then((mod) => ({ default: mod.MindfulJourney })),
   { ssr: false }
@@ -23,7 +23,7 @@ export default function AuthPage() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12">
-      {/* ── 1. 佛陀与十大弟子的恒河行脚 · 视差互动背景 ── */}
+      {/* ── 1. 恒河圣境与 3D 禅境湖泊融合全景背景 ── */}
       <Suspense fallback={null}>
         <MindfulJourney />
       </Suspense>
@@ -297,13 +297,14 @@ function LoginCard({
 function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"理事" | "学员" | "学长姐">("学员");
   const [birthday, setBirthday] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { playZenSound } = useZenAudio();
+  const { playZenAudio, playZenSound } = useZenAudio() as any;
 
   const passwordStrength = getPasswordStrength(password);
 
@@ -331,7 +332,7 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, birthday: birthday || undefined }),
+        body: JSON.stringify({ name, email, password, birthday: birthday || undefined, role }),
       });
 
       const data = await res.json();
@@ -392,6 +393,44 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
               onChange={(e) => setName(e.target.value)}
               className={INPUT_CLASS}
             />
+          </div>
+        </div>
+
+        {/* 身份类型 */}
+        <div className="mb-5">
+          <label className={LABEL_CLASS}>
+            修持身份
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { key: "学员", label: "学员", desc: "常随佛学", icon: "🌱" },
+              { key: "理事", label: "理事", desc: "统筹护持", icon: "🪷" },
+              { key: "学长姐", label: "学长姐", desc: "导引提携", icon: "🏮" },
+            ].map((item) => {
+              const selected = role === item.key;
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setRole(item.key as "理事" | "学员" | "学长姐")}
+                  className={`relative flex flex-col items-center justify-center rounded-xl p-2.5 transition-all text-center cursor-pointer ${
+                    selected
+                      ? "border-2 border-golden-deep bg-golden-deep/10 text-stone-900 shadow-sm shadow-golden-deep/20 ring-1 ring-golden-deep/40"
+                      : "border border-stone-200/90 bg-white/70 text-stone-600 hover:bg-white hover:border-stone-300"
+                  }`}
+                >
+                  <span className="text-lg">{item.icon}</span>
+                  <span className="mt-1 text-xs font-bold leading-tight">{item.label}</span>
+                  <span className="mt-0.5 text-[10px] text-stone-400 font-medium">{item.desc}</span>
+                  {selected && (
+                    <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-golden-deep opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-golden-deep"></span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 

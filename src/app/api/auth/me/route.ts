@@ -29,6 +29,7 @@ export async function GET(request: Request) {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.member?.role ?? user.role ?? "学员",
       memberId: user.member?.id ?? null,
       memberCode: user.member?.memberId ?? null,
       totalPoints: user.member?.totalPoints ?? 0,

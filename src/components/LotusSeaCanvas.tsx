@@ -32,7 +32,23 @@ export interface LampData {
   dedications: number; // 保持向后兼容
 }
 
-// 双圈规则
+// 身份权限定义
+export type UserRoleType =
+  | '理事'
+  | '学长姐'
+  | '学员'
+  | 'admin'
+  | 'presidency'
+  | 'committee'
+  | 'member'
+  | string;
+
+export const isInnerCirclePermitted = (role?: string): boolean => {
+  if (!role) return false;
+  return ['理事', '学长姐', 'committee', 'presidency', 'admin'].includes(role);
+};
+
+// 双圈规则：内圈 (0 ~ 8) 仅限理事与学长姐，外圈 (8 ~ 30) 全员可放
 const INNER_RADIUS = 8;
 const OUTER_RADIUS = 30;
 
@@ -165,8 +181,8 @@ const InkWater: React.FC<InkWaterProps> = ({
 // ==================== 双圈结界 ====================
 const ConcentricRings: React.FC = () => {
   const ringData = [
-    { inner: 0, outer: INNER_RADIUS, color: '#FBBF24', opacity: 0.2 },
-    { inner: INNER_RADIUS, outer: OUTER_RADIUS, color: '#F59E0B', opacity: 0.12 },
+    { inner: 0, outer: INNER_RADIUS, color: '#FBBF24', opacity: 0.22 }, // 内圈：理事/学长姐专属
+    { inner: INNER_RADIUS, outer: OUTER_RADIUS, color: '#F59E0B', opacity: 0.12 }, // 外圈：全员可放
   ];
 
   return (
@@ -184,6 +200,18 @@ const ConcentricRings: React.FC = () => {
           />
         </mesh>
       ))}
+      {/* 内圈专属分界发光金环 */}
+      <mesh>
+        <ringGeometry args={[INNER_RADIUS - 0.08, INNER_RADIUS + 0.08, 128]} />
+        <meshBasicMaterial
+          color="#FDE68A"
+          transparent
+          opacity={0.45}
+          side={DoubleSide}
+          depthWrite={false}
+          blending={AdditiveBlending}
+        />
+      </mesh>
     </group>
   );
 };
@@ -296,7 +324,7 @@ interface LampSceneProps {
   setLamps: React.Dispatch<React.SetStateAction<LampData[]>>;
   currentUserId: string;
   currentUserName: string;
-  currentUserRole: 'admin' | 'presidency' | 'committee' | 'member';
+  currentUserRole: UserRoleType;
   onPlaceLamp?: (pos?: [number, number, number]) => void;
   onDedicate?: (lampId?: string) => void;
   onLimitReached?: (msg?: string) => void;
@@ -362,10 +390,11 @@ const LampScene: React.FC<LampSceneProps> = ({
     }
   });
 
-  // 结界权限判定
+  // 结界权限判定：内圈 (0 ~ 8) 仅限理事与学长姐供灯，外圈 (8 ~ 30) 全体同修皆可供灯
   const checkPlacementAllowed = useCallback(
     (distance: number): boolean => {
-      if (currentUserRole === 'member') {
+      const canAccessInner = isInnerCirclePermitted(currentUserRole);
+      if (!canAccessInner) {
         return distance >= INNER_RADIUS && distance <= OUTER_RADIUS;
       }
       return distance <= OUTER_RADIUS;
@@ -379,12 +408,16 @@ const LampScene: React.FC<LampSceneProps> = ({
   const handlePlaceLampAt = useCallback(
     async (point: THREE.Vector3) => {
       const distance = Math.hypot(point.x, point.z);
+      const canAccessInner = isInnerCirclePermitted(currentUserRole);
       if (!checkPlacementAllowed(distance)) {
-        toast.warning(
-          currentUserRole === 'member'
-            ? '学员请在外围灯海放灯（距离中心 8 ~ 30）'
-            : '请在界内供奉心灯'
-        );
+        if (!canAccessInner && distance < INNER_RADIUS) {
+          toast.warning(
+            '🪷 莲花灯光环内圈仅限【理事】和【学长姐】供奉，学员请在光环外圈供灯（距离中心 8 ~ 30）',
+            { duration: 4500 }
+          );
+        } else {
+          toast.warning('请在道场光环结界内供奉心灯（距离中心不超过 30）');
+        }
         return;
       }
 
@@ -623,7 +656,7 @@ const LampScene: React.FC<LampSceneProps> = ({
 export interface LotusSeaCanvasProps {
   currentUserId?: string;
   currentUserName?: string;
-  currentUserRole?: 'admin' | 'presidency' | 'committee' | 'member';
+  currentUserRole?: UserRoleType;
   maxLampsPerUser?: number;
   canResetDaochang?: boolean;
   onPlaceLamp?: (pos?: [number, number, number]) => void;
@@ -837,6 +870,7 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
     (currentUserRole === 'admin' ||
       currentUserRole === 'presidency' ||
       currentUserRole === 'committee' ||
+      currentUserRole === '理事' ||
       process.env.NODE_ENV !== 'production');
 
   return (
@@ -911,7 +945,7 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
         )}
       </div>
 
-      {/* 底部供灯按钮 */}
+      {/* 底部供灯按钮与提示 */}
       <div
         style={{
           position: 'absolute',
@@ -925,6 +959,32 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
           gap: '8px',
         }}
       >
+        {isPlacementMode && (
+          <div
+            style={{
+              backgroundColor: 'rgba(20, 20, 20, 0.88)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(251, 191, 36, 0.4)',
+              borderRadius: '9999px',
+              padding: '6px 18px',
+              color: '#FEF08A',
+              fontSize: '12px',
+              fontWeight: 600,
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {isInnerCirclePermitted(currentUserRole) ? (
+              <span>🪷 您当前身份为【{currentUserRole}】：享有光环内圈及外圈任意水面供灯特权</span>
+            ) : (
+              <span>🌱 您当前身份为【学员】：请在光环外圈供灯（内圈为理事与学长姐专属福田）</span>
+            )}
+          </div>
+        )}
+
         <button
           onClick={handleTogglePlacement}
           style={{

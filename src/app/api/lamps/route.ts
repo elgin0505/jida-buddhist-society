@@ -65,6 +65,39 @@ export async function POST(request: Request) {
       : (Array.isArray(body.position) && Number.isFinite(body.position[2]) ? Number(body.position[2]) : 0);
     const message = (typeof body.message === "string" && body.message.trim().slice(0, 100)) || "愿平安吉祥";
 
+    // 边界与权限校验：计算放灯离道场中心的水平距离
+    const distance = Math.hypot(posX, posZ);
+    if (distance > 30) {
+      return NextResponse.json(
+        { error: "请在莲花道场结界内供奉心灯（距离中心 30 以内）" },
+        { status: 400 }
+      );
+    }
+
+    // 内圈限制：距离中心 < 8 为光环内圈，仅限理事与学长姐供奉
+    if (distance < 8) {
+      const member = await prisma.member.findFirst({
+        where: { OR: [{ id: userId }, { userId: userId }] },
+      });
+      const user = !member
+        ? await prisma.user.findUnique({ where: { id: userId } })
+        : null;
+      const role = member?.role || user?.role || session?.role || "学员";
+      const isInnerAllowed =
+        role === "理事" ||
+        role === "学长姐" ||
+        role === "admin" ||
+        role === "committee" ||
+        role === "presidency";
+
+      if (!isInnerAllowed) {
+        return NextResponse.json(
+          { error: "莲花灯光环内圈仅限理事和学长姐供奉莲花，学员请在光环外圈供灯" },
+          { status: 403 }
+        );
+      }
+    }
+
     const newLamp = await prisma.lamp.create({
       data: {
         userId,

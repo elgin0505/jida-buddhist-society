@@ -1,22 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Sun, Sunset, Moon, Sparkles } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { Sun, Sunset, Moon } from "lucide-react";
+
+const LoginZenScene = dynamic(() => import("@/components/LoginZenScene"), {
+  ssr: false,
+});
 
 export type TimeOfDay = "day" | "dusk" | "night";
 
 interface MindfulJourneyProps {
   forcedTimeMode?: TimeOfDay;
   showTimeSwitcher?: boolean;
-}
-
-interface LotusParticle {
-  id: number;
-  x: number;
-  y: number;
-  scale: number;
-  rotate: number;
 }
 
 export function MindfulJourney({
@@ -70,40 +67,6 @@ export function MindfulJourney({
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [mouseX, mouseY]);
 
-  // ── 3. 交互状态 1：应机说法 (Hover Pause on Procession) ──
-  const [isHovered, setIsHovered] = useState(false);
-
-  // ── 4. 交互状态 2：步步生莲 (Step-by-step Lotus Trail) ──
-  const [lotuses, setLotuses] = useState<LotusParticle[]>([]);
-  const lastSpawnTime = useRef(0);
-
-  const handlePathPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const now = Date.now();
-    if (now - lastSpawnTime.current < 110) return;
-    lastSpawnTime.current = now;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const newLotus: LotusParticle = {
-      id: now + Math.random(),
-      x,
-      y,
-      scale: 0.75 + Math.random() * 0.45,
-      rotate: (Math.random() - 0.5) * 35,
-    };
-
-    setLotuses((prev) => {
-      const next = [...prev, newLotus];
-      return next.length > 16 ? next.slice(next.length - 16) : next;
-    });
-
-    setTimeout(() => {
-      setLotuses((prev) => prev.filter((item) => item.id !== newLotus.id));
-    }, 2200);
-  }, []);
-
   // ── 5. 主题色彩方案 (白昼、黄昏、夜晚) ──
   const theme = useMemo(() => {
     switch (timeMode) {
@@ -122,8 +85,6 @@ export function MindfulJourney({
           ground1: "#431407",
           ground2: "#78350F",
           pathColor: "#D97706",
-          buddhaRobe: "#E11D48",
-          discipleRobe: "#D97706",
           waterGleam: "#FDBA74",
         };
       case "night":
@@ -141,8 +102,6 @@ export function MindfulJourney({
           ground1: "#0F172A",
           ground2: "#1E293B",
           pathColor: "#334155",
-          buddhaRobe: "#D97706",
-          discipleRobe: "#B45309",
           waterGleam: "#BAE6FD",
         };
       case "day":
@@ -161,8 +120,6 @@ export function MindfulJourney({
           ground1: "#14532D",
           ground2: "#166534",
           pathColor: "#D97706",
-          buddhaRobe: "#B45309",
-          discipleRobe: "#D97706",
           waterGleam: "#FEF08A",
         };
     }
@@ -170,45 +127,6 @@ export function MindfulJourney({
 
   return (
     <div className="fixed inset-0 z-0 select-none overflow-hidden transition-colors duration-1000">
-      {/* ── 核心：队伍严格贴合 SVG 道路贝塞尔曲线起伏的 GPU 动画 ── */}
-      <style>{`
-        @keyframes walkAlongSvgRoad {
-          0% {
-            transform: translate(-720px, 163px);
-            opacity: 0;
-          }
-          4% {
-            opacity: 1;
-          }
-          15% {
-            transform: translate(0px, 153px);
-          }
-          28% {
-            transform: translate(240px, 123px);
-          }
-          42% {
-            transform: translate(480px, 93px);
-          }
-          56% {
-            transform: translate(720px, 118px);
-          }
-          70% {
-            transform: translate(960px, 78px);
-          }
-          84% {
-            transform: translate(1200px, 38px);
-          }
-          94% {
-            transform: translate(1440px, 23px);
-            opacity: 1;
-          }
-          100% {
-            transform: translate(1680px, -17px);
-            opacity: 0;
-          }
-        }
-      `}</style>
-
       {/* ── 1. 天空渐变背景 ── */}
       <div className={`absolute inset-0 ${theme.sky} transition-all duration-1000`} />
 
@@ -355,17 +273,17 @@ export function MindfulJourney({
         </svg>
       </motion.div>
 
-      {/* ── 6. 近景古道与队伍（统一置于 1440x360 SVG 坐标系中，精准贴合起伏路面） ── */}
+      {/* ── 5.5 3D 禅境生灵水景 · 亭台天鹅 · 浮莲微光（无缝融合层） ── */}
+      <div className="absolute inset-0 z-[8] pointer-events-auto overflow-hidden">
+        <LoginZenScene timeMode={timeMode} />
+      </div>
+
+      {/* ── 6. 近景古道与菩提古树（宁静自然的恒河河岸底层修饰） ── */}
       <motion.div
         style={{ x: pathX, y: pathY }}
-        className="absolute inset-x-0 bottom-0 top-[60%] z-10 pointer-events-none"
+        className="pointer-events-none absolute inset-x-0 bottom-0 top-[72%] z-[9] opacity-60"
       >
-        <div
-          onPointerMove={handlePathPointerMove}
-          className="pointer-events-auto absolute inset-0 cursor-crosshair"
-          title="在古道上滑动鼠标，体验步步生莲"
-        >
-          {/* 统一的近景与经行 SVG 视口 */}
+        <div className="pointer-events-none absolute inset-0">
           <svg
             viewBox="0 0 1440 360"
             fill="none"
@@ -382,24 +300,12 @@ export function MindfulJourney({
                 <stop offset="50%" stopColor="#F59E0B" stopOpacity="0.6" />
                 <stop offset="100%" stopColor={theme.pathColor} stopOpacity="0.9" />
               </linearGradient>
-              <radialGradient id="buddhaAuraGrad" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#FEF08A" stopOpacity="0.95" />
-                <stop offset="60%" stopColor="#F59E0B" stopOpacity="0.5" />
-                <stop offset="100%" stopColor="#D97706" stopOpacity="0" />
-              </radialGradient>
-              <filter id="buddhaAuraGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
             </defs>
 
             {/* 近景草坡起伏地形 */}
             <path d="M 0 110 Q 280 35, 580 85 T 1140 55 Q 1320 35, 1440 85 L 1440 360 L 0 360 Z" fill="url(#gangesGroundGrad)" />
 
-            {/* 经行古道曲线 (从左下 250px 攀上 190px 峰顶，微降至 215px，再一路攀升至 120px) */}
+            {/* 经行古道曲线 */}
             <path
               d="M -700 260 C -350 250, 0 250, 240 220 C 480 190, 720 215, 960 175 C 1200 135, 1440 120, 1800 100"
               stroke="url(#gangesPathGrad)"
@@ -426,144 +332,7 @@ export function MindfulJourney({
               <circle cx="120" cy="22" r="28" fill={theme.ground1} opacity="0.85" />
               <circle cx="50" cy="26" r="24" fill={theme.ground2} opacity="0.9" />
             </g>
-
-            {/* ── 核心队伍：精准随道路曲线行进的 SVG 编组 ── */}
-            <g
-              style={{
-                animation: "walkAlongSvgRoad 80s linear infinite",
-                animationPlayState: isHovered ? "paused" : "running",
-                willChange: "transform, opacity",
-              }}
-              className="pointer-events-auto cursor-pointer"
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-            >
-              {/* ─────────────────────────────────────────────────────────────
-               * 领队：佛陀 (The Buddha)
-               * ───────────────────────────────────────────────────────────── */}
-              <g transform="translate(580, 0)">
-                {/* 佛陀金色神圣背光 */}
-                <motion.circle
-                  cx="0"
-                  cy="-12"
-                  r="26"
-                  fill="url(#buddhaAuraGrad)"
-                  filter="url(#buddhaAuraGlow)"
-                  animate={
-                    isHovered
-                      ? { scale: [1.3, 1.45, 1.3], opacity: [0.85, 1, 0.85] }
-                      : { scale: [1, 1.12, 1], opacity: [0.55, 0.75, 0.55] }
-                  }
-                  transition={{ duration: isHovered ? 2 : 4, repeat: Infinity, ease: "easeInOut" }}
-                />
-                {/* 独立 Y 轴经行浮沉 */}
-                <motion.g animate={isHovered ? { y: 0 } : { y: [0, -4, 0] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}>
-                  <path d="M -12 18 C -14 36, -18 72, -22 96 L 22 96 C 18 72, 14 36, 12 18 Z" fill={theme.buddhaRobe} />
-                  <path d="M -8 22 Q 4 50, 16 96" stroke="#78350F" strokeWidth="1.8" strokeLinecap="round" opacity="0.65" />
-                  <path d="M -12 40 Q 0 65, 8 96" stroke="#78350F" strokeWidth="1.4" strokeLinecap="round" opacity="0.5" />
-                  <motion.g animate={isHovered ? { rotate: 0 } : { rotate: [-1.5, 1.5, -1.5] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}>
-                    <path d="M -6 32 C -2 38, 12 38, 16 32" stroke="#FED7AA" strokeWidth="3" strokeLinecap="round" />
-                    <ellipse cx="6" cy="31" rx="6.5" ry="4" fill="#1C1917" />
-                    <ellipse cx="6" cy="30" rx="5.5" ry="2" fill="#44403C" />
-                  </motion.g>
-                  <circle cx="0" cy="-6" r="9.5" fill="#FED7AA" />
-                  <circle cx="0" cy="-16" r="4.5" fill="#451A03" />
-                  <ellipse cx="0" cy="-8" rx="10" ry="8" fill="#451A03" opacity="0.8" />
-                  <motion.ellipse cx="-8" cy="97" rx="5.5" ry="2.6" fill="#451A03" animate={isHovered ? { x: 0 } : { x: [-3, 3, -3] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }} />
-                  <motion.ellipse cx="8" cy="97" rx="5.5" ry="2.6" fill="#451A03" animate={isHovered ? { x: 0 } : { x: [3, -3, 3] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }} />
-                </motion.g>
-              </g>
-
-              {/* ─────────────────────────────────────────────────────────────
-               * 随行：十大弟子 (Ten Disciples)
-               * ───────────────────────────────────────────────────────────── */}
-              {[
-                { name: "舍利弗", x: 480, height: 86, scale: 0.94, delay: 0.3 },
-                { name: "目犍连", x: 425, height: 88, scale: 0.95, delay: 0.6 },
-                { name: "大迦叶", x: 370, height: 84, scale: 0.92, delay: 0.9 },
-                { name: "阿难陀", x: 320, height: 82, scale: 0.90, delay: 1.2 },
-                { name: "须菩提", x: 270, height: 85, scale: 0.93, delay: 1.5 },
-                { name: "富楼那", x: 220, height: 83, scale: 0.91, delay: 1.8 },
-                { name: "迦旃延", x: 170, height: 85, scale: 0.92, delay: 2.1 },
-                { name: "阿那律", x: 120, height: 82, scale: 0.90, delay: 2.4 },
-                { name: "优婆离", x: 70, height: 80, scale: 0.88, delay: 2.7 },
-                { name: "罗睺罗", x: 20, height: 78, scale: 0.86, delay: 3.0 },
-              ].map((disciple) => (
-                <g key={disciple.name} transform={`translate(${disciple.x}, ${97 - disciple.height * disciple.scale}) scale(${disciple.scale})`}>
-                  <motion.g
-                    animate={isHovered ? { y: 0 } : { y: [0, -3.2, 0] }}
-                    transition={{ duration: 3.6, repeat: Infinity, delay: disciple.delay, ease: "easeInOut" }}
-                  >
-                    <path d={`M -9 15 C -11 30, -14 60, -17 ${disciple.height} L 17 ${disciple.height} C 14 60, 11 30, 9 15 Z`} fill={theme.discipleRobe} />
-                    <path d={`M -6 18 Q 2 45, 12 ${disciple.height}`} stroke="#92400E" strokeWidth="1.2" strokeLinecap="round" opacity="0.5" />
-                    <circle cx="0" cy="-2" r="7.5" fill="#FED7AA" />
-                    <circle cx="0" cy="-2" r="8" fill="#78350F" opacity="0.25" />
-                    {disciple.x % 2 === 0 ? (
-                      <motion.line x1="7" y1="-8" x2="13" y2={disciple.height} stroke="#78350F" strokeWidth="1.8" strokeLinecap="round" animate={isHovered ? { rotate: 0 } : { rotate: [-4, 4, -4] }} transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }} style={{ transformOrigin: "7px -8px" }} />
-                    ) : (
-                      <ellipse cx="2" cy="24" rx="4.5" ry="3" fill="#451A03" opacity="0.8" />
-                    )}
-                    <motion.ellipse cx="-6" cy={disciple.height + 1} rx="4.5" ry="2" fill="#451A03" animate={isHovered ? { x: 0 } : { x: [-2.5, 2.5, -2.5] }} transition={{ duration: 3.6, repeat: Infinity, delay: disciple.delay, ease: "easeInOut" }} />
-                    <motion.ellipse cx="6" cy={disciple.height + 1} rx="4.5" ry="2" fill="#451A03" animate={isHovered ? { x: 0 } : { x: [2.5, -2.5, 2.5] }} transition={{ duration: 3.6, repeat: Infinity, delay: disciple.delay, ease: "easeInOut" }} />
-                  </motion.g>
-                </g>
-              ))}
-            </g>
           </svg>
-
-          {/* ── 应机说法微提示 ── */}
-          <AnimatePresence>
-            {isHovered && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="pointer-events-none absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 rounded-full border border-amber-300/60 bg-amber-500/30 px-4 py-1.5 text-xs font-medium text-amber-950 dark:text-amber-100 backdrop-blur-md shadow-xl"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-amber-400 animate-spin" />
-                <span>佛陀应机说法 · 身心寂静</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* ── 步步生莲 ── */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            <AnimatePresence>
-              {lotuses.map((item) => (
-                <motion.div
-                  key={item.id}
-                  style={{
-                    position: "absolute",
-                    left: item.x,
-                    top: item.y,
-                    transform: `translate(-50%, -50%) rotate(${item.rotate}deg)`,
-                  }}
-                  initial={{ scale: 0, opacity: 0, y: 5 }}
-                  animate={{ scale: [0, item.scale * 1.15, item.scale], opacity: [0, 0.95, 0], y: -18 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  transition={{ duration: 2.1, ease: "easeOut" }}
-                >
-                  <svg width="44" height="44" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_0_8px_rgba(245,158,11,0.65)]">
-                    <defs>
-                      <linearGradient id="lotusPetalGold" x1="0%" y1="100%" x2="0%" y2="0%">
-                        <stop offset="0%" stopColor="#F59E0B" />
-                        <stop offset="60%" stopColor="#FEF08A" />
-                        <stop offset="100%" stopColor="#FFFFFF" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M 30 10 C 24 24, 24 38, 30 46 C 36 38, 36 24, 30 10 Z" fill="url(#lotusPetalGold)" />
-                    <path d="M 16 20 C 18 32, 24 40, 30 46 C 24 42, 16 30, 16 20 Z" fill="url(#lotusPetalGold)" opacity="0.9" />
-                    <path d="M 44 20 C 42 32, 36 40, 30 46 C 36 42, 44 30, 44 20 Z" fill="url(#lotusPetalGold)" opacity="0.9" />
-                    <path d="M 8 30 C 14 38, 22 44, 30 46 C 20 44, 12 36, 8 30 Z" fill="url(#lotusPetalGold)" opacity="0.75" />
-                    <path d="M 52 30 C 46 38, 38 44, 30 46 C 40 44, 48 36, 52 30 Z" fill="url(#lotusPetalGold)" opacity="0.75" />
-                    <circle cx="30" cy="42" r="4.5" fill="#FEF08A" />
-                    <circle cx="30" cy="42" r="2" fill="#F59E0B" />
-                  </svg>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
         </div>
       </motion.div>
 

@@ -303,5 +303,13 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  /* 彻底隐藏 Next.js 开发环境左下角 N 悬浮指示徽标 */
+  nextjs-portal,
+  #__next-build-watcher,
+  [data-nextjs-dev-tools-button],
+  [data-nextjs-toast] {
+    display: none !important;
+  }
 }
 

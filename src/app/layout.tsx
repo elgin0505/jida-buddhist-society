@@ -7,6 +7,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { PWAInstaller } from "@/components/PWAInstaller";
 import { CinematicNoise } from "@/components/CinematicNoise";
 import { BackToTop } from "@/components/BackToTop";
+import { MainLayout } from "@/components/MainLayout";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -49,7 +50,7 @@ export default function RootLayout({
             <LoadingTransition />
             <Navigation />
             <AuthGuard>
-              <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+              <MainLayout>{children}</MainLayout>
             </AuthGuard>
             <BackToTop />
             <PWAInstaller />

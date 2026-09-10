@@ -25,7 +25,7 @@ function handleLogout() {
 export function Navigation() {
   const pathname = usePathname();
 
-  if (pathname === "/auth") return null;
+  if (pathname === "/auth" || pathname === "/") return null;
 
   return (
     <>

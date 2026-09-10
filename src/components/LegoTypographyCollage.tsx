@@ -12,6 +12,7 @@ import {
   MotionValue,
 } from 'framer-motion';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { playSingingBowl } from '@/utils/zenAudio';
 
 // ==================== 世界坐标系常量 ====================
 const WORLD_W = 1400;
@@ -359,6 +360,19 @@ interface GoldStrokeTextProps {
 
 const GoldStrokeText: React.FC<GoldStrokeTextProps> = ({ text, photos, progress, isMobile = false }) => {
   const chars = text.split('');
+
+  // 庆祝合体完成的流金扫光动效 (activeProgress >= 0.92 ~ 1.0)
+  const shimmerX = useTransform(
+    progress,
+    [0.92, 0.985],
+    [START_X - 180, START_X + TOTAL_TEXT_W + 180]
+  );
+  const shimmerOpacity = useTransform(
+    progress,
+    [0.91, 0.935, 0.98, 1.0],
+    [0, 0.95, 0.95, 0.35]
+  );
+
   return (
     <svg
       className="pointer-events-none absolute inset-0"
@@ -366,6 +380,7 @@ const GoldStrokeText: React.FC<GoldStrokeTextProps> = ({ text, photos, progress,
       height={WORLD_H}
       viewBox={`0 0 ${WORLD_W} ${WORLD_H}`}
       preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
     >
       <defs>
         <linearGradient id="goldStroke" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -373,6 +388,15 @@ const GoldStrokeText: React.FC<GoldStrokeTextProps> = ({ text, photos, progress,
           <stop offset="40%" stopColor="#E8C547" />
           <stop offset="60%" stopColor="#B8860B" />
           <stop offset="100%" stopColor="#5C3D0A" />
+        </linearGradient>
+
+        {/* 庆祝合体完成时的流金扫光高亮渐变 */}
+        <linearGradient id="goldSweepGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#FFF9D2" stopOpacity="0" />
+          <stop offset="35%" stopColor="#FFE066" stopOpacity="0.45" />
+          <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.95" />
+          <stop offset="65%" stopColor="#FFE066" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#FFF9D2" stopOpacity="0" />
         </linearGradient>
 
         {/* PC 端保留高斯发光与内阴影滤镜，移动端跳过昂贵的 SVG 滤镜以保护 GPU 算力 */}
@@ -478,6 +502,23 @@ const GoldStrokeText: React.FC<GoldStrokeTextProps> = ({ text, photos, progress,
         );
       })}
 
+      {/* 顶层流金庆典扫光层（仅在各汉字实际笔画遮罩内部横扫，呈现合体完成时的华彩流光） */}
+      {chars.map((_, i) => (
+        <g key={`shimmer-group-${i}`} clipPath={`url(#char-clip-${i})`}>
+          <motion.rect
+            y={CHAR_Y - CHAR_W * 0.65}
+            width={200}
+            height={CHAR_W * 1.3}
+            fill="url(#goldSweepGradient)"
+            style={{
+              x: shimmerX,
+              opacity: shimmerOpacity,
+            }}
+            transform="skewX(-22)"
+          />
+        </g>
+      ))}
+
       {/* 字符底部活动标签微标 */}
       {EVENT_LABELS.map((label, i) => {
         const cx = getCharCenterX(i);
@@ -557,9 +598,25 @@ export const LegoTypographyCollage: React.FC<LegoTypographyCollageProps> = ({
     return () => window.removeEventListener('resize', updateScale);
   }, [isMobile]);
 
+  // -------- 当照片完全咬合合体完成 (progress >= 0.94) 时触发一次清脆庄严的颂钵磬鸣 --------
+  useEffect(() => {
+    let triggered = false;
+    const unsub = activeProgress.on('change', (v) => {
+      if (v >= 0.94 && !triggered) {
+        triggered = true;
+        playSingingBowl(528, 0.28); // 528Hz 空灵高阶梵音
+      } else if (v < 0.85) {
+        triggered = false;
+      }
+    });
+    return () => unsub();
+  }, [activeProgress]);
+
   return (
     <section
       ref={containerRef}
+      role="region"
+      aria-label="技大佛学会五大活动与例常拼贴画"
       className="relative w-full"
       style={{
         height: isMobile ? '220vh' : '320vh',
@@ -568,6 +625,10 @@ export const LegoTypographyCollage: React.FC<LegoTypographyCollageProps> = ({
         containIntrinsicSize: '1000px',
       }}
     >
+      {/* 读屏无障碍文本 (Screen Reader only) */}
+      <div className="sr-only">
+        技大佛学会五大活动例常：迎新会、欢乐营、静修营、卫塞营、传承营，照片拼贴聚合成汉字“技大佛学会”。
+      </div>
       {/* ==================== 古典竹林山水背景层 (纯静态、无抖动、无视差拉扯) ==================== */}
       <div
         className="absolute inset-0 bg-cover bg-center"
@@ -583,6 +644,12 @@ export const LegoTypographyCollage: React.FC<LegoTypographyCollageProps> = ({
         style={{
           background: isMobile ? 'rgba(0, 0, 0, 0.78)' : BG_OVERLAY,
         }}
+        aria-hidden="true"
+      />
+
+      {/* 顶部宣纸水墨洇染过渡层：承接上方米黄宣纸，自然渐隐入沉静深黑竹林 */}
+      <div
+        className="pointer-events-none absolute top-0 left-0 right-0 h-48 z-10 bg-gradient-to-b from-[#F2EAE0] via-[#8a7a63]/40 via-[#2a2216]/80 to-transparent"
         aria-hidden="true"
       />
 

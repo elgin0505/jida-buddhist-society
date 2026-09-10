@@ -13,6 +13,7 @@ import {
 } from 'framer-motion';
 import { Calendar } from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { playSingingBowl } from '@/utils/zenAudio';
 
 // ==================== 磁性按钮组件 ====================
 export interface MagneticButtonProps {
@@ -55,12 +56,17 @@ export const MagneticButton: React.FC<MagneticButtonProps> = ({
     my.set(0);
   };
 
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    playSingingBowl(432, 0.22);
+    onClick?.();
+  };
+
   return (
     <motion.button
       ref={ref}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onClick={onClick}
+      onClick={handleClick}
       style={{
         x: isMobile ? 0 : sx,
         y: isMobile ? 0 : sy,
@@ -156,6 +162,7 @@ export const FloatingPill: React.FC<{
     >
       {/* 内层包裹呼吸动画（与视差解耦，避免同一元素绑定冲突）*/}
       <motion.div
+        onClick={() => playSingingBowl(528 + (index % 5) * 64, 0.18)}
         animate={
           isMobile
             ? { y: [0, 0] } // 移动端关闭呼吸，保持绝对流畅
@@ -329,6 +336,12 @@ export const ExploreActivitiesSection: React.FC<ExploreActivitiesSectionProps> =
           </Link>
         </motion.div>
       </div>
+
+      {/* 底部水墨朝晖过渡层：深黑自然羽化洇染至暖米白 */}
+      <div
+        className="pointer-events-none absolute bottom-0 left-0 right-0 h-44 z-10 bg-gradient-to-b from-transparent via-[#1c1813]/60 via-[#8a795f]/30 to-[#FAF7F2]"
+        aria-hidden="true"
+      />
     </section>
   );
 };

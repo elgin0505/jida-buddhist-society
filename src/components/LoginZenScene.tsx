@@ -1249,6 +1249,38 @@ const ResponsiveCameraController: React.FC<{ isPhone: boolean }> = ({ isPhone })
 const LoginZenScene: React.FC<LoginZenSceneProps> = ({ timeOfDay, timeMode }) => {
   const effectiveTime: TimeOfDay = timeOfDay || timeMode || 'day';
   const isMobile = useIsMobile();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isInView, setIsInView] = useState(true);
+  const [isContextLost, setIsContextLost] = useState(false);
+
+  // 离屏挂起检测：离开视口时自动暂停渲染循环 (frameloop="demand")，彻底释放 GPU 算力
+  useEffect(() => {
+    if (!containerRef.current || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // WebGL 显存崩溃防御与优雅降级
+  const handleCreated = ({ gl }: { gl: THREE.WebGLRenderer }) => {
+    const canvas = gl.domElement;
+    const onLost = (event: Event) => {
+      event.preventDefault();
+      console.warn('[LoginZenScene] WebGL Context lost. Guarding and falling back.');
+      setIsContextLost(true);
+    };
+    const onRestored = () => {
+      console.info('[LoginZenScene] WebGL Context restored.');
+      setIsContextLost(false);
+    };
+    canvas.addEventListener('webglcontextlost', onLost, false);
+    canvas.addEventListener('webglcontextrestored', onRestored, false);
+  };
 
   // 手机端优化：相机距离拉远至 31.0（原本 26.25，增大约 18%），配合 FOV 50°，画面整体缩减约 20%
   const currentDistance = isMobile ? 31.0 : 26.25;
@@ -1256,31 +1288,54 @@ const LoginZenScene: React.FC<LoginZenSceneProps> = ({ timeOfDay, timeMode }) =>
   const initialFov = isMobile ? 50 : 45;
 
   return (
-    <Canvas
-      shadows
-      camera={{ position: initialPosition, fov: initialFov, near: 0.1, far: 300 }}
-      dpr={[1, Math.min(isMobile ? 1.5 : 2, typeof window !== 'undefined' ? window.devicePixelRatio || 2 : 2)]}
-      gl={{ alpha: true, antialias: true }}
-      style={{ width: '100%', height: '100%' }}
-    >
-      <Suspense fallback={null}>
-        <ResponsiveCameraController isPhone={isMobile} />
-        <SceneContent timeOfDay={effectiveTime} isMobile={isMobile} />
-        <PostProcessingEffects timeOfDay={effectiveTime} isMobile={isMobile} />
-        <OrbitControls
-          enableDamping
-          dampingFactor={0.05}
-          enableRotate={true}
-          enableZoom={false}
-          enablePan={false}
-          minPolarAngle={Math.PI / 4}
-          maxPolarAngle={Math.PI / 2.2}
-          minDistance={currentDistance}
-          maxDistance={currentDistance}
-          target={[0, 1, 0]}
-        />
-      </Suspense>
-    </Canvas>
+    <div ref={containerRef} className="relative w-full h-full overflow-hidden">
+      <Canvas
+        shadows
+        camera={{ position: initialPosition, fov: initialFov, near: 0.1, far: 300 }}
+        dpr={[1, Math.min(isMobile ? 1.5 : 2, typeof window !== 'undefined' ? window.devicePixelRatio || 2 : 2)]}
+        gl={{ alpha: true, antialias: true }}
+        frameloop={isInView ? 'always' : 'demand'}
+        onCreated={handleCreated}
+        style={{ width: '100%', height: '100%' }}
+      >
+        <Suspense fallback={null}>
+          <ResponsiveCameraController isPhone={isMobile} />
+          <SceneContent timeOfDay={effectiveTime} isMobile={isMobile} />
+          <PostProcessingEffects timeOfDay={effectiveTime} isMobile={isMobile} />
+          <OrbitControls
+            enableDamping
+            dampingFactor={0.05}
+            enableRotate={true}
+            enableZoom={false}
+            enablePan={false}
+            minPolarAngle={Math.PI / 4}
+            maxPolarAngle={Math.PI / 2.2}
+            minDistance={currentDistance}
+            maxDistance={currentDistance}
+            target={[0, 1, 0]}
+          />
+        </Suspense>
+      </Canvas>
+
+      {/* WebGL 显存崩溃守护备用图层 */}
+      {isContextLost && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-[#0a1628] via-[#10243e] to-[#0a1628] text-center p-6">
+          <div className="h-16 w-16 rounded-full bg-golden-rich/15 border border-golden-rich/35 flex items-center justify-center mb-3.5 text-2xl shadow-lg">
+            🪷
+          </div>
+          <h3 className="text-lg font-bold text-amber-200 mb-2 font-serif">3D 禅境自愈守护中</h3>
+          <p className="text-xs text-amber-100/70 max-w-xs leading-relaxed mb-4">
+            检测到设备显存占用较高，系统已自动挂起 3D 画布以保障系统流畅稳定。
+          </p>
+          <button
+            onClick={() => setIsContextLost(false)}
+            className="px-5 py-2 rounded-full border border-golden-rich/50 bg-golden-rich/20 text-xs font-semibold text-golden-rich hover:bg-golden-rich/30 transition-all active:scale-95 shadow-sm"
+          >
+            重新唤醒 3D 禅境
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
 

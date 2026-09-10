@@ -957,12 +957,47 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
       currentUserRole === '理事' ||
       process.env.NODE_ENV !== 'production');
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isInView, setIsInView] = useState(true);
+  const [isContextLost, setIsContextLost] = useState(false);
+
+  // 离屏挂起检测：离开视口时自动暂停渲染循环 (frameloop="demand")，彻底释放 GPU 算力
+  useEffect(() => {
+    if (!containerRef.current || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // WebGL 显存崩溃防御与优雅降级
+  const handleCreated = ({ gl }: { gl: THREE.WebGLRenderer }) => {
+    const canvas = gl.domElement;
+    const onLost = (event: Event) => {
+      event.preventDefault();
+      console.warn('[LotusSeaCanvas] WebGL Context lost. Guarding and falling back.');
+      setIsContextLost(true);
+    };
+    const onRestored = () => {
+      console.info('[LotusSeaCanvas] WebGL Context restored.');
+      setIsContextLost(false);
+    };
+    canvas.addEventListener('webglcontextlost', onLost, false);
+    canvas.addEventListener('webglcontextrestored', onRestored, false);
+  };
+
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <Canvas
         shadows
         camera={{ position: [0, 10, 18], fov: 50, near: 0.1, far: 200 }}
         dpr={[1, 2]}
+        frameloop={isInView ? 'always' : 'demand'}
+        onCreated={handleCreated}
         style={{ width: '100%', height: '100%' }}
       >
         <Suspense fallback={null}>
@@ -989,6 +1024,25 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
           </EffectComposer>
         </Suspense>
       </Canvas>
+
+      {/* WebGL 显存崩溃守护备用图层 */}
+      {isContextLost && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-b from-[#0a1628] via-[#10243e] to-[#0a1628] text-center p-6">
+          <div className="h-16 w-16 rounded-full bg-golden-rich/15 border border-golden-rich/35 flex items-center justify-center mb-3.5 text-2xl shadow-lg">
+            🪷
+          </div>
+          <h3 className="text-lg font-bold text-amber-200 mb-2 font-serif">3D 莲池禅境自愈守护中</h3>
+          <p className="text-xs text-amber-100/70 max-w-xs leading-relaxed mb-4">
+            检测到设备显存占用较高，系统已自动挂起 3D 画布以保障系统流畅稳定。
+          </p>
+          <button
+            onClick={() => setIsContextLost(false)}
+            className="px-5 py-2 rounded-full border border-golden-rich/50 bg-golden-rich/20 text-xs font-semibold text-golden-rich hover:bg-golden-rich/30 transition-all active:scale-95 shadow-sm pointer-events-auto"
+          >
+            重新唤醒 3D 莲池
+          </button>
+        </div>
+      )}
 
       {/* 顶部控制栏 */}
       <div

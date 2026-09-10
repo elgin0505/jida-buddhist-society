@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X, Info } from 'lucide-react';
 import { AboutDrawer } from '@/components/AboutDrawer';
+import { ZenSoundToggle } from '@/components/ZenSoundToggle';
 
 export function Header() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
@@ -62,8 +63,9 @@ export function Header() {
             </button>
           </nav>
 
-          {/* ── 3. 右上角 (登入/注册 按钮) ── */}
+          {/* ── 3. 右上角 (声场开关 & 登入/注册 按钮) ── */}
           <div className="flex items-center gap-2 sm:gap-3">
+            <ZenSoundToggle />
             <Link
               href="/auth"
               className="inline-flex items-center rounded-full bg-golden-rich px-4 py-1.5 sm:px-5 sm:py-2 text-xs sm:text-sm font-semibold text-warm-white shadow-sm shadow-golden-rich/30 transition-all duration-300 hover:bg-golden-deep hover:scale-[1.03] active:scale-[0.98]"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { CanvasLotusLoader } from "./CanvasLotusLoader";
@@ -102,24 +102,39 @@ export function LotusFlower({ progress = 1 }: { progress?: number }) {
 export function LoadingTransition() {
   const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
-  const [prevPath, setPrevPath] = useState(pathname);
+  const prevPathRef = useRef(pathname);
 
   useEffect(() => {
-    if (pathname !== prevPath) {
-      // 路由切换：展示 loading
-      setIsVisible(true);
-
-      // 延长一点展示时间以欣赏特效 (2.5秒)
-      const hide = setTimeout(() => {
-        setIsVisible(false);
-        setPrevPath(pathname);
-      }, 2500);
-
-      return () => {
-        clearTimeout(hide);
-      };
+    // 首次挂载或路径未变化时不触发过渡
+    if (pathname === prevPathRef.current) {
+      return;
     }
-  }, [pathname, prevPath]);
+
+    prevPathRef.current = pathname;
+
+    // 落地页及 /auth 页面不展示莲花转场，避免遮挡
+    if (pathname === "/auth" || pathname === "/") {
+      setIsVisible(false);
+      return;
+    }
+
+    // 路由切换：展示 loading 莲花特效
+    setIsVisible(true);
+
+    // 适中优雅的展示时间（1秒），随后自动淡出，避免长时间阻塞用户交互
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+    }, 1000);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [pathname]);
+
+  // 进入 /auth 或 / 页面时不渲染莲花层
+  if (pathname === "/auth" || pathname === "/") {
+    return null;
+  }
 
   return (
     <AnimatePresence>
@@ -129,10 +144,12 @@ export function LoadingTransition() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
-          className="fixed inset-0 z-[9999]"
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+          className="fixed inset-0 z-[9999] cursor-pointer select-none"
+          onClick={() => setIsVisible(false)}
+          title="点击即可快速跳过转场"
         >
-          <CanvasLotusLoader />
+          <CanvasLotusLoader duration={1000} />
         </motion.div>
       )}
     </AnimatePresence>

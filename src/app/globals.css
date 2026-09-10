@@ -304,6 +304,18 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  /* 供灯入口悬浮位置：手机端抬高避让底部导航栏与安全区，桌面端优雅贴角 */
+  .liquid-orb-pos {
+    left: 16px;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 768px) {
+    .liquid-orb-pos {
+      left: 24px;
+      bottom: 24px;
+    }
+  }
+
   /* 彻底隐藏 Next.js 开发环境左下角 N 悬浮指示徽标 */
   nextjs-portal,
   #__next-build-watcher,

@@ -23,7 +23,13 @@ export default function EventsPage() {
     fetch("/api/events")
       .then((res) => res.json())
       .then((data) => {
-        setEvents(data);
+        setEvents(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("Failed to load events:", err);
+        setEvents([]);
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, []);

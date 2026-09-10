@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useRef } from 'react';
+import Image from 'next/image';
 import {
   motion,
   useScroll,
@@ -9,6 +10,7 @@ import {
   useTransform,
   MotionValue,
 } from 'framer-motion';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 // ---------- 工笔七叶掌状复叶（青翠宣纸墨色与流金主脉） ----------
 const GongbiSevenLeafCluster: React.FC<{ size?: number }> = ({ size = 110 }) => {
@@ -106,7 +108,8 @@ const VineLeaf: React.FC<{
   node: LeafNode;
   scrollYProgress: MotionValue<number>;
   containerHeight: number;
-}> = ({ node, scrollYProgress, containerHeight }) => {
+  isMobile?: boolean;
+}> = ({ node, scrollYProgress, containerHeight, isMobile = false }) => {
   const y = node.t * containerHeight;
   const x = 50 + Math.sin(node.t * Math.PI * 2.3) * 85 + node.side * 24;
 
@@ -120,6 +123,29 @@ const VineLeaf: React.FC<{
     [start, end],
     [node.rotate - 30 * node.side, node.rotate]
   );
+
+  // 移动端：仅在进入视口时执行单次流畅入场动画，完全解耦滚动逐帧计算
+  if (isMobile) {
+    return (
+      <motion.g
+        initial={{ scale: 0, opacity: 0 }}
+        whileInView={{ scale: node.scale, opacity: 0.95 }}
+        viewport={{ once: true, margin: '-40px' }}
+        transition={{
+          duration: 0.8,
+          delay: 0.2 + node.t * 1.2,
+          ease: [0.16, 1, 0.3, 1],
+        }}
+        style={{
+          transformOrigin: `${x}px ${y}px`,
+        }}
+      >
+        <g transform={`translate(${x}, ${y}) rotate(${node.rotate})`}>
+          <GongbiSevenLeafCluster size={110} />
+        </g>
+      </motion.g>
+    );
+  }
 
   return (
     <motion.g
@@ -144,6 +170,7 @@ export interface GrowingSacredVineProps {
 
 export const GrowingSacredVine: React.FC<GrowingSacredVineProps> = ({ flip = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -156,55 +183,86 @@ export const GrowingSacredVine: React.FC<GrowingSacredVineProps> = ({ flip = fal
     mass: 0.8,
   });
 
-  // 随滚动抽枝生长的蔓延路径
+  // PC 端随滚动抽枝生长的蔓延路径
   const pathLength = useTransform(smoothProgress, [0, 0.88], [0, 1]);
   const trunkOpacity = useTransform(smoothProgress, [0, 0.05], [0, 0.95]);
   const parallaxY = useTransform(smoothProgress, [0, 1], [30, -30]);
 
+  // 次级分支动画变换
+  const branch1PathLength = useTransform(smoothProgress, [0.15, 0.35], [0, 1]);
+  const branch1Opacity = useTransform(smoothProgress, [0.15, 0.35], [0, 0.85]);
+  const branch2PathLength = useTransform(smoothProgress, [0.35, 0.55], [0, 1]);
+  const branch2Opacity = useTransform(smoothProgress, [0.35, 0.55], [0, 0.85]);
+  const branch3PathLength = useTransform(smoothProgress, [0.55, 0.75], [0, 1]);
+  const branch3Opacity = useTransform(smoothProgress, [0.55, 0.75], [0, 0.85]);
+
   const containerHeight = 900;
+
+  // 移动端精简叶片节点：取半数核心节点，减少 50% 的复杂 SVG 路径计算
+  const activeLeafNodes = isMobile
+    ? LEAF_NODES.filter((_, idx) => idx % 2 === 0)
+    : LEAF_NODES;
 
   return (
     <div
       ref={containerRef}
       className="absolute inset-0 pointer-events-none overflow-hidden select-none"
-      style={{ zIndex: 0 }}
+      style={{
+        zIndex: 0,
+        contentVisibility: 'auto',
+        containIntrinsicSize: '900px',
+      }}
       aria-hidden="true"
     >
       {/* ───── 1. 宣纸温润光晕底色 ───── */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_65%_at_50%_40%,rgba(235,215,160,0.25),transparent_75%)]" />
 
-      {/* ───── 2. 工笔草叶花卉名画真迹层（柔和正片叠底衬底） ───── */}
+      {/* ───── 2. 工笔草叶花卉名画真迹层 ───── */}
       <motion.div
         className={`absolute top-[-5%] h-[110%] w-[320px] sm:w-[480px] md:w-[580px] lg:w-[680px] pointer-events-none transition-transform duration-700 ease-out ${
           flip
             ? 'right-[-20px] sm:right-[2%] lg:right-[5%] scale-x-[-1]'
             : 'left-[-20px] sm:left-[2%] lg:left-[5%]'
         }`}
-        style={{
-          y: parallaxY,
-          transform: 'translate3d(0, 0, 0)',
-        }}
+        style={
+          isMobile
+            ? { transform: 'translate3d(0, 0, 0)' }
+            : { y: parallaxY, transform: 'translate3d(0, 0, 0)' }
+        }
       >
         <div
-          className="relative w-full h-full opacity-60 sm:opacity-75 lg:opacity-80 mix-blend-multiply"
-          style={{
-            maskImage:
-              'radial-gradient(ellipse 68% 78% at 50% 50%, black 45%, rgba(0,0,0,0.3) 75%, transparent 100%)',
-            WebkitMaskImage:
-              'radial-gradient(ellipse 68% 78% at 50% 50%, black 45%, rgba(0,0,0,0.3) 75%, transparent 100%)',
-          }}
+          className={`relative w-full h-full ${
+            isMobile
+              ? 'opacity-35' // 移动端消除 mix-blend-multiply 与重度滤镜，使用纯净透明度
+              : 'opacity-60 sm:opacity-75 lg:opacity-80 mix-blend-multiply'
+          }`}
+          style={
+            isMobile
+              ? undefined
+              : {
+                  maskImage:
+                    'radial-gradient(ellipse 68% 78% at 50% 50%, black 45%, rgba(0,0,0,0.3) 75%, transparent 100%)',
+                  WebkitMaskImage:
+                    'radial-gradient(ellipse 68% 78% at 50% 50%, black 45%, rgba(0,0,0,0.3) 75%, transparent 100%)',
+                }
+          }
         >
-          <img
+          <Image
             src="/botanical-bg.jpg"
             alt="工笔草木名画"
-            className="w-full h-full object-contain object-center filter saturate-[1.08] contrast-[1.03]"
+            fill
+            sizes="(max-width: 768px) 50vw, 35vw"
+            quality={60}
             loading="lazy"
+            className={`object-contain object-center ${
+              isMobile ? '' : 'filter saturate-[1.08] contrast-[1.03]'
+            }`}
             draggable={false}
           />
         </div>
       </motion.div>
 
-      {/* ───── 3. ⭐ 明显生动的动态蔓生藤蔓（随滚动向下蜿蜒抽枝、破土拔节） ───── */}
+      {/* ───── 3. ⭐ 动态蔓生藤蔓（移动端 whileInView 单次动画，PC 端实时滚动生发） ───── */}
       <div className={`w-full h-full ${flip ? '-scale-x-100' : ''}`}>
         <svg
           className="absolute inset-0 w-full h-full"
@@ -213,7 +271,6 @@ export const GrowingSacredVine: React.FC<GrowingSacredVineProps> = ({ flip = fal
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
-            {/* 工笔古青翠绿渐变主藤 */}
             <linearGradient id="gongbiVineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#7EAB83" stopOpacity="0.95" />
               <stop offset="45%" stopColor="#436F49" stopOpacity="0.95" />
@@ -221,88 +278,148 @@ export const GrowingSacredVine: React.FC<GrowingSacredVineProps> = ({ flip = fal
             </linearGradient>
           </defs>
 
-          {/* -------- 主藤蔓粗茎（明显生动，随滚动蜿蜒绘制）-------- */}
-          <motion.path
-            d={`M -70 -40
-                C 80 120, -10 240, 105 370
-                S 40 550, 140 730
-                S -5 880, 115 ${containerHeight}`}
-            fill="none"
-            stroke="url(#gongbiVineGrad)"
-            strokeWidth="3.8"
-            strokeLinecap="round"
-            style={{
-              pathLength,
-              opacity: trunkOpacity,
-            }}
-          />
+          {/* -------- 主藤蔓粗茎 -------- */}
+          {isMobile ? (
+            <motion.path
+              d={`M -70 -40
+                  C 80 120, -10 240, 105 370
+                  S 40 550, 140 730
+                  S -5 880, 115 ${containerHeight}`}
+              fill="none"
+              stroke="url(#gongbiVineGrad)"
+              strokeWidth="3.8"
+              strokeLinecap="round"
+              initial={{ pathLength: 0, opacity: 0 }}
+              whileInView={{ pathLength: 1, opacity: 0.95 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 2.0, ease: 'easeOut' }}
+            />
+          ) : (
+            <motion.path
+              d={`M -70 -40
+                  C 80 120, -10 240, 105 370
+                  S 40 550, 140 730
+                  S -5 880, 115 ${containerHeight}`}
+              fill="none"
+              stroke="url(#gongbiVineGrad)"
+              strokeWidth="3.8"
+              strokeLinecap="round"
+              style={{
+                pathLength,
+                opacity: trunkOpacity,
+              }}
+            />
+          )}
 
           {/* -------- 次级分支（蔓延展开）-------- */}
-          <motion.path
-            d="M 35 190 Q 95 235 160 215"
-            fill="none"
-            stroke="#436F49"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            style={{
-              pathLength: useTransform(smoothProgress, [0.15, 0.35], [0, 1]),
-              opacity: useTransform(smoothProgress, [0.15, 0.35], [0, 0.85]),
-            }}
-          />
-          <motion.path
-            d="M 80 400 Q 25 450 -15 490"
-            fill="none"
-            stroke="#436F49"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            style={{
-              pathLength: useTransform(smoothProgress, [0.35, 0.55], [0, 1]),
-              opacity: useTransform(smoothProgress, [0.35, 0.55], [0, 0.85]),
-            }}
-          />
-          <motion.path
-            d="M 120 645 Q 185 695 230 780"
-            fill="none"
-            stroke="#436F49"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            style={{
-              pathLength: useTransform(smoothProgress, [0.55, 0.75], [0, 1]),
-              opacity: useTransform(smoothProgress, [0.55, 0.75], [0, 0.85]),
-            }}
-          />
+          {isMobile ? (
+            <>
+              <motion.path
+                d="M 35 190 Q 95 235 160 215"
+                fill="none"
+                stroke="#436F49"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                initial={{ pathLength: 0, opacity: 0 }}
+                whileInView={{ pathLength: 1, opacity: 0.85 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1.2, delay: 0.4, ease: 'easeOut' }}
+              />
+              <motion.path
+                d="M 80 400 Q 25 450 -15 490"
+                fill="none"
+                stroke="#436F49"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                initial={{ pathLength: 0, opacity: 0 }}
+                whileInView={{ pathLength: 1, opacity: 0.85 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1.2, delay: 0.7, ease: 'easeOut' }}
+              />
+              <motion.path
+                d="M 120 645 Q 185 695 230 780"
+                fill="none"
+                stroke="#436F49"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                initial={{ pathLength: 0, opacity: 0 }}
+                whileInView={{ pathLength: 1, opacity: 0.85 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1.2, delay: 1.0, ease: 'easeOut' }}
+              />
+            </>
+          ) : (
+            <>
+              <motion.path
+                d="M 35 190 Q 95 235 160 215"
+                fill="none"
+                stroke="#436F49"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                style={{
+                  pathLength: branch1PathLength,
+                  opacity: branch1Opacity,
+                }}
+              />
+              <motion.path
+                d="M 80 400 Q 25 450 -15 490"
+                fill="none"
+                stroke="#436F49"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                style={{
+                  pathLength: branch2PathLength,
+                  opacity: branch2Opacity,
+                }}
+              />
+              <motion.path
+                d="M 120 645 Q 185 695 230 780"
+                fill="none"
+                stroke="#436F49"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                style={{
+                  pathLength: branch3PathLength,
+                  opacity: branch3Opacity,
+                }}
+              />
+            </>
+          )}
 
-          {/* -------- 沿藤蔓破土绽放的工笔七叶草簇（蔓生效果十分清晰）-------- */}
-          {LEAF_NODES.map((node, i) => (
+          {/* -------- 沿藤蔓破土绽放的工笔七叶草簇 -------- */}
+          {activeLeafNodes.map((node, i) => (
             <VineLeaf
               key={i}
               node={node}
               scrollYProgress={smoothProgress}
               containerHeight={containerHeight}
+              isMobile={isMobile}
             />
           ))}
         </svg>
       </div>
 
-      {/* ───── 4. 禅意微尘（纯 CSS 合成） ───── */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <span
-          className="absolute w-2 h-2 rounded-full bg-amber-400/50 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-pulse"
-          style={{ top: '22%', left: '18%', animationDuration: '4s' }}
-        />
-        <span
-          className="absolute w-1.5 h-1.5 rounded-full bg-emerald-600/40 shadow-[0_0_8px_rgba(45,106,79,0.4)] animate-pulse"
-          style={{ top: '68%', left: '26%', animationDuration: '6s', animationDelay: '1.5s' }}
-        />
-        <span
-          className="absolute w-2.5 h-2.5 rounded-full bg-amber-300/40 shadow-[0_0_14px_rgba(251,191,36,0.4)] animate-pulse"
-          style={{ top: '35%', right: '22%', animationDuration: '5s', animationDelay: '0.8s' }}
-        />
-        <span
-          className="absolute w-1.5 h-1.5 rounded-full bg-emerald-700/30 shadow-[0_0_8px_rgba(64,145,108,0.35)] animate-pulse"
-          style={{ top: '75%', right: '15%', animationDuration: '7s', animationDelay: '2s' }}
-        />
-      </div>
+      {/* ───── 4. 禅意微尘（仅在 PC 端渲染，移动端免除常驻脉冲动画） ───── */}
+      {!isMobile && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <span
+            className="absolute w-2 h-2 rounded-full bg-amber-400/50 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-pulse"
+            style={{ top: '22%', left: '18%', animationDuration: '4s' }}
+          />
+          <span
+            className="absolute w-1.5 h-1.5 rounded-full bg-emerald-600/40 shadow-[0_0_8px_rgba(45,106,79,0.4)] animate-pulse"
+            style={{ top: '68%', left: '26%', animationDuration: '6s', animationDelay: '1.5s' }}
+          />
+          <span
+            className="absolute w-2.5 h-2.5 rounded-full bg-amber-300/40 shadow-[0_0_14px_rgba(251,191,36,0.4)] animate-pulse"
+            style={{ top: '35%', right: '22%', animationDuration: '5s', animationDelay: '0.8s' }}
+          />
+          <span
+            className="absolute w-1.5 h-1.5 rounded-full bg-emerald-700/30 shadow-[0_0_8px_rgba(64,145,108,0.35)] animate-pulse"
+            style={{ top: '75%', right: '15%', animationDuration: '7s', animationDelay: '2s' }}
+          />
+        </div>
+      )}
     </div>
   );
 };

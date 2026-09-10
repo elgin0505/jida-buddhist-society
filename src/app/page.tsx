@@ -1,8 +1,15 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Header } from '@/components/Header';
 import { ParallaxGrid } from '@/components/ParallaxGrid';
 import CylindricalGallery from '@/components/CylindricalGallery';
-import { Sparkles, ArrowRight, BookOpen, Flame, Calendar, HeartHandshake } from 'lucide-react';
+import ZenPreloader from '@/components/ZenPreloader';
+import LegoTypographyCollage from '@/components/LegoTypographyCollage';
+import ExploreActivitiesSection from '@/components/ExploreActivitiesSection';
+import { Sparkles, ArrowRight, BookOpen, Calendar, HeartHandshake } from 'lucide-react';
 
 const CLASSES = [
   {
@@ -50,20 +57,57 @@ const FIVE_EVENTS = [
   },
 ];
 
-const MORE_EVENTS = [
-  '中秋供灯法会',
-  '晨间禅坐',
-  '佛法青年分享会',
-  '禅意手工莲花灯坊',
-  '自然步道经行',
-  '校园慈心素食义卖',
-  '临终关怀辅导座谈',
-  '古寺佛像参访研学',
-];
+
+// 主页内容入场动画的统一变体
+const contentVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 1.0,
+      ease: [0.22, 1, 0.36, 1] as const,
+      delay: 0.2, // 让 Preloader 先开始退场
+    },
+  },
+};
 
 export default function LandingPage() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  // -------- 加载状态管理 --------
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 2200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // -------- 锁定 / 解锁 body 滚动 --------
+  useEffect(() => {
+    if (isLoading) {
+      document.body.style.overflow = 'hidden';
+      window.scrollTo(0, 0);
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isLoading]);
+
   return (
-    <main className="min-h-screen bg-warm-white text-charcoal selection:bg-golden-rich/20 selection:text-charcoal">
+    <>
+      {/* -------- 全局入场 技大佛学会 Logo 闪烁 Preloader -------- */}
+      <AnimatePresence mode="wait">
+        {isLoading && <ZenPreloader key="landing-preloader" logoSrc="/logo.png" />}
+      </AnimatePresence>
+
+      {/* -------- 主页内容（随 Preloader 退场而浮现）-------- */}
+      <motion.main
+        className="min-h-screen bg-warm-white text-charcoal selection:bg-golden-rich/20 selection:text-charcoal"
+        variants={contentVariants}
+        initial="hidden"
+        animate={isLoading ? 'hidden' : 'visible'}
+      >
       {/* 悬浮毛玻璃导航栏 */}
       <Header />
 
@@ -131,46 +175,17 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── 模块：更多活动 ── */}
-      <section id="more-events" className="mx-auto max-w-6xl px-4 py-24 sm:px-8">
-        <SectionHeading eyebrow="法喜充盈 · 持续更新" title="探索更多精彩活动" />
-        <p className="max-w-2xl text-sm leading-relaxed text-muted mb-8">
-          除了常态佛学课程与年度五大盛事，佛学会全年持续开展丰富多彩的青年交流项目，从晨曦禅坐到公益助人，陪伴大家度过充实有意义的大学时光。
-        </p>
+      {/* ── 模块：乐高拼字照片墙 (LegoTypographyCollage) ── */}
+      <LegoTypographyCollage />
 
-        <div className="flex flex-wrap gap-2.5 sm:gap-3">
-          {MORE_EVENTS.map((name) => (
-            <span
-              key={name}
-              className="inline-flex items-center gap-2 rounded-full border border-ocher/30 bg-warm-cream/50 px-4 py-2 text-xs sm:text-sm font-medium text-charcoal/90 transition-all hover:border-golden-rich hover:bg-golden-rich/10 hover:text-golden-rich"
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-golden-rich" />
-              {name}
-            </span>
-          ))}
-        </div>
-
-        <div className="mt-10 flex flex-wrap items-center gap-4">
-          <Link
-            href="/events"
-            className="inline-flex items-center gap-2 rounded-full bg-charcoal px-6 py-3.5 text-sm font-semibold text-warm-white shadow-sm transition-all hover:bg-charcoal/90 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Calendar className="h-4 w-4 text-golden-rich" />
-            <span>查看完整活动日历</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </section>
+      {/* ── 模块：更多活动 (带 2.5D 视差胶囊与磁性按钮特效) ── */}
+      <ExploreActivitiesSection />
 
       {/* ── 模块：进入 3D 会员系统引流 Banner (CTA) ── */}
       <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-8">
         <div className="relative overflow-hidden rounded-3xl border border-golden-rich/30 bg-gradient-to-br from-warm-cream via-warm-white to-ocher-light/30 p-8 sm:p-12 shadow-sm text-center">
           <div className="mx-auto max-w-2xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-golden-rich/15 px-3 py-1 text-xs font-semibold text-golden-rich">
-              <Flame className="h-3.5 w-3.5" />
-              恒河圣境 · 会员积分出勤追踪
-            </span>
-            <h2 className="mt-4 text-2xl sm:text-4xl font-black tracking-tight text-charcoal">
+            <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-charcoal">
               共修菩提，心怀慈悲 · 开启专属修行之旅
             </h2>
             <p className="mt-3 text-xs sm:text-sm leading-relaxed text-muted">
@@ -230,7 +245,8 @@ export default function LandingPage() {
           <p>© {new Date().getFullYear()} 技大佛学会</p>
         </div>
       </footer>
-    </main>
+      </motion.main>
+    </>
   );
 }
 

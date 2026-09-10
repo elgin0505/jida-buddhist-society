@@ -1033,7 +1033,7 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
       <div
         style={{
           position: 'absolute',
-          bottom: '30px',
+          bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 10,
@@ -1041,6 +1041,8 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
           flexDirection: 'column',
           alignItems: 'center',
           gap: '8px',
+          width: 'max-content',
+          maxWidth: '92vw',
         }}
       >
         {isPlacementMode && (
@@ -1057,12 +1059,14 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
               boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '6px',
-              whiteSpace: 'nowrap',
+              maxWidth: '92vw',
+              textAlign: 'center',
             }}
           >
             {isInnerCirclePermitted(currentUserRole) ? (
-              <span>🪷 您当前身份为【{currentUserRole}】：享有光环内圈及外圈任意水面供灯特权</span>
+              <span>🪷 您当前身份为【{currentUserRole}】：享有内圈及外圈任意水面供灯特权</span>
             ) : (
               <span>🌱 您当前身份为【学员】：请在光环外圈供灯（内圈为理事与学长姐专属福田）</span>
             )}

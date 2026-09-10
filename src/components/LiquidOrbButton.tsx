@@ -426,25 +426,27 @@ export default function LiquidOrbButton({ onClick }: { onClick: () => void }) {
   }, []);
 
   return (
-    <button
-      onClick={onClick}
-      className="fixed z-40 flex h-16 w-16 items-center justify-center rounded-full bg-[#010208] text-white shadow-[0_8px_20px_rgba(201,162,39,0.4)] transition-all hover:scale-110 active:scale-95 overflow-hidden"
-      style={{
-        left: "20px",
-        bottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
-      }}
-      title="供灯祈福"
-    >
-      {!error ? (
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-golden-deep to-golden-rich" />
-      )}
-      <img
-        src="/lotus-logo.png"
-        alt="Lotus"
-        className="relative z-10 w-9 h-9 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] select-none pointer-events-none"
-      />
-    </button>
+    <div className="liquid-orb-pos fixed z-40 flex flex-col items-center select-none pointer-events-auto">
+      <button
+        onClick={onClick}
+        className="group relative flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-full bg-[#010208] text-white shadow-[0_8px_24px_rgba(201,162,39,0.45)] ring-2 ring-golden-deep/50 transition-all duration-300 hover:scale-110 active:scale-95 hover:ring-golden-deep/80 overflow-hidden cursor-pointer"
+        title="供灯祈福"
+        aria-label="供灯祈福"
+      >
+        {!error ? (
+          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-golden-deep to-golden-rich" />
+        )}
+        <img
+          src="/lotus-logo.png"
+          alt="Lotus"
+          className="relative z-10 w-8 h-8 md:w-9 md:h-9 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] select-none pointer-events-none transition-transform duration-300 group-hover:scale-105"
+        />
+      </button>
+      <span className="mt-1 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-bold tracking-wider text-golden-rich border border-golden-deep/30 shadow-md backdrop-blur-xs select-none pointer-events-none whitespace-nowrap">
+        供灯祈福
+      </span>
+    </div>
   );
 }

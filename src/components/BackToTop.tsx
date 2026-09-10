@@ -8,8 +8,14 @@ export function BackToTop() {
 
   useEffect(() => {
     const handleScroll = () => {
+      if (typeof document !== "undefined" && document.body.style.overflow === "hidden") {
+        setVisible(false);
+        return;
+      }
       setVisible(window.scrollY > 300);
     };
+
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);

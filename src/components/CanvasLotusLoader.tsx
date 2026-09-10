@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 
-export function CanvasLotusLoader() {
+export function CanvasLotusLoader({ duration = 1000 }: { duration?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export function CanvasLotusLoader() {
 
     // ========== 动画状态 ==========
     const startTime = performance.now();
-    const DURATION = 3600; // 完整绽放周期（毫秒），循环往复
+    const DURATION = duration; // 完整绽放周期（毫秒），循环往复
     const PARTICLE_COUNT = 80; // 粒子数量
 
     // ========== 粒子系统 ==========

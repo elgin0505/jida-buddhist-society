@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock, User, Loader2, Calendar } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Loader2, Calendar, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { ZenLogo3D } from "@/components/ZenLogo3D";
 import { InkRippleButton } from "@/components/InkRippleButton";
 import { ForgotPasswordCard } from "@/components/ForgotPasswordCard";
+import AuthPreloader from "@/components/AuthPreloader";
 import { useZenAudio } from "@/hooks/useZenAudio";
 
 // Dynamic import MindfulJourney (恒河圣境 · 视差互动背景)
@@ -20,19 +22,58 @@ type Mode = "login" | "register" | "forgot";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<Mode>("login");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // -------- 模拟 / 管理加载完成状态 --------
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 2200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // -------- 加载期间锁定滚动 --------
+  useEffect(() => {
+    if (isLoading) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isLoading]);
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-8 sm:py-12">
+      {/* -------- Auth 入场 Preloader -------- */}
+      <AnimatePresence mode="wait">
+        {isLoading && <AuthPreloader key="auth-preloader" />}
+      </AnimatePresence>
+
+      {/* -------- 返回首页快捷入口 -------- */}
+      <Link
+        href="/"
+        className="absolute left-5 top-5 z-40 flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/90 backdrop-blur-md border border-white/20 shadow-lg transition-all hover:bg-white/25 hover:scale-105 active:scale-95"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        <span>返回首页</span>
+      </Link>
+
       {/* ── 1. 恒河圣境与 3D 禅境湖泊融合全景背景 ── */}
       <Suspense fallback={null}>
         <MindfulJourney />
       </Suspense>
 
-      {/* ── 2. 3D 悬浮 Logo ── */}
-      <ZenLogo3D />
+      {/* ── 2. 3D 悬浮 Logo 与表单（随 Preloader 退场而浮现） ── */}
+      <motion.div
+        className="relative z-10 flex w-full flex-col items-center justify-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={isLoading ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
+        transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <ZenLogo3D />
 
-      {/* ── 3. 极致玻璃态前景表单卡片 ── */}
-      <div className="relative z-10 w-full max-w-[420px]">
+        {/* ── 3. 极致玻璃态前景表单卡片 ── */}
+        <div className="relative z-10 w-full max-w-[420px]">
         <AnimatePresence mode="wait">
           {mode === "login" ? (
             <motion.div
@@ -74,7 +115,8 @@ export default function AuthPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

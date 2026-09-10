@@ -1,7 +1,8 @@
 // src/components/CylindricalGallery.tsx
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef } from 'react';
+import Image from 'next/image';
 import {
   motion,
   useScroll,
@@ -10,6 +11,7 @@ import {
   MotionValue,
 } from 'framer-motion';
 import GrowingSacredVine from './GrowingSacredVine';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 // ---------- 类型定义 ----------
 export interface GalleryPhoto {
@@ -197,15 +199,7 @@ export const SingleActivityCylinder: React.FC<{
   config: ActivityGalleryConfig;
 }> = ({ config }) => {
   const sectionRef = useRef<HTMLDivElement>(null);
-
-  // 移动端检测
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
+  const isMobile = useIsMobile();
 
   // 监听当前独立组件视口滚动进度
   const { scrollYProgress } = useScroll({
@@ -213,12 +207,15 @@ export const SingleActivityCylinder: React.FC<{
     offset: ['start end', 'end start'],
   });
 
-  // 阻尼弹簧平滑滚动 - 调优为敏捷跟手，彻底根除粘滞感
+  // 阻尼弹簧平滑滚动 - PC 端调优为敏捷跟手
   const smoothProgress = useSpring(scrollYProgress, {
     stiffness: 85,
     damping: 26,
     mass: 0.8,
   });
+
+  // 移动端彻底剥离物理弹簧引擎，直接使用原始 scrollYProgress，大幅消除手机滚动粘滞与高频掉帧
+  const activeProgress = isMobile ? scrollYProgress : smoothProgress;
 
   const total = config.photos.length;
   const radius = isMobile ? config.radiusMobile : config.radius;
@@ -227,7 +224,7 @@ export const SingleActivityCylinder: React.FC<{
 
   // 滚动映射旋转角度
   const targetRotate = useTransform(
-    smoothProgress,
+    activeProgress,
     [0, 1],
     config.rotateYRange
   );
@@ -244,6 +241,10 @@ export const SingleActivityCylinder: React.FC<{
     <section
       ref={sectionRef}
       className="relative w-full overflow-hidden bg-gradient-to-b from-[#FAF7F2] via-[#F6F1E5] to-[#F2EAE0] py-24 sm:py-32 border-b border-ocher/20"
+      style={{
+        contentVisibility: 'auto',
+        containIntrinsicSize: '900px',
+      }}
     >
       {/* ⭐ 明显生动的工笔草木藤蔓动态背景（随滚动抽枝绽叶）*/}
       <GrowingSacredVine flip={config.direction === -1} />
@@ -277,7 +278,8 @@ export const SingleActivityCylinder: React.FC<{
             style={{
               transformStyle: 'preserve-3d',
               transform: 'rotateX(-9deg) rotateZ(-1.5deg)',
-              willChange: 'transform',
+              // 移动端移除 willChange 避免 WebKit 分配独立合成层耗尽显存
+              willChange: isMobile ? undefined : 'transform',
             }}
           >
             {/* 旋转动力组 */}
@@ -286,7 +288,7 @@ export const SingleActivityCylinder: React.FC<{
               style={{
                 transformStyle: 'preserve-3d',
                 rotateY,
-                willChange: 'transform',
+                willChange: isMobile ? undefined : 'transform',
               }}
             >
               {/* ───── 核心：藏在照片循环中央的放大立体标志字（金石熟金墨色质感） ───── */}
@@ -323,29 +325,41 @@ export const SingleActivityCylinder: React.FC<{
                       height: sizeH,
                       transform: `translate3d(-50%, -50%, 0) rotateY(${angle}deg) translateZ(${radius}px)`,
                       transformStyle: 'preserve-3d',
-                      // ⭐ 移除 backfaceVisibility: hidden，彻底解决轮盘背后照片消失的问题！
                     }}
                   >
                     <motion.div
-                      className="w-full h-full rounded-2xl overflow-hidden shadow-lg shadow-charcoal/10 border border-ocher/30 bg-warm-white group transition-shadow duration-300 hover:shadow-2xl hover:shadow-golden-rich/20"
-                      whileHover={{
-                        scale: 1.06,
-                      }}
+                      className={`w-full h-full rounded-2xl overflow-hidden border border-ocher/30 bg-warm-white group ${
+                        isMobile
+                          ? 'shadow-md shadow-charcoal/5'
+                          : 'shadow-lg shadow-charcoal/10 transition-shadow duration-300 hover:shadow-2xl hover:shadow-golden-rich/20'
+                      }`}
+                      whileHover={isMobile ? undefined : { scale: 1.06 }}
                       transition={{
                         type: 'spring',
                         stiffness: 260,
                         damping: 22,
                       }}
                     >
-                      <img
-                        src={photo.src}
-                        alt={photo.alt}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        loading="lazy"
-                        draggable={false}
-                      />
+                      <div className="relative w-full h-full">
+                        <Image
+                          src={photo.src}
+                          alt={photo.alt}
+                          fill
+                          sizes="(max-width: 768px) 30vw, 15vw"
+                          quality={60}
+                          loading="lazy"
+                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                          draggable={false}
+                        />
+                      </div>
                       {/* 悬浮文字提示 */}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-charcoal/85 via-charcoal/40 to-transparent p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                      <div
+                        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-charcoal/85 via-charcoal/40 to-transparent p-3 ${
+                          isMobile
+                            ? 'opacity-85'
+                            : 'opacity-0 transition-opacity duration-300 group-hover:opacity-100'
+                        }`}
+                      >
                         <p className="text-[11px] sm:text-xs font-medium text-warm-white truncate text-center">
                           {photo.alt}
                         </p>
@@ -386,7 +400,13 @@ export const WinterSolsticeGallery: React.FC = () => {
 // ---------- 默认主组件：顺次呈现分开的三大组件 ----------
 export const CylindricalGallery: React.FC = () => {
   return (
-    <div className="relative w-full bg-gradient-to-b from-[#FAF7F2] via-[#F6F1E5] to-[#F2EAE0] overflow-hidden">
+    <div
+      className="relative w-full bg-gradient-to-b from-[#FAF7F2] via-[#F6F1E5] to-[#F2EAE0] overflow-hidden"
+      style={{
+        contentVisibility: 'auto',
+        containIntrinsicSize: '1200px',
+      }}
+    >
       {/* 禅意温润宣纸光晕底纹 */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_10%,rgba(201,162,39,0.12),transparent_70%)]" />
 
@@ -396,7 +416,7 @@ export const CylindricalGallery: React.FC = () => {
           往昔光影 · 3D 时光轮盘
         </span>
         <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-charcoal tracking-tight mb-4 font-serif">
-          活动精彩回顾
+          精彩回顾
         </h2>
         <p className="text-muted text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
           向下滚动页面，拨动专属时光轮盘，重温同修共行的温暖印记

@@ -29,22 +29,36 @@ export function MemberProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshMembers = async () => {
-    const res = await fetch("/api/members");
-    const data = await res.json();
-    setMembers(data);
-    return data as Member[];
+    try {
+      const res = await fetch("/api/members");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setMembers(data);
+        return data as Member[];
+      }
+      return [];
+    } catch (err) {
+      console.error("Failed to refresh members:", err);
+      return [];
+    }
   };
 
   useEffect(() => {
-    refreshMembers().then((data) => {
-      const saved = localStorage.getItem("currentMemberId");
-      if (saved && data.find((m: Member) => m.id === saved)) {
-        setCurrentMemberIdState(saved);
-      } else if (data.length > 0) {
-        setCurrentMemberIdState(data[0].id);
-      }
-      setLoading(false);
-    });
+    refreshMembers()
+      .then((data) => {
+        const saved = localStorage.getItem("currentMemberId");
+        if (saved && data.find((m: Member) => m.id === saved)) {
+          setCurrentMemberIdState(saved);
+        } else if (data.length > 0) {
+          setCurrentMemberIdState(data[0].id);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to initialize members:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   const setCurrentMemberId = (id: string) => {

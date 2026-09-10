@@ -26,7 +26,13 @@ export default function RewardsPage() {
     fetch("/api/rewards")
       .then((res) => res.json())
       .then((data) => {
-        setRewards(data);
+        setRewards(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.error("Failed to load rewards:", err);
+        setRewards([]);
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, []);

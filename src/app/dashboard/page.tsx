@@ -666,11 +666,13 @@ export default function DashboardPage() {
             transition={{ duration: 0.3, ease: "easeOut" }}
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md"
           >
-            <div className="relative w-[95vw] max-w-5xl h-[85vh] overflow-hidden rounded-3xl border border-golden-deep/40 shadow-[0_0_50px_rgba(201,162,39,0.15)] bg-[#050505]">
+            <div className="relative w-full h-full sm:w-[95vw] sm:max-w-5xl sm:h-[85vh] overflow-hidden rounded-none sm:rounded-3xl border-0 sm:border border-golden-deep/40 shadow-[0_0_50px_rgba(201,162,39,0.15)] bg-[#050505]">
               {/* 关闭按钮 */}
               <button
                 onClick={() => setShowLotusCanvas(false)}
-                className="absolute right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-colors hover:bg-carmine/80"
+                className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top,0px))] z-50 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md transition-colors hover:bg-carmine/80 cursor-pointer"
+                title="关闭供灯"
+                aria-label="关闭供灯"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -678,7 +680,7 @@ export default function DashboardPage() {
               </button>
 
               {/* 环境提示文本 */}
-              <div className="absolute left-1/2 top-6 z-50 -translate-x-1/2 rounded-full bg-black/40 px-4 py-1.5 text-xs tracking-widest text-golden-rich backdrop-blur-md">
+              <div className="absolute left-1/2 top-[calc(1.1rem+env(safe-area-inset-top,0px))] z-40 -translate-x-1/2 rounded-full bg-black/50 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs tracking-wider sm:tracking-widest text-golden-rich backdrop-blur-md max-w-[calc(100vw-6rem)] truncate sm:max-w-none pointer-events-none">
                 双击水面缩放视角 · 点击心灯功德+1 · 每位同修限供一灯
               </div>
               

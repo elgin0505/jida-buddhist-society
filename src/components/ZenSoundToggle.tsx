@@ -40,13 +40,13 @@ export const ZenSoundToggle: React.FC<ZenSoundToggleProps> = ({
       aria-label={isPlaying ? '静音禅意音效' : '开启禅意流水微风白噪音与清磬'}
       aria-pressed={isPlaying}
       title={isPlaying ? '点击静音' : '开启沉浸禅意声场（微风流水）'}
-      className={`group relative inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-300 ${
+      className={`group relative inline-flex items-center gap-1.5 rounded-full border px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-all duration-300 whitespace-nowrap shrink-0 ${
         isPlaying
           ? 'border-golden-rich/50 bg-golden-rich/15 text-golden-deep shadow-sm shadow-golden-rich/20'
           : 'border-ocher/35 bg-warm-white/80 text-charcoal/70 hover:border-golden-rich/40 hover:text-charcoal hover:bg-warm-white'
       } ${className}`}
     >
-      <div className="relative flex items-center justify-center">
+      <div className="relative flex items-center justify-center shrink-0">
         {isPlaying ? (
           <div className="flex items-center gap-0.5 text-golden-rich">
             {/* 动态音波律动 */}
@@ -72,7 +72,7 @@ export const ZenSoundToggle: React.FC<ZenSoundToggleProps> = ({
       </div>
 
       {showText && (
-        <span className="hidden sm:inline tracking-wide font-serif text-[11px]">
+        <span className="hidden lg:inline tracking-wide font-serif text-[11px] whitespace-nowrap select-none">
           {isPlaying ? '禅音悠扬' : '禅音静候'}
         </span>
       )}

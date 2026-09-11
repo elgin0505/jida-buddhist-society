@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function BackToTop() {
+  const pathname = usePathname();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -19,6 +21,11 @@ export function BackToTop() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // 落地页已具备完整的沉浸式禅境视觉与页脚回到顶部，在此页面彻底隐藏全局悬浮按钮
+  if (pathname === "/" || pathname === "") {
+    return null;
+  }
 
   return (
     <AnimatePresence>

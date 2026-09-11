@@ -133,7 +133,7 @@ export const FloatingPill: React.FC<{
   progress: ReturnType<typeof useScroll>['scrollYProgress'];
   isMobile: boolean;
   index: number;
-}> = ({ pill, progress, isMobile }) => {
+}> = ({ pill, progress, isMobile, index }) => {
   // 基于滚动进度的视差位移
   // speed 越大，向上移动越快；speed 越小，越"落后"
   const parallaxY = useTransform(

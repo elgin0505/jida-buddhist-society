@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X, Info } from 'lucide-react';
 import { AboutDrawer } from '@/components/AboutDrawer';
-import { ZenSoundToggle } from '@/components/ZenSoundToggle';
 
 export function Header() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);

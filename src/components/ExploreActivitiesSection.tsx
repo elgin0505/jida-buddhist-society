@@ -337,9 +337,9 @@ export const ExploreActivitiesSection: React.FC<ExploreActivitiesSectionProps> =
         </motion.div>
       </div>
 
-      {/* 底部水墨朝晖过渡层：深黑自然羽化洇染至暖米白 */}
+      {/* 底部水墨过渡层：深黑自然平滑羽化洇染至 #0a0a0a */}
       <div
-        className="pointer-events-none absolute bottom-0 left-0 right-0 h-44 z-10 bg-gradient-to-b from-transparent via-[#1c1813]/60 via-[#8a795f]/30 to-[#FAF7F2]"
+        className="pointer-events-none absolute bottom-0 left-0 right-0 h-44 z-10 bg-gradient-to-b from-transparent via-[#070605]/60 to-[#0a0a0a]"
         aria-hidden="true"
       />
     </section>

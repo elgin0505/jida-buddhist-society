@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useId } from "react";
 import { Html5Qrcode } from "html5-qrcode";
+import { X, Camera, SwitchCamera } from "lucide-react";
+import { toast } from "sonner";
 
 interface QRScannerProps {
-  onScan: (data: string) => void;
+  onScan: (decodedText: string) => void;
   onClose: () => void;
 }
 
 export function QRScanner({ onScan, onClose }: QRScannerProps) {
-  const containerId = useRef("qr-reader-box-" + Math.random().toString(36).substring(2, 9)).current;
+  const containerIdStr = useId();
+  // id 属性不能有冒号，所以过滤一下
+  const containerId = "qr-reader-" + containerIdStr.replace(/:/g, "");
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Member } from "@/components/MemberContext";
 
@@ -113,13 +113,17 @@ export function DharmaBadges({
     };
   }, [member.totalPoints]);
 
-  // 从本地获取木鱼敲击次数与法语抽签记录
-  const meritCount = typeof window !== "undefined"
-    ? parseInt(localStorage.getItem("jbs_zen_merit_count") || "0", 10)
-    : 0;
-  const dharmaDrawn = typeof window !== "undefined"
-    ? localStorage.getItem("jbs_dharma_flipped") === "true"
-    : false;
+  const [meritCount, setMeritCount] = useState(0);
+  const [dharmaDrawn, setDharmaDrawn] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setMeritCount(parseInt(localStorage.getItem("jbs_zen_merit_count") || "0", 10));
+    setDharmaDrawn(localStorage.getItem("jbs_dharma_flipped") === "true");
+  }, []);
+
+  if (!mounted) return null; // 或者返回一个骨架屏
 
   // 勋章列表动态计算
   const badges: BadgeItem[] = [

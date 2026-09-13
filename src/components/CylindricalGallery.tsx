@@ -19,6 +19,7 @@ export interface GalleryPhoto {
   id: number;
   src: string;
   alt: string;
+  isPlaceholder?: boolean;
 }
 
 export interface ActivityGalleryConfig {
@@ -153,44 +154,44 @@ export const WINTER_CONFIG: ActivityGalleryConfig = {
   centerTitle: '冬至',
   centerEn: 'WINTER SOLSTICE',
   direction: 1,
-  radius: 460,
-  sizeW: 210,
-  sizeH: 280,
-  radiusMobile: 240,
-  sizeMobileW: 130,
-  sizeMobileH: 175,
+  radius: 480,
+  sizeW: 290,
+  sizeH: 200,
+  radiusMobile: 260,
+  sizeMobileW: 185,
+  sizeMobileH: 128,
   rotateYRange: [0, -200],
   initialOffset: 90,
   photos: [
     {
       id: 13,
-      src: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?q=80&w=800&auto=format&fit=crop',
-      alt: '万盏心灯 · 虔诚供佛',
+      src: '/images/winter/winter-1.jpg',
+      alt: '师父慈悲开示 · 冬至Chill音夜',
     },
     {
       id: 14,
-      src: 'https://images.unsplash.com/photo-1543332164-6e82f355badc?q=80&w=800&auto=format&fit=crop',
-      alt: '冬至聚首 · 温暖人心',
+      src: '/images/winter/winter-2.jpg',
+      alt: '马六甲唱享六度 · 青年妙音演唱',
     },
     {
       id: 15,
-      src: 'https://images.unsplash.com/photo-1512438248247-f0f2a5a8b7f0?q=80&w=800&auto=format&fit=crop',
-      alt: '法喜充满 · 佳节共庆',
+      src: '/images/winter/winter-3.jpg',
+      alt: '冬至阖家欢 · 全体同修大合影',
     },
     {
       id: 16,
-      src: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=800&auto=format&fit=crop',
-      alt: '烛光相映 · 祈愿和平',
+      src: '/images/winter/winter-4.jpg',
+      alt: '慈悲念珠引磬 · 法音清流常润',
     },
     {
       id: 17,
-      src: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?q=80&w=800&auto=format&fit=crop',
-      alt: '同心手作 · 汤圆圆满',
+      src: '/images/winter/winter-5.jpg',
+      alt: '青年和声弹唱 · 琴韵吉他赞颂',
     },
     {
       id: 18,
-      src: 'https://images.unsplash.com/photo-1482517967863-00e15c9b44be?q=80&w=800&auto=format&fit=crop',
-      alt: '灯火阑珊 · 岁末祈福',
+      src: '/images/winter/winter-6.jpg',
+      alt: '五彩团圆汤圆 · 同心手作欢喜',
     },
   ],
 };
@@ -377,30 +378,46 @@ export const SingleActivityCylinder: React.FC<{
                         damping: 22,
                       }}
                     >
-                      <div className="relative w-full h-full">
-                        <Image
-                          src={photo.src}
-                          alt={photo.alt}
-                          fill
-                          sizes="(max-width: 768px) 30vw, 15vw"
-                          quality={60}
-                          loading="lazy"
-                          className="object-cover transition-transform duration-700 group-hover:scale-105"
-                          draggable={false}
-                        />
-                      </div>
+                      {photo.isPlaceholder ? (
+                        <div className="relative w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#FAF7F2] via-[#F4EFE6] to-[#ECE3D4] p-4 text-center border-2 border-dashed border-golden-rich/40 rounded-2xl select-none">
+                          <div className="w-11 h-11 rounded-full bg-golden-rich/10 flex items-center justify-center mb-2 text-golden-rich shadow-sm border border-golden-rich/20">
+                            <span className="text-xl">📷</span>
+                          </div>
+                          <p className="text-xs sm:text-sm font-bold text-[#8A6D3B] font-serif">
+                            第 6 张精彩照片
+                          </p>
+                          <p className="text-[10px] sm:text-[11px] text-muted/80 mt-1 tracking-wider">
+                            静候同修载入中...
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="relative w-full h-full bg-[#1c1712]">
+                          <Image
+                            src={photo.src}
+                            alt={photo.alt}
+                            fill
+                            sizes="(max-width: 768px) 60vw, 420px"
+                            quality={95}
+                            priority={i < 2}
+                            className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                            draggable={false}
+                          />
+                        </div>
+                      )}
                       {/* 悬浮文字提示 */}
-                      <div
-                        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-charcoal/85 via-charcoal/40 to-transparent p-3 ${
-                          isMobile
-                            ? 'opacity-85'
-                            : 'opacity-0 transition-opacity duration-300 group-hover:opacity-100'
-                        }`}
-                      >
-                        <p className="text-[11px] sm:text-xs font-medium text-warm-white truncate text-center">
-                          {photo.alt}
-                        </p>
-                      </div>
+                      {!photo.isPlaceholder && (
+                        <div
+                          className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent p-2.5 pt-6 pointer-events-none ${
+                            isMobile
+                              ? 'opacity-85'
+                              : 'opacity-0 transition-opacity duration-300 group-hover:opacity-100'
+                          }`}
+                        >
+                          <p className="text-[11px] sm:text-xs font-medium text-white/95 truncate text-center drop-shadow-sm font-sans">
+                            {photo.alt}
+                          </p>
+                        </div>
+                      )}
                     </motion.div>
                   </div>
                 );

@@ -10,6 +10,7 @@ import {
   Line,
   useGLTF,
   MeshReflectorMaterial,
+  Html,
 } from '@react-three/drei';
 import {
   EffectComposer,
@@ -1196,8 +1197,8 @@ const SceneContent: React.FC<{ timeOfDay: TimeOfDay; isMobile: boolean }> = ({ t
       {/* 大脑神经网络 / 因陀罗网灯系统（参考样本莲花灯） */}
       <DharmaNet timeOfDay={timeOfDay} />
 
-      {/* 静态阴影烘焙优化 */}
-      <BakeShadows />
+      {/* 静态阴影烘焙优化：移动端关闭 */}
+      {!isMobile && <BakeShadows />}
     </>
   );
 };
@@ -1209,6 +1210,9 @@ interface PostProcessingEffectsProps {
 }
 
 const PostProcessingEffects: React.FC<PostProcessingEffectsProps> = ({ timeOfDay, isMobile = false }) => {
+  // 彻底阉割移动端后期处理
+  if (isMobile) return null;
+
   const isNight = timeOfDay === 'night';
   const isDusk = timeOfDay === 'dusk';
 
@@ -1217,7 +1221,7 @@ const PostProcessingEffects: React.FC<PostProcessingEffectsProps> = ({ timeOfDay
       {/* 辉光效果：移动端降低强度 */}
       <Bloom
         luminanceThreshold={isNight ? 0.35 : isDusk ? 0.6 : 0.85}
-        intensity={isNight ? (isMobile ? 1.0 : 1.6) : isDusk ? (isMobile ? 0.8 : 1.2) : (isMobile ? 0.5 : 0.8)}
+        intensity={isNight ? 1.6 : isDusk ? 1.2 : 0.8}
         mipmapBlur
       />
       {/* 白天与黄昏彻底禁用暗角与噪点，保证全画面百分之百通透明亮；夜晚施加轻度柔和暗角 */}
@@ -1290,15 +1294,29 @@ const LoginZenScene: React.FC<LoginZenSceneProps> = ({ timeOfDay, timeMode }) =>
   return (
     <div ref={containerRef} className="relative w-full h-full overflow-hidden">
       <Canvas
-        shadows
+        shadows={!isMobile} // 移动端关闭阴影计算
         camera={{ position: initialPosition, fov: initialFov, near: 0.1, far: 300 }}
-        dpr={[1, Math.min(isMobile ? 1.5 : 2, typeof window !== 'undefined' ? window.devicePixelRatio || 2 : 2)]}
-        gl={{ alpha: true, antialias: true }}
+        dpr={isMobile ? 1 : [1, 2]} // 移动端锁死 1，不使用视网膜分辨率
+        gl={{ 
+          powerPreference: "high-performance",
+          antialias: !isMobile, 
+          precision: isMobile ? "lowp" : "highp",
+          alpha: true 
+        }}
         frameloop={isInView ? 'always' : 'demand'}
         onCreated={handleCreated}
         style={{ width: '100%', height: '100%' }}
       >
-        <Suspense fallback={null}>
+        <Suspense 
+          fallback={
+            <Html center>
+              <div className="flex flex-col items-center justify-center">
+                <div className="w-8 h-8 border-2 border-golden-deep border-t-transparent rounded-full animate-spin mb-2"></div>
+                <span className="text-golden-rich text-xs font-medium tracking-widest whitespace-nowrap">载入圣境...</span>
+              </div>
+            </Html>
+          }
+        >
           <ResponsiveCameraController isPhone={isMobile} />
           <SceneContent timeOfDay={effectiveTime} isMobile={isMobile} />
           <PostProcessingEffects timeOfDay={effectiveTime} isMobile={isMobile} />

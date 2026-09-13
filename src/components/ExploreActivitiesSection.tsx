@@ -76,9 +76,9 @@ export const MagneticButton: React.FC<MagneticButtonProps> = ({
       whileTap={{ scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       className={`group relative inline-flex items-center gap-3 rounded-full
-                 border border-amber-400/40 bg-black/50 px-8 py-4
+                 border border-amber-400/40 bg-black/85 md:bg-black/50 px-8 py-4
                  text-base font-medium tracking-wide text-amber-100
-                 backdrop-blur-md shadow-[0_4px_30px_rgba(212,175,55,0.15)]
+                 md:backdrop-blur-md shadow-[0_4px_30px_rgba(212,175,55,0.15)]
                  transition-colors duration-300
                  hover:border-amber-300/70 hover:bg-amber-500/10
                  hover:shadow-[0_8px_50px_rgba(212,175,55,0.3)] ${className}`}
@@ -142,15 +142,15 @@ export const FloatingPill: React.FC<{
     [0, -pill.speed * 120]
   );
 
-  // 弹簧包裹，增加沉甸甸的物理感
+  // 弹簧包裹：PC 端呈现沉甸感；移动端直接映射线性位移，杜绝双重阻尼
+  const mobileY = useTransform(parallaxY, (v) => v * 0.4);
   const smoothY = useSpring(parallaxY, {
     stiffness: 70,
     damping: 18,
     mass: 1.1,
   });
 
-  // 移动端降低幅度；PC 端保留完整视差
-  const finalY = isMobile ? useTransform(smoothY, (v) => v * 0.5) : smoothY;
+  const finalY = isMobile ? mobileY : smoothY;
 
   return (
     <motion.div
@@ -175,9 +175,9 @@ export const FloatingPill: React.FC<{
           delay: pill.floatDelay,
         }}
         className="group relative inline-flex cursor-pointer items-center gap-2.5
-                   rounded-full border border-white/10 bg-white/[0.04]
+                   rounded-full border border-white/10 bg-[#161412]/90 md:bg-white/[0.04]
                    px-5 py-2.5 text-xs sm:text-sm font-medium text-white/85
-                   backdrop-blur-md transition-all duration-300
+                   md:backdrop-blur-md transition-all duration-300
                    hover:border-amber-400/50 hover:bg-amber-500/10
                    hover:text-amber-100 hover:scale-[1.03]
                    shadow-[0_4px_20px_rgba(0,0,0,0.4)]"

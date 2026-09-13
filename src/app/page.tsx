@@ -133,7 +133,11 @@ export default function LandingPage() {
       <ParallaxGrid />
 
       {/* ── 模块：佛学班 ── */}
-      <section id="classes" className="mx-auto max-w-6xl px-4 py-24 sm:px-8">
+      <section
+        id="classes"
+        className="mx-auto max-w-6xl px-4 py-24 sm:px-8"
+        style={{ contentVisibility: 'auto', containIntrinsicSize: '600px' }}
+      >
         <SectionHeading eyebrow="常态课程 · 福慧双修" title="佛学班与禅修实践" />
         <div className="grid gap-6 sm:grid-cols-3">
           {CLASSES.map((c) => (
@@ -162,7 +166,11 @@ export default function LandingPage() {
       <CylindricalGallery />
 
       {/* ── 模块：五大活动 ── */}
-      <section id="five-events" className="border-y border-ocher/15 bg-warm-cream/40 px-4 py-24 sm:px-8">
+      <section
+        id="five-events"
+        className="border-y border-ocher/15 bg-warm-cream/40 px-4 py-24 sm:px-8"
+        style={{ contentVisibility: 'auto', containIntrinsicSize: '800px' }}
+      >
         <div className="mx-auto max-w-6xl">
           <SectionHeading eyebrow="年度亮点 · 盛大巡礼" title="技大佛学会五大活动" />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">

@@ -208,6 +208,10 @@ export const FinalCTAAndFooter: React.FC = () => {
     <section
       ref={sectionRef}
       className="relative w-full overflow-hidden bg-[#0a0a0a] pt-32 pb-16"
+      style={{
+        contentVisibility: 'auto',
+        containIntrinsicSize: '800px',
+      }}
     >
       {/* 背景微弱金色光晕 */}
       <div
@@ -221,8 +225,7 @@ export const FinalCTAAndFooter: React.FC = () => {
         <motion.div
           style={{ y: cardY, scale: cardScale, willChange: isMobile ? undefined : 'transform' }}
           className="relative rounded-3xl bg-[#FDFBF7] px-8 py-14 md:px-16 md:py-20
-                     shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]
-                     will-change-transform"
+                     shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]"
         >
           {/* 卡片内层错落文字 */}
           <motion.div
@@ -320,8 +323,8 @@ export const FinalCTAAndFooter: React.FC = () => {
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 18 }}
                 className="group flex h-11 w-11 items-center justify-center
-                           rounded-full border border-white/10 bg-white/[0.04]
-                           text-white/60 backdrop-blur-md
+                           rounded-full border border-white/10 bg-[#151515] md:bg-white/[0.04]
+                           text-white/60 md:backdrop-blur-md
                            transition-colors duration-300
                            hover:border-amber-400/40 hover:bg-amber-500/10 hover:text-amber-200"
               >
@@ -351,8 +354,8 @@ export const FinalCTAAndFooter: React.FC = () => {
             transition={{ type: 'spring', stiffness: 300, damping: 18 }}
             aria-label="回到顶部"
             className="group flex h-11 items-center gap-2 rounded-full
-                       border border-white/10 bg-white/[0.04] px-4
-                       text-sm text-white/60 backdrop-blur-md
+                       border border-white/10 bg-[#151515] md:bg-white/[0.04] px-4
+                       text-sm text-white/60 md:backdrop-blur-md
                        transition-colors duration-300
                        hover:border-amber-400/40 hover:bg-amber-500/10 hover:text-amber-200
                        md:order-3 cursor-pointer"

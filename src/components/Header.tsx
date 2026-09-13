@@ -23,7 +23,7 @@ export function Header() {
 
   return (
     <>
-      <header className="fixed top-0 inset-x-0 z-40 border-b border-ocher/20 bg-warm-white/80 backdrop-blur-md transition-all duration-300">
+      <header className="fixed top-0 inset-x-0 z-40 border-b border-ocher/20 bg-warm-white/95 md:bg-warm-white/80 md:backdrop-blur-md transition-all duration-300">
         <div className="mx-auto flex h-16 sm:h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-8">
           {/* ── 1. 左上角 (Logo & 组织名称) ── */}
           <Link href="#top" className="group flex items-center gap-2.5 sm:gap-3 shrink-0">
@@ -88,7 +88,7 @@ export function Header() {
 
         {/* 移动端折叠菜单 (Mobile Dropdown) */}
         {mobileMenuOpen && (
-          <div className="border-t border-ocher/20 bg-warm-white/95 px-4 py-4 shadow-lg backdrop-blur-xl md:hidden">
+          <div className="border-t border-ocher/20 bg-warm-white/98 px-4 py-4 shadow-lg md:hidden">
             <div className="flex flex-col gap-2">
               {navLinks.map((item) => (
                 <a

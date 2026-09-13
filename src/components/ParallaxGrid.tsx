@@ -10,6 +10,7 @@ import {
   useTransform,
   MotionValue,
 } from 'framer-motion';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 // ---------- 类型定义 ----------
 export interface Photo {
@@ -153,6 +154,7 @@ export const DEFAULT_PHOTOS: Photo[] = [
 // ---------- 主组件 ----------
 export const ParallaxGrid: React.FC<{ photos?: Photo[] }> = ({ photos = DEFAULT_PHOTOS }) => {
   const { scrollY } = useScroll(); // 全局滚动 Y (像素)
+  const isMobile = useIsMobile();
 
   // Hero 文字动画（电影字幕离场：透明度淡出、位移上浮）
   const heroOpacity = useTransform(scrollY, [0, 380], [1, 0]);
@@ -167,7 +169,13 @@ export const ParallaxGrid: React.FC<{ photos?: Photo[] }> = ({ photos = DEFAULT_
   }, [photos]);
 
   return (
-    <div className="relative w-full pt-28 sm:pt-36 pb-24 sm:pb-36 bg-warm-white">
+    <div
+      className="relative w-full pt-28 sm:pt-36 pb-24 sm:pb-36 bg-warm-white"
+      style={{
+        contentVisibility: 'auto',
+        containIntrinsicSize: '1000px',
+      }}
+    >
       {/* -------- Hero 文字（固定在视口中央上方，随滚动平滑离场）-------- */}
       <motion.div
         style={{
@@ -176,7 +184,7 @@ export const ParallaxGrid: React.FC<{ photos?: Photo[] }> = ({ photos = DEFAULT_
         }}
         className="fixed top-[28%] sm:top-[30%] left-1/2 z-30 pointer-events-none -translate-x-1/2 -translate-y-1/2 text-center w-full px-4 max-w-5xl"
       >
-        <span className="inline-block rounded-full bg-warm-white/90 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-golden-rich shadow-sm backdrop-blur-md border border-ocher/20 mb-3 sm:mb-4">
+        <span className="inline-block rounded-full bg-warm-white/90 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-golden-rich shadow-sm md:backdrop-blur-md border border-ocher/20 mb-3 sm:mb-4">
           往年活动回顾 · 光影流年
         </span>
         <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tight text-charcoal drop-shadow-sm">
@@ -190,15 +198,15 @@ export const ParallaxGrid: React.FC<{ photos?: Photo[] }> = ({ photos = DEFAULT_
       {/* -------- 照片墙容器（带 3D 透视）-------- */}
       <div
         className="relative overflow-hidden px-3 sm:px-6 lg:px-8"
-        style={{ perspective: '1000px' }}
+        style={{ perspective: isMobile ? undefined : '1000px' }}
       >
-        <div className="max-w-7xl mx-auto" style={{ transformStyle: 'preserve-3d' }}>
+        <div className="max-w-7xl mx-auto" style={{ transformStyle: isMobile ? 'flat' : 'preserve-3d' }}>
           <motion.div
             className="grid grid-cols-3 gap-3 sm:gap-5 md:gap-7"
-            style={{ rotateX: 6, transformStyle: 'preserve-3d' }}
+            style={{ rotateX: isMobile ? 0 : 6, transformStyle: isMobile ? 'flat' : 'preserve-3d' }}
           >
             {columnsData.map((colCfg, idx) => (
-              <ParallaxColumn key={idx} colConfig={colCfg} scrollY={scrollY} />
+              <ParallaxColumn key={idx} colConfig={colCfg} scrollY={scrollY} isMobile={isMobile} />
             ))}
           </motion.div>
         </div>
@@ -211,29 +219,39 @@ export const ParallaxGrid: React.FC<{ photos?: Photo[] }> = ({ photos = DEFAULT_
 const ParallaxColumn: React.FC<{
   colConfig: ColumnConfig & { photos: Photo[] };
   scrollY: MotionValue<number>;
-}> = ({ colConfig, scrollY }) => {
+  isMobile: boolean;
+}> = ({ colConfig, scrollY, isMobile }) => {
   // 根据全局滚动计算目标 Y 位移
   const targetY = useTransform(
     scrollY,
     (value) => -value * colConfig.speed + colConfig.offset
   );
 
-  // 弹簧物理：让列拥有惯性、重量感、空气阻力
-  const y = useSpring(targetY, {
+  // 弹簧物理：PC 端让列拥有惯性与重量感；移动端直接采用原生位移，杜绝双重阻尼卡顿
+  const springY = useSpring(targetY, {
     stiffness: colConfig.stiffness,
     damping: colConfig.damping,
     mass: colConfig.mass,
   });
 
+  const activeY = isMobile ? targetY : springY;
+
   return (
-    <motion.div className="flex flex-col gap-3 sm:gap-5 md:gap-7" style={{ y }}>
+    <motion.div
+      className="flex flex-col gap-3 sm:gap-5 md:gap-7"
+      style={{
+        y: activeY,
+        willChange: isMobile ? undefined : 'transform',
+      }}
+    >
       {colConfig.photos.map((photo, index) => (
         <ImageItem
           key={photo.id}
           photo={photo}
-          columnY={y}
+          columnY={activeY}
           index={index}
           layer={colConfig.layer}
+          isMobile={isMobile}
         />
       ))}
     </motion.div>
@@ -246,37 +264,46 @@ const ImageItem: React.FC<{
   columnY: MotionValue<number>;
   index: number;
   layer: string;
-}> = ({ photo, columnY, index, layer }) => {
-  // 内部视差：图片自身额外 Y 位移（基于列运动和索引，产生不同相位）
+  isMobile: boolean;
+}> = ({ photo, columnY, index, layer, isMobile }) => {
+  // 内部视差：移动端跳过二次变换计算，减少 GPU/主线程开销
   const innerY = useTransform(columnY, (y) => {
+    if (isMobile) return 0;
     const factor = (index % 4) * 0.12; // 0, 0.12, 0.24, 0.36
     return y * factor;
   });
 
-  // 图片微缩放：随列移动产生轻微景深
+  // 图片微缩放：移动端锁死为 1
   const scale = useTransform(columnY, (y) => {
+    if (isMobile) return 1;
     return 1 + Math.min(Math.abs(y) * 0.00008, 0.04);
   });
 
-  // 图片微旋转：模拟镜头倾斜
+  // 图片微旋转：移动端锁死为 0
   const rotate = useTransform(columnY, (y) => {
+    if (isMobile) return 0;
     return Math.max(-0.8, Math.min(0.8, y * 0.002));
   });
 
   return (
     <motion.div
-      className="group relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-lg will-change-transform bg-warm-cream/40"
+      className="group relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-lg bg-warm-cream/40"
       style={{
         y: innerY,
         scale,
         rotate,
-        transformStyle: 'preserve-3d',
+        transformStyle: isMobile ? 'flat' : 'preserve-3d',
+        willChange: isMobile ? undefined : 'transform',
       }}
-      whileHover={{
-        scale: 1.03,
-        rotate: 0.6,
-        boxShadow: '0 30px 60px -15px rgba(0,0,0,0.25)',
-      }}
+      whileHover={
+        isMobile
+          ? undefined
+          : {
+              scale: 1.03,
+              rotate: 0.6,
+              boxShadow: '0 30px 60px -15px rgba(0,0,0,0.25)',
+            }
+      }
       transition={{ type: 'spring', stiffness: 200, damping: 20, mass: 1 }}
     >
       <div className="relative w-full aspect-[3/4] overflow-hidden">
@@ -284,7 +311,7 @@ const ImageItem: React.FC<{
           src={photo.src}
           alt={photo.alt}
           fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          sizes="(max-width: 768px) 33vw, (max-width: 1200px) 33vw, 33vw"
           priority={index < 2}
           className="object-cover transition-transform duration-700 group-hover:scale-105"
         />

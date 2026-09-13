@@ -183,18 +183,21 @@ export const GrowingSacredVine: React.FC<GrowingSacredVineProps> = ({ flip = fal
     mass: 0.8,
   });
 
-  // PC 端随滚动抽枝生长的蔓延路径
-  const pathLength = useTransform(smoothProgress, [0, 0.88], [0, 1]);
-  const trunkOpacity = useTransform(smoothProgress, [0, 0.05], [0, 0.95]);
-  const parallaxY = useTransform(smoothProgress, [0, 1], [30, -30]);
+  // 移动端彻底剥离物理弹簧引擎，直接使用原始进度，跟手即时响应，杜绝双重阻尼
+  const activeProgress = isMobile ? scrollYProgress : smoothProgress;
+
+  // 随滚动抽枝生长的蔓延路径
+  const pathLength = useTransform(activeProgress, [0, 0.88], [0, 1]);
+  const trunkOpacity = useTransform(activeProgress, [0, 0.05], [0, 0.95]);
+  const parallaxY = useTransform(activeProgress, [0, 1], [30, -30]);
 
   // 次级分支动画变换
-  const branch1PathLength = useTransform(smoothProgress, [0.15, 0.35], [0, 1]);
-  const branch1Opacity = useTransform(smoothProgress, [0.15, 0.35], [0, 0.85]);
-  const branch2PathLength = useTransform(smoothProgress, [0.35, 0.55], [0, 1]);
-  const branch2Opacity = useTransform(smoothProgress, [0.35, 0.55], [0, 0.85]);
-  const branch3PathLength = useTransform(smoothProgress, [0.55, 0.75], [0, 1]);
-  const branch3Opacity = useTransform(smoothProgress, [0.55, 0.75], [0, 0.85]);
+  const branch1PathLength = useTransform(activeProgress, [0.15, 0.35], [0, 1]);
+  const branch1Opacity = useTransform(activeProgress, [0.15, 0.35], [0, 0.85]);
+  const branch2PathLength = useTransform(activeProgress, [0.35, 0.55], [0, 1]);
+  const branch2Opacity = useTransform(activeProgress, [0.35, 0.55], [0, 0.85]);
+  const branch3PathLength = useTransform(activeProgress, [0.55, 0.75], [0, 1]);
+  const branch3Opacity = useTransform(activeProgress, [0.55, 0.75], [0, 0.85]);
 
   const containerHeight = 900;
 

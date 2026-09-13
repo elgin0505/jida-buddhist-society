@@ -4,7 +4,6 @@ import { MemberProvider } from "@/components/MemberContext";
 import { LoadingTransition } from "@/components/LoadingTransition";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthGuard } from "@/components/AuthGuard";
-import { PWAInstaller } from "@/components/PWAInstaller";
 import { CinematicNoise } from "@/components/CinematicNoise";
 import { BackToTop } from "@/components/BackToTop";
 import { MainLayout } from "@/components/MainLayout";
@@ -53,7 +52,6 @@ export default function RootLayout({
               <MainLayout>{children}</MainLayout>
             </AuthGuard>
             <BackToTop />
-            <PWAInstaller />
             <CinematicNoise />
             <Toaster position="top-center" richColors />
           </MemberProvider>

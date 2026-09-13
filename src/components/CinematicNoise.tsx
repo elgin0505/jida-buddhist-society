@@ -1,19 +1,24 @@
 "use client";
 
 import React from "react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 /**
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  *  电影级物理噪点遮罩层 (Cinematic Film Grain & Dithering Overlay)
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- *
- * 核心原理：
- * 1. 使用纯 SVG 原生 <feTurbulence> 实时生成高频分形噪点，0 外部图片资源，0 网络开销。
- * 2. 彻底消除 CSS 大面积渐变背景下的“色彩圈/断层阶梯” (Color Banding)。
- * 3. 赋予页面犹如宣纸 (Xuan Paper) 与 35mm 电影胶片般的温润微质感。
- * 4. 样式配置：pointer-events-none (穿透点击) + z-[9999] (最顶层) + 3.8% 极微透明度 + mix-blend-overlay。
  */
 export function CinematicNoise() {
+  const isMobile = useIsMobile();
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // 未挂载或处于移动端时，由于 GPU 显存和性能限制，全屏 feTurbulence 滤镜极易导致 Chrome 浏览器直接崩溃渲染失败，因此移动端直接移除该噪点层
+  if (!isMounted || isMobile) return null;
+
   return (
     <div
       className="pointer-events-none fixed inset-0 z-[9999] h-full w-full opacity-[0.038] mix-blend-overlay select-none"

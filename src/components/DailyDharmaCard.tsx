@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface DharmaWisdom {
@@ -79,7 +79,6 @@ export function DailyDharmaCard() {
   const [showPosterModal, setShowPosterModal] = useState(false);
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
-  const audioCtxRef = useRef<AudioContext | null>(null);
 
   // 初始化：每天根据日期获取固定法语，也可手动重新求取
   useEffect(() => {
@@ -104,33 +103,7 @@ export function DailyDharmaCard() {
 
   // Web Audio API 播放清脆的磬声 (Tibetan Bell Sound)
   const playBellSound = () => {
-    try {
-      const AudioCtx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioCtx();
-      }
-      const ctx = audioCtxRef.current;
-      if (ctx.state === "suspended") ctx.resume();
-
-      const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(880, now);
-      osc.frequency.exponentialRampToValueAtTime(440, now + 1.8);
-
-      gain.gain.setValueAtTime(0.6, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.2);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 2.2);
-    } catch {}
+    // Sound disabled
   };
 
   const handleDraw = () => {

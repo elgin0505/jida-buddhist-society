@@ -62,60 +62,66 @@ export default function AuthPage() {
         <MindfulJourney />
       </Suspense>
 
-      {/* ── 2. 3D 悬浮 Logo 与表单（随 Preloader 退场而浮现） ── */}
-      <motion.div
-        className="relative z-10 flex w-full flex-col items-center justify-center"
-        initial={{ opacity: 0, y: 20 }}
-        animate={isLoading ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <ZenLogo3D />
+      {/* ── 2. 3D 悬浮 Logo 与表单（仅在 Preloader 退场后挂载入 DOM，彻底解决加载界面提前弹出钥匙串密码提示的问题） ── */}
+      <AnimatePresence>
+        {!isLoading && (
+          <motion.div
+            key="auth-content"
+            className="relative z-10 flex w-full flex-col items-center justify-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <ZenLogo3D />
 
-        {/* ── 3. 极致玻璃态前景表单卡片 ── */}
-        <div className="relative z-10 w-full max-w-[420px]">
-        <AnimatePresence mode="wait">
-          {mode === "login" ? (
-            <motion.div
-              key="login"
-              initial={{ opacity: 0, rotateY: -90 }}
-              animate={{ opacity: 1, rotateY: 0 }}
-              exit={{ opacity: 0, rotateY: 90 }}
-              transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-              className="transform-gpu will-change-transform backface-hidden"
-              style={{ perspective: 1200 }}
-            >
-              <LoginCard
-                onSwitch={() => setMode("register")}
-                onForgotPassword={() => setMode("forgot")}
-              />
-            </motion.div>
-          ) : mode === "register" ? (
-            <motion.div
-              key="register"
-              initial={{ opacity: 0, rotateY: 90 }}
-              animate={{ opacity: 1, rotateY: 0 }}
-              exit={{ opacity: 0, rotateY: -90 }}
-              transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-              className="transform-gpu will-change-transform backface-hidden"
-              style={{ perspective: 1200 }}
-            >
-              <RegisterCard onSwitch={() => setMode("login")} />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="forgot"
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-              className="transform-gpu will-change-transform"
-            >
-              <ForgotPasswordCard onBackToLogin={() => setMode("login")} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-        </div>
-      </motion.div>
+            {/* ── 3. 极致玻璃态前景表单卡片 ── */}
+            <div className="relative z-10 w-full max-w-[420px]">
+            <AnimatePresence mode="wait">
+              {mode === "login" ? (
+                <motion.div
+                  key="login"
+                  initial={{ opacity: 0, rotateY: -90 }}
+                  animate={{ opacity: 1, rotateY: 0 }}
+                  exit={{ opacity: 0, rotateY: 90 }}
+                  transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+                  className="transform-gpu will-change-transform backface-hidden"
+                  style={{ perspective: 1200 }}
+                >
+                  <LoginCard
+                    onSwitch={() => setMode("register")}
+                    onForgotPassword={() => setMode("forgot")}
+                  />
+                </motion.div>
+              ) : mode === "register" ? (
+                <motion.div
+                  key="register"
+                  initial={{ opacity: 0, rotateY: 90 }}
+                  animate={{ opacity: 1, rotateY: 0 }}
+                  exit={{ opacity: 0, rotateY: -90 }}
+                  transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+                  className="transform-gpu will-change-transform backface-hidden"
+                  style={{ perspective: 1200 }}
+                >
+                  <RegisterCard onSwitch={() => setMode("login")} />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="forgot"
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  className="transform-gpu will-change-transform"
+                >
+                  <ForgotPasswordCard onBackToLogin={() => setMode("login")} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

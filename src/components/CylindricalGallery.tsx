@@ -1,11 +1,10 @@
 // src/components/CylindricalGallery.tsx
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef } from 'react';
 import Image from 'next/image';
 import {
   motion,
-  AnimatePresence,
   useScroll,
   useSpring,
   useTransform,
@@ -239,22 +238,9 @@ export const SingleActivityCylinder: React.FC<{
   // 关键：中央巨幅文字进行反向旋转，抵消父级旋转，使其始终面朝观众，悬浮在 3D 环心！
   const counterRotateY = useTransform(rotateY, (v) => -v);
 
-  const [showHint, setShowHint] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowHint(false);
-    }, 3200);
-    const unsub = scrollYProgress.on('change', (latest) => {
-      if (latest > 0.04) {
-        setShowHint(false);
-      }
-    });
-    return () => {
-      clearTimeout(timer);
-      unsub();
-    };
-  }, [scrollYProgress]);
+  // 交互提示透明度与位移直接映射自滚动进度，彻底规避在滚动回调中触发 React 的 setState 引起卡顿
+  const hintOpacity = useTransform(scrollYProgress, [0, 0.04], [1, 0]);
+  const hintY = useTransform(scrollYProgress, [0, 0.04], [0, -15]);
 
   return (
     <section
@@ -268,23 +254,17 @@ export const SingleActivityCylinder: React.FC<{
       {/* ⭐ 明显生动的工笔草木藤蔓动态背景（随滚动抽枝绽叶）*/}
       <GrowingSacredVine flip={config.direction === -1} />
 
-      {/* 交互提示气泡：首个画廊显示，滚动或3.2s后优雅渐隐 */}
+      {/* 交互提示气泡：首个画廊显示，随滚动平滑隐去，完全依赖 useTransform 避免 setState */}
       {config.key === 'buddhism' && (
-        <AnimatePresence>
-          {showHint && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15, transition: { duration: 0.6 } }}
-              className="pointer-events-none sticky top-20 z-30 flex justify-center px-4 mb-2"
-            >
-              <div className="flex items-center gap-2 rounded-full border border-golden-rich/30 bg-warm-white/90 px-4 py-1.5 text-xs font-medium text-[#8A6D3B] shadow-md shadow-golden-rich/10 backdrop-blur-md">
-                <span className="inline-block animate-bounce">↓</span>
-                <span>向下滚动 · 拨动时光轮盘</span>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <motion.div
+          style={{ opacity: hintOpacity, y: hintY }}
+          className="pointer-events-none sticky top-20 z-30 flex justify-center px-4 mb-2"
+        >
+          <div className="flex items-center gap-2 rounded-full border border-golden-rich/30 bg-warm-white/90 px-4 py-1.5 text-xs font-medium text-[#8A6D3B] shadow-md shadow-golden-rich/10 backdrop-blur-md">
+            <span className="inline-block animate-bounce">↓</span>
+            <span>向下滚动 · 拨动时光轮盘</span>
+          </div>
+        </motion.div>
       )}
 
       {/* 内容层：z-index: 10，确保在植物壁纸上方 */}

@@ -8,7 +8,6 @@ import {
   Sparkles,
   BakeShadows,
   Line,
-  useGLTF,
   MeshReflectorMaterial,
   Html,
 } from '@react-three/drei';
@@ -23,36 +22,6 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import SacredTrees from './SacredTrees';
 import SacredFlowers from './SacredFlowers';
 import { useIsMobile } from '@/hooks/useIsMobile';
-
-// ==================== 安全的 GLTF 加载 Hook ====================
-function useSafeGLTF(url: string): THREE.Group | null {
-  const [scene, setScene] = useState<THREE.Group | null>(null);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const gltf = await (useGLTF as any).preload?.(url);
-        if (!cancelled && gltf?.scene) {
-          const clonedScene = gltf.scene.clone(true);
-          setScene(clonedScene);
-        } else if (!cancelled) {
-          setError(true);
-        }
-      } catch {
-        if (!cancelled) setError(true);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [url]);
-
-  if (error) return null;
-  return scene;
-}
 
 // ==================== 时间状态类型 ====================
 export type TimeOfDay = 'day' | 'dusk' | 'night';
@@ -458,7 +427,6 @@ interface PavilionWithLanternsProps {
 }
 
 const PavilionWithLanterns: React.FC<PavilionWithLanternsProps> = ({ timeOfDay }) => {
-  const model = useSafeGLTF('/models/pavilion.glb');
   const [lightIntensity, setLightIntensity] = useState(0.8);
 
   useFrame(({ clock }) => {
@@ -478,27 +446,7 @@ const PavilionWithLanterns: React.FC<PavilionWithLanternsProps> = ({ timeOfDay }
     return arr;
   }, []);
 
-  // 如果是 GLTF 模型，遍历并覆盖材质
-  useEffect(() => {
-    if (model) {
-      model.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh) {
-          const mesh = child as THREE.Mesh;
-          // 根据名称判断屋顶（包含 roof / 瓦 / 顶 等关键词）
-          const name = mesh.name.toLowerCase();
-          const isRoof = name.includes('roof') || name.includes('瓦') || name.includes('顶');
-          const material = new THREE.MeshStandardMaterial({
-            color: isRoof ? '#2F4F4F' : '#FFD700', // 屋顶深瓦灰，主体鎏金
-            metalness: isRoof ? 0.1 : 0.6,
-            roughness: isRoof ? 0.8 : 0.3,
-          });
-          mesh.material = material;
-        }
-      });
-    }
-  }, [model]);
-
-  // 程序化回退亭子的材质参数（直接修改）
+  // 程序化亭子的材质参数
   const bodyMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -519,19 +467,7 @@ const PavilionWithLanterns: React.FC<PavilionWithLanternsProps> = ({ timeOfDay }
     []
   );
 
-  if (model) {
-    return (
-      <group position={[12, 0.2, -35]} scale={2.2} rotation={[0, Math.PI / 4, 0]}>
-        <primitive object={model} castShadow receiveShadow />
-        <pointLight position={[0, 2, 0]} intensity={lightIntensity} color="#FFD28A" distance={10} decay={2} castShadow />
-        {lanternPositions.map((pos, i) => (
-          <Lantern key={i} position={pos} timeOfDay={timeOfDay} />
-        ))}
-      </group>
-    );
-  }
-
-  // 程序化回退：八角双层重檐亭（仅材质更新，形状位置不变）
+  // 程序化八角双层重檐亭
   return (
     <group position={[12, 0.2, -35]} scale={2.2} rotation={[0, Math.PI / 8, 0]}>
       {/* 基座：八角形，主体金色 */}
@@ -588,16 +524,6 @@ const SwanModel: React.FC<{ position?: [number, number, number]; scale?: number;
   scale = 1,
   flying = false,
 }) => {
-  const model = useSafeGLTF('/models/swan.glb');
-
-  if (model) {
-    return (
-      <group position={position} scale={scale}>
-        <primitive object={model} />
-      </group>
-    );
-  }
-
   return (
     <group position={position} scale={scale} rotation={[0, 0, flying ? 0.3 : 0]}>
       <mesh castShadow>
@@ -1296,14 +1222,15 @@ const LoginZenScene: React.FC<LoginZenSceneProps> = ({ timeOfDay, timeMode }) =>
       <Canvas
         shadows={!isMobile} // 移动端关闭阴影计算
         camera={{ position: initialPosition, fov: initialFov, near: 0.1, far: 300 }}
-        dpr={isMobile ? 1 : [1, 2]} // 移动端锁死 1，不使用视网膜分辨率
+        dpr={isMobile ? 1 : [1, 1.5]} // 移动端锁死 1，桌面端封顶 1.5
         gl={{ 
           powerPreference: "high-performance",
           antialias: !isMobile, 
           precision: isMobile ? "lowp" : "highp",
-          alpha: true 
+          alpha: true,
+          preserveDrawingBuffer: false,
         }}
-        frameloop={isInView ? 'always' : 'demand'}
+        frameloop={isMobile ? 'demand' : (isInView ? 'always' : 'demand')}
         onCreated={handleCreated}
         style={{ width: '100%', height: '100%' }}
       >

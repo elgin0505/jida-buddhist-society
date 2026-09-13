@@ -18,6 +18,7 @@ import {
   ShaderMaterial,
 } from 'three';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import ProceduralLamp, { createLotusPetalsGeometry } from './ProceduralLamp';
 import Ripple from './Ripple';
 import IonSun from './IonSun';
@@ -762,6 +763,7 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
   const [isPlacementMode, setIsPlacementMode] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
   const [lamps, setLamps] = useState<LampData[]>([]);
+  const isMobile = useIsMobile();
   const cameraControlsRef = useRef<CameraControls | null>(null);
 
   // 模块三：祈祷防抖映射与待同步计数
@@ -993,10 +995,17 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <Canvas
-        shadows
+        shadows={!isMobile}
         camera={{ position: [0, 10, 18], fov: 50, near: 0.1, far: 200 }}
-        dpr={[1, 2]}
-        frameloop={isInView ? 'always' : 'demand'}
+        dpr={isMobile ? 1 : [1, 1.5]}
+        frameloop={isMobile ? 'demand' : (isInView ? 'always' : 'demand')}
+        gl={{
+          powerPreference: "high-performance",
+          antialias: !isMobile,
+          precision: isMobile ? "lowp" : "highp",
+          alpha: true,
+          preserveDrawingBuffer: false,
+        }}
         onCreated={handleCreated}
         style={{ width: '100%', height: '100%' }}
       >
@@ -1017,11 +1026,14 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
             cameraControlsRef={cameraControlsRef}
             handlePray={handlePray}
           />
-          <EffectComposer>
-            <Bloom luminanceThreshold={0.95} mipmapBlur intensity={1.4} radius={0.7} />
-            <Vignette eskil={false} offset={0.12} darkness={0.85} />
-            <Noise opacity={0.02} />
-          </EffectComposer>
+          {/* 移动端物理隔离后期滤镜，释放 150MB+ 双重缓冲显存以防闪退 */}
+          {!isMobile && (
+            <EffectComposer>
+              <Bloom luminanceThreshold={0.95} mipmapBlur intensity={1.4} radius={0.7} />
+              <Vignette eskil={false} offset={0.12} darkness={0.85} />
+              <Noise opacity={0.02} />
+            </EffectComposer>
+          )}
         </Suspense>
       </Canvas>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, ReactElement } from "react";
+import Image from "next/image";
 
 type PageTheme = "dashboard" | "events" | "rewards" | "admin";
 
@@ -15,10 +16,13 @@ function DashboardBg() {
     <div className="page-bg-dashboard" aria-hidden>
       {/* 佛学会专属合照大壁纸 (提高清晰度与色彩饱满度) */}
       <div className="absolute inset-0 overflow-hidden">
-        <img
+        <Image
           src="/dashboard-wallpaper.jpg"
           alt="技大佛学会大家庭"
-          className="h-full w-full object-cover object-center opacity-[0.52] filter saturate-[1.25] brightness-[1.03] scale-100"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center opacity-[0.52] filter saturate-[1.25] brightness-[1.03] scale-100"
         />
         {/* 细腻的半透明渐变，既让合照清晰，又衬托前景毛玻璃卡片 */}
         <div

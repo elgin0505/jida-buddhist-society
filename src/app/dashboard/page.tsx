@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import Confetti from "react-confetti";
-import { useWindowSize } from "react-use";
+import dynamic from "next/dynamic";
 import {
   Card,
   PageHeader,
@@ -15,25 +14,26 @@ import { useMember } from "@/components/MemberContext";
 import { PageWrapper } from "@/components/PageWrapper";
 import { Leaderboard } from "@/components/Leaderboard";
 import { LotusLoading } from "@/components/LotusLoading";
-import { QRModal } from "@/components/QRModal";
-import { QRScanner } from "@/components/QRScanner";
 import { CheckInToast } from "@/components/CheckInToast";
 import LiquidOrbButton from "@/components/LiquidOrbButton";
 import { Card3D } from "@/components/Card3D";
 import { GoldShimmerBorder } from "@/components/GoldShimmerBorder";
-import { DailyDharmaCard } from "@/components/DailyDharmaCard";
 import { DharmaBadges, DHARMA_LEVELS } from "@/components/DharmaBadges";
 import { TimelineView } from "@/components/TimelineView";
 import { Dashboard3DMenu } from "@/components/Dashboard3DMenu";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast as sonnerToast } from "sonner";
 import { Camera } from "lucide-react";
-import { KaresansuiBackground } from "@/components/KaresansuiBackground";
 import { LivingBodhiTree } from "@/components/LivingBodhiTree";
-import dynamic from "next/dynamic";
 import type { LotusSeaCanvasProps } from "@/components/LotusSeaCanvas";
 
+// 按需异步代码分割：非首屏重型弹窗、扫码库与背景画布
 const LotusSeaCanvas = dynamic<LotusSeaCanvasProps>(() => import("@/components/LotusSeaCanvas"), { ssr: false });
+const QRScanner = dynamic(() => import("@/components/QRScanner").then((mod) => ({ default: mod.QRScanner })), { ssr: false });
+const QRModal = dynamic(() => import("@/components/QRModal").then((mod) => ({ default: mod.QRModal })), { ssr: false });
+const DailyDharmaCard = dynamic(() => import("@/components/DailyDharmaCard").then((mod) => ({ default: mod.DailyDharmaCard })), { ssr: false });
+const KaresansuiBackground = dynamic(() => import("@/components/KaresansuiBackground").then((mod) => ({ default: mod.KaresansuiBackground })), { ssr: false });
+const Confetti = dynamic(() => import("react-confetti"), { ssr: false });
 
 interface AttendanceRecord {
   id: string;
@@ -73,7 +73,10 @@ export default function DashboardPage() {
   const [showLotusCanvas, setShowLotusCanvas] = useState(false);
   const [liveEventsCount, setLiveEventsCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { width, height } = useWindowSize();
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+  }, []);
 
   const fetchDetail = () => {
     if (!currentMember) return;
@@ -305,8 +308,8 @@ export default function DashboardPage() {
       {showBirthdayConfetti && (
         <div className="fixed inset-0 z-50 pointer-events-none">
           <Confetti 
-            width={width} 
-            height={height} 
+            width={windowSize.width || 800} 
+            height={windowSize.height || 600} 
             recycle={false} 
             numberOfPieces={400} 
             colors={['#c9a227', '#b8860b', '#e8c872', '#faf7f2']} 

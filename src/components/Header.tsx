@@ -3,8 +3,12 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { Menu, X, Info } from 'lucide-react';
-import { AboutDrawer } from '@/components/AboutDrawer';
+
+const AboutDrawer = dynamic(() => import('@/components/AboutDrawer').then((mod) => ({ default: mod.AboutDrawer })), {
+  ssr: false,
+});
 
 export function Header() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);

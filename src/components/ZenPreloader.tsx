@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 
 interface ZenPreloaderProps {
@@ -78,29 +79,24 @@ const ZenPreloader: React.FC<ZenPreloaderProps> = ({
         />
 
         {/* ── 技大佛学会 Logo 主体 ── */}
-        <motion.img
-          src={logoSrc}
-          alt={logoAlt}
-          className="relative z-10 h-28 w-28 md:h-36 md:w-36 rounded-full overflow-hidden object-cover select-none pointer-events-none shadow-[0_0_50px_rgba(234,179,8,0.4)] ring-2 ring-yellow-400/50"
+        <motion.div
+          className="relative z-10 h-28 w-28 md:h-36 md:w-36 rounded-full overflow-hidden select-none pointer-events-none shadow-[0_0_50px_rgba(234,179,8,0.4)] ring-2 ring-yellow-400/50"
           animate={{
             opacity: breathingOpacity,
             scale: breathingScale,
           }}
           transition={breathingTransition}
-          draggable={false}
-          onError={(e) => {
-            // 图片加载失败时回退为文字 Logo
-            const target = e.currentTarget;
-            target.style.display = 'none';
-            const parent = target.parentElement;
-            if (parent && !parent.querySelector('.fallback-text')) {
-              const text = document.createElement('div');
-              text.className = 'fallback-text relative z-10 text-3xl md:text-5xl font-bold text-amber-300 tracking-widest drop-shadow-[0_0_20px_rgba(245,158,11,0.6)]';
-              text.textContent = '技大佛学会';
-              parent.appendChild(text);
-            }
-          }}
-        />
+        >
+          <Image
+            src={logoSrc}
+            alt={logoAlt}
+            fill
+            priority
+            sizes="144px"
+            className="object-cover"
+            draggable={false}
+          />
+        </motion.div>
 
         {/* ── 底部优雅文字 ── */}
         <motion.p

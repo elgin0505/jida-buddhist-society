@@ -116,7 +116,7 @@ function usePhotoTransforms(
 
   // ========== ① Y 轴：屏外 → 冲过 → 回落 → 微弹 → 落位 ==========
   const y = useTransform(progress, inputRange, [
-    typeof window !== 'undefined' ? window.innerHeight + 800 : 1800,
+    1800,
     -120,
     280,
     30,

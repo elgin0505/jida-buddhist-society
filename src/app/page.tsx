@@ -1,16 +1,33 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Header } from '@/components/Header';
 import { ParallaxGrid } from '@/components/ParallaxGrid';
-import CylindricalGallery from '@/components/CylindricalGallery';
 import ZenPreloader from '@/components/ZenPreloader';
-import LegoTypographyCollage from '@/components/LegoTypographyCollage';
-import ExploreActivitiesSection from '@/components/ExploreActivitiesSection';
-import FinalCTAAndFooter from '@/components/FinalCTAAndFooter';
-import { Sparkles, ArrowRight, BookOpen, Calendar, HeartHandshake } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
+
+// 深度代码分割：将首屏视口下方的重型组件全部改造为按需异步加载
+const CylindricalGallery = dynamic(() => import('@/components/CylindricalGallery'), {
+  ssr: false,
+  loading: () => <div className="h-[600px] w-full bg-[#FAF7F2] animate-pulse" />,
+});
+
+const LegoTypographyCollage = dynamic(() => import('@/components/LegoTypographyCollage'), {
+  ssr: false,
+  loading: () => <div className="h-[800px] w-full bg-warm-white animate-pulse" />,
+});
+
+const ExploreActivitiesSection = dynamic(() => import('@/components/ExploreActivitiesSection'), {
+  ssr: false,
+  loading: () => <div className="h-[600px] w-full bg-[#0a0a0a]" />,
+});
+
+const FinalCTAAndFooter = dynamic(() => import('@/components/FinalCTAAndFooter'), {
+  ssr: false,
+  loading: () => <div className="h-[400px] w-full bg-warm-white" />,
+});
 
 const CLASSES = [
   {

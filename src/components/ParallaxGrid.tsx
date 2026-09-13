@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import Image from 'next/image';
 import {
   motion,
   useScroll,
@@ -153,10 +154,9 @@ export const DEFAULT_PHOTOS: Photo[] = [
 export const ParallaxGrid: React.FC<{ photos?: Photo[] }> = ({ photos = DEFAULT_PHOTOS }) => {
   const { scrollY } = useScroll(); // 全局滚动 Y (像素)
 
-  // Hero 文字动画（电影字幕离场：透明度淡出、位移上浮、轻度景深虚化）
+  // Hero 文字动画（电影字幕离场：透明度淡出、位移上浮）
   const heroOpacity = useTransform(scrollY, [0, 380], [1, 0]);
   const heroY = useTransform(scrollY, [0, 380], [0, -70]);
-  const heroBlur = useTransform(scrollY, [0, 380], ['blur(0px)', 'blur(10px)']);
 
   // 根据列配置分组照片
   const columnsData = useMemo(() => {
@@ -173,7 +173,6 @@ export const ParallaxGrid: React.FC<{ photos?: Photo[] }> = ({ photos = DEFAULT_
         style={{
           opacity: heroOpacity,
           y: heroY,
-          filter: heroBlur,
         }}
         className="fixed top-[28%] sm:top-[30%] left-1/2 z-30 pointer-events-none -translate-x-1/2 -translate-y-1/2 text-center w-full px-4 max-w-5xl"
       >
@@ -264,12 +263,6 @@ const ImageItem: React.FC<{
     return Math.max(-0.8, Math.min(0.8, y * 0.002));
   });
 
-  // 亮度微调（仅作视觉层次，GPU 友好）
-  const brightnessFilter = useTransform(columnY, (y) => {
-    const brightnessVal = Math.max(0.92, 1 - Math.abs(y) * 0.00005);
-    return `brightness(${brightnessVal})`;
-  });
-
   return (
     <motion.div
       className="group relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-lg will-change-transform bg-warm-cream/40"
@@ -277,7 +270,6 @@ const ImageItem: React.FC<{
         y: innerY,
         scale,
         rotate,
-        filter: brightnessFilter,
         transformStyle: 'preserve-3d',
       }}
       whileHover={{
@@ -287,14 +279,16 @@ const ImageItem: React.FC<{
       }}
       transition={{ type: 'spring', stiffness: 200, damping: 20, mass: 1 }}
     >
-      <motion.img
-        src={photo.src}
-        alt={photo.alt}
-        className="w-full aspect-[3/4] object-cover"
-        loading="lazy"
-        whileHover={{ scale: 1.05 }}
-        transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-      />
+      <div className="relative w-full aspect-[3/4] overflow-hidden">
+        <Image
+          src={photo.src}
+          alt={photo.alt}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          priority={index < 2}
+          className="object-cover transition-transform duration-700 group-hover:scale-105"
+        />
+      </div>
       {/* 悬停信息渐变浮层 */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-charcoal/80 via-charcoal/30 to-transparent p-3 sm:p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none">
         {photo.category && (

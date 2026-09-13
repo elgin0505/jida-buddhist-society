@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Card3D } from "./Card3D";
@@ -298,12 +299,14 @@ export function RewardsStore({
 
               {/* 法宝信息预览 */}
               <div className="my-4 flex items-center gap-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 p-3 border border-ocher/20">
-                <div className="h-16 w-16 shrink-0 rounded-xl overflow-hidden bg-ocher-light/20 flex items-center justify-center border border-ocher/20">
+                <div className="relative h-16 w-16 shrink-0 rounded-xl overflow-hidden bg-ocher-light/20 flex items-center justify-center border border-ocher/20">
                   {selectedRewardModal.image ? (
-                    <img
+                    <Image
                       src={selectedRewardModal.image}
                       alt={selectedRewardModal.name}
-                      className="h-full w-full object-cover"
+                      fill
+                      sizes="64px"
+                      className="object-cover"
                     />
                   ) : (
                     <span className="text-2xl">🎁</span>
@@ -469,12 +472,14 @@ export function RewardsStore({
                       className="flex items-center justify-between gap-3 rounded-2xl bg-white/70 dark:bg-slate-800/70 p-3 border border-ocher/20 shadow-sm"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-12 w-12 shrink-0 rounded-lg overflow-hidden bg-ocher-light/20 flex items-center justify-center border border-ocher/20">
+                        <div className="relative h-12 w-12 shrink-0 rounded-lg overflow-hidden bg-ocher-light/20 flex items-center justify-center border border-ocher/20">
                           {item.reward.image ? (
-                            <img
+                            <Image
                               src={item.reward.image}
                               alt={item.reward.name}
-                              className="h-full w-full object-cover"
+                              fill
+                              sizes="48px"
+                              className="object-cover"
                             />
                           ) : (
                             <span className="text-xl">🎁</span>
@@ -611,14 +616,14 @@ function RewardCard({
       )}
 
       {/* 法宝图片 */}
-      <div className="mb-4 flex h-40 items-center justify-center rounded-xl bg-gradient-to-br from-ocher-light/30 to-warm-cream overflow-hidden border border-ocher/20">
+      <div className="relative mb-4 flex h-40 items-center justify-center rounded-xl bg-gradient-to-br from-ocher-light/30 to-warm-cream overflow-hidden border border-ocher/20">
         {reward.image && !imageError ? (
-          <img
+          <Image
             src={reward.image}
             alt={reward.name}
-            referrerPolicy="no-referrer"
-            crossOrigin="anonymous"
-            className="h-full w-full object-cover transition-transform duration-500 hover:scale-110"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover transition-transform duration-500 hover:scale-110"
             onError={() => setImageError(true)}
           />
         ) : (

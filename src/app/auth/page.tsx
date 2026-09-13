@@ -10,7 +10,6 @@ import { ZenLogo3D } from "@/components/ZenLogo3D";
 import { InkRippleButton } from "@/components/InkRippleButton";
 import { ForgotPasswordCard } from "@/components/ForgotPasswordCard";
 import AuthPreloader from "@/components/AuthPreloader";
-import { useZenAudio } from "@/hooks/useZenAudio";
 
 // Dynamic import MindfulJourney (恒河圣境 · 视差互动背景)
 const MindfulJourney = dynamic(
@@ -168,7 +167,6 @@ function LoginCard({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { playZenSound } = useZenAudio();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,8 +197,6 @@ function LoginCard({
       if (data.memberId) {
         localStorage.setItem("currentMemberId", data.memberId);
       }
-
-      playZenSound(); // 触发空灵音效
 
       toast.success(`欢迎回来，${data.name}！`, {
         description: "正在跳转到仪表板…",
@@ -346,7 +342,6 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { playZenAudio, playZenSound } = useZenAudio() as any;
 
   const passwordStrength = getPasswordStrength(password);
 
@@ -389,8 +384,6 @@ function RegisterCard({ onSwitch }: { onSwitch: () => void }) {
       if (data.memberId) {
         localStorage.setItem("currentMemberId", data.memberId);
       }
-
-      playZenSound(); // 触发空灵音效
 
       toast.success("注册成功，法喜充满！", {
         description: `您的专属会员编号为 ${data.memberCode || data.memberId}，正在为您开启修行空间…`,

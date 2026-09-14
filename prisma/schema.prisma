@@ -62,13 +62,42 @@ model Redemption {
 }
 
 model Event {
-  id          String   @id @default(cuid())
+  id          String            @id @default(cuid())
   name        String
   description String?
   dateTime    DateTime
   location    String?
-  points      Int      @default(1)
-  createdAt   DateTime @default(now())
+  points      Int               @default(1)
+  tokens      AttendanceToken[]
+  attendances Attendance[]
+  createdAt   DateTime          @default(now())
+}
+
+model AttendanceToken {
+  id         String      @id @default(cuid())
+  token      String      @unique
+  eventId    String
+  event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  isUsed     Boolean     @default(false)
+  usedAt     DateTime?
+  createdAt  DateTime    @default(now())
+  attendance Attendance?
+
+  @@index([expiresAt])
+  @@index([eventId])
+}
+
+model Attendance {
+  id          String          @id @default(cuid())
+  eventId     String
+  event       Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  studentId   String
+  tokenId     String          @unique
+  token       AttendanceToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  checkedInAt DateTime        @default(now())
+
+  @@unique([eventId, studentId])
 }
 
 model User {

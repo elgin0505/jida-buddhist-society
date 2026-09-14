@@ -362,8 +362,22 @@ export default function DashboardPage() {
       >
         <Card3D intensity={8} glow={true}>
           <GoldShimmerBorder glowOpacity={0.85}>
-            <div className="relative p-6 sm:p-8 overflow-hidden rounded-[22px]">
-              <div className="absolute -right-8 -top-8 h-40 w-40 opacity-[0.05]">
+            <div className="relative p-6 sm:p-8 overflow-hidden rounded-[22px] bg-gradient-to-br from-amber-50/60 via-warm-cream/70 to-amber-100/40">
+              {/* ── 金色脉冲微光呼吸层 ── */}
+              <motion.div
+                animate={{
+                  opacity: [0.25, 0.45, 0.25],
+                  scale: [1, 1.06, 1],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                className="pointer-events-none absolute -inset-10 rounded-full bg-[radial-gradient(ellipse_at_top_right,rgba(251,191,36,0.35)_0%,rgba(245,158,11,0.15)_45%,transparent_70%)] blur-2xl"
+              />
+
+              <div className="absolute -right-8 -top-8 h-40 w-40 opacity-[0.06]">
                 <Image src="/logo.png" alt="" fill className="object-contain" />
               </div>
 
@@ -464,7 +478,7 @@ export default function DashboardPage() {
 
                 {/* ── 功德菩提树（积分可视化） ── */}
                 <div className="flex flex-col items-center">
-                  <p className="mb-1 text-xs font-medium text-muted dark:text-slate-400">累积积分</p>
+                  <p className="mb-1 text-xs font-bold text-amber-950/80">累积积分</p>
                   <LivingBodhiTree
                     points={currentMember.totalPoints}
                     size="sm"
@@ -484,7 +498,7 @@ export default function DashboardPage() {
                       <img
                         src={qrCode}
                         alt="会员二维码"
-                        className="h-28 w-28 rounded-2xl ring-2 ring-ocher/30 shadow-md transition-shadow group-hover:shadow-lg group-hover:ring-golden-deep bg-white p-1"
+                        className="h-28 w-28 rounded-2xl ring-2 ring-amber-400/50 shadow-md transition-shadow group-hover:shadow-lg group-hover:ring-amber-600 bg-white p-1"
                       />
                       <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl bg-charcoal/50 opacity-0 backdrop-blur-[2px] transition-opacity group-hover:opacity-100 text-white">
                         <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -495,12 +509,75 @@ export default function DashboardPage() {
                     </motion.div>
                     <button
                       onClick={() => setIsQrModalOpen(true)}
-                      className="mt-2 text-[11px] font-semibold text-golden-rich hover:underline"
+                      className="mt-2 text-[11px] font-bold text-amber-950/80 hover:text-amber-950 hover:underline"
                     >
                       🔍 放大 / 存为PDF
                     </button>
                   </div>
                 )}
+              </div>
+
+              {/* ── 底部耀眼钻石星芒光棱特效 (Lens Flare Starburst) ── */}
+              <div
+                className="pointer-events-none absolute bottom-0 left-[51%] -translate-x-1/2 translate-y-1/2 z-20 flex items-center justify-center"
+                style={{ width: "120px", height: "120px" }}
+                aria-hidden="true"
+              >
+                {/* 柔和径向暖金光晕 */}
+                <div
+                  className="absolute w-24 h-24 rounded-full"
+                  style={{
+                    background:
+                      "radial-gradient(circle, rgba(255, 240, 180, 0.85) 0%, rgba(245, 158, 11, 0.45) 45%, transparent 70%)",
+                  }}
+                />
+
+                {/* 纵向向上激射的光柱（直插卡片内部） */}
+                <div
+                  className="absolute -top-7 w-[3px] h-20 bg-gradient-to-t from-white via-amber-200 to-transparent rounded-full opacity-90 blur-[0.5px]"
+                  style={{
+                    boxShadow: "0 0 12px 2px rgba(255, 235, 150, 0.8)",
+                  }}
+                />
+
+                {/* 纵向尖锐白金光束 */}
+                <div
+                  className="absolute w-[2px] h-16 bg-gradient-to-b from-transparent via-white to-transparent"
+                  style={{
+                    boxShadow: "0 0 8px 1px rgba(255, 255, 255, 0.9)",
+                  }}
+                />
+
+                {/* 水平展开的横向光翼 */}
+                <div
+                  className="absolute h-[2px] w-20 bg-gradient-to-r from-transparent via-white to-transparent"
+                  style={{
+                    boxShadow: "0 0 8px 1px rgba(255, 240, 180, 0.9)",
+                  }}
+                />
+
+                {/* 45度角菱形星芒 (4-point Diamond Star) */}
+                <div
+                  className="absolute w-7 h-7 rotate-45 border border-white/60 bg-white/20 blur-[0.5px]"
+                  style={{
+                    boxShadow: "0 0 10px 2px rgba(255, 215, 0, 0.7)",
+                  }}
+                />
+
+                {/* 耀眼爆闪纯白核心（自带优雅呼吸微光，只动 scale/opacity） */}
+                <motion.div
+                  animate={{
+                    scale: [1, 1.25, 1],
+                    opacity: [0.9, 1, 0.9],
+                  }}
+                  transition={{
+                    duration: 2.4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="relative w-3.5 h-3.5 rounded-full bg-white shadow-[0_0_10px_3px_#ffffff,0_0_20px_6px_#fbbf24,0_0_35px_10px_#d97706]"
+                  style={{ willChange: "transform, opacity" }}
+                />
               </div>
             </div>
           </GoldShimmerBorder>

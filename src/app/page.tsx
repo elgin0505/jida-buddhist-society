@@ -19,6 +19,11 @@ const LegoTypographyCollage = dynamic(() => import('@/components/LegoTypographyC
   loading: () => <div className="h-[800px] w-full bg-warm-white animate-pulse" />,
 });
 
+const FiveEventsGalleryShowcase = dynamic(() => import('@/components/FiveEventsGalleryShowcase'), {
+  ssr: false,
+  loading: () => <div className="h-[700px] w-full bg-[#0a0a0a]" />,
+});
+
 const ExploreActivitiesSection = dynamic(() => import('@/components/ExploreActivitiesSection'), {
   ssr: false,
   loading: () => <div className="h-[600px] w-full bg-[#0a0a0a]" />,
@@ -203,6 +208,9 @@ export default function LandingPage() {
 
       {/* ── 模块：乐高拼字照片墙 (LegoTypographyCollage) ── */}
       <LegoTypographyCollage />
+
+      {/* ── 模块：五大活动时光画廊 (FiveEventsGalleryShowcase) ── */}
+      <FiveEventsGalleryShowcase />
 
       {/* ── 模块：更多活动 (带 2.5D 视差胶囊与磁性按钮特效) ── */}
       <ExploreActivitiesSection />

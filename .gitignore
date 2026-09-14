@@ -6,3 +6,5 @@ node_modules
 *.db-journal
 .DS_Store
 *.tsbuildinfo
+public/avatars/*
+!public/avatars/.gitkeep

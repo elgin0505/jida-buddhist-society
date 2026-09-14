@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import { QRScanner } from "@/components/QRScanner";
+import { DynamicAttendanceQR } from "@/components/DynamicAttendanceQR";
 import { PageWrapper } from "@/components/PageWrapper";
 import { CheckInToast } from "@/components/CheckInToast";
 import { AdminPinLock } from "@/components/AdminPinLock";
@@ -74,6 +75,7 @@ export default function AdminDashboardPage() {
   const [selectedEvent, setSelectedEvent] = useState("");
   const [customPoints, setCustomPoints] = useState<number | "">("");
   const [showScanner, setShowScanner] = useState(false);
+  const [showDynamicQR, setShowDynamicQR] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [recentCheckIns, setRecentCheckIns] = useState<
@@ -406,17 +408,28 @@ export default function AdminDashboardPage() {
                     />
                   </div>
 
-                  <button
-                    onClick={() => setShowScanner(true)}
-                    disabled={loading || !selectedEvent}
-                    className="btn-jade w-full py-3.5 text-base font-bold shadow-md hover:shadow-lg transition-all"
-                  >
-                    <svg className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
-                      <rect x="7" y="7" width="10" height="10" rx="1" />
-                    </svg>
-                    {loading ? "正在处理签到..." : "开启摄像头扫描签到"}
-                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setShowScanner(true)}
+                      disabled={loading || !selectedEvent}
+                      className="btn-jade w-full py-3.5 text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <svg className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+                        <rect x="7" y="7" width="10" height="10" rx="1" />
+                      </svg>
+                      <span>{loading ? "正在处理签到..." : "开启摄像头扫学员"}</span>
+                    </button>
+
+                    <button
+                      onClick={() => setShowDynamicQR(true)}
+                      disabled={loading || !selectedEvent}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-golden-deep px-4 py-3.5 text-sm font-bold text-white shadow-md hover:bg-golden-rich transition-all active:scale-98 disabled:opacity-50"
+                    >
+                      <QrCode className="h-5 w-5" />
+                      <span>投屏动态码 (学员扫码)</span>
+                    </button>
+                  </div>
 
                   <div className="pt-2 border-t border-ocher/20">
                     <ManualLookup
@@ -708,6 +721,57 @@ export default function AdminDashboardPage() {
         {showScanner && (
           <QRScanner onScan={handleScan} onClose={() => setShowScanner(false)} />
         )}
+
+        {/* ── 动态大屏投屏二维码弹窗 (学员扫码自主签到) ── */}
+        <AnimatePresence>
+          {showDynamicQR && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 15 }}
+                className="relative w-full max-w-md rounded-3xl border border-white/80 bg-warm-white/95 dark:bg-slate-900/95 p-6 sm:p-8 shadow-2xl backdrop-blur-2xl text-center"
+              >
+                <button
+                  onClick={() => setShowDynamicQR(false)}
+                  className="absolute right-4 top-4 rounded-full p-2 text-muted hover:bg-black/5 dark:hover:bg-white/10 hover:text-charcoal dark:hover:text-white transition-colors"
+                  title="关闭"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-golden-deep/15 text-2xl shadow-inner">
+                  🪷
+                </div>
+
+                <h3 className="text-xl font-bold text-charcoal dark:text-white font-serif">
+                  {selectedEvent || "现场活动签到"}
+                </h3>
+                <p className="text-xs text-muted mt-1">
+                  请同修打开手机相机扫描下方动态码，自动完成签到
+                </p>
+
+                <div className="my-6 flex justify-center">
+                  {events.find((ev) => ev.name === selectedEvent)?.id ? (
+                    <DynamicAttendanceQR
+                      eventId={events.find((ev) => ev.name === selectedEvent)!.id}
+                      size={200}
+                    />
+                  ) : (
+                    <p className="text-xs text-red-500">无法读取活动编号，请先选择活动</p>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-ocher/20 flex items-center justify-between text-xs text-muted">
+                  <span>防截图 · 15 秒原子核销</span>
+                  <span className="font-semibold text-golden-rich">
+                    签到积分 +{customPoints || 1}
+                  </span>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         {/* ── 会员详细历史档案弹窗 (Member Detail Modal) ── */}
         <AnimatePresence>

@@ -80,8 +80,35 @@ function DashboardBg() {
 function EventsBg() {
   return (
     <div className="page-bg-events" aria-hidden>
+      {/* 东方水墨日历壁纸底蕴：右上旭日晨光与温和波纹色带 */}
       <svg
-        className="absolute bottom-0 left-0 w-full opacity-[0.055]"
+        className="absolute top-0 right-0 w-[500px] h-[500px] opacity-[0.06] pointer-events-none"
+        viewBox="0 0 500 500"
+        fill="none"
+      >
+        <circle cx="450" cy="50" r="160" fill="#C58B35" filter="blur(20px)" />
+        <circle cx="450" cy="50" r="100" stroke="#B03A2E" strokeWidth="2" strokeDasharray="6 6" />
+        {Array.from({ length: 12 }).map((_, i) => {
+          const angle = (i * 360) / 12;
+          const rad = (angle * Math.PI) / 180;
+          return (
+            <line
+              key={i}
+              x1={450 + Math.cos(rad) * 90}
+              y1={50 + Math.sin(rad) * 90}
+              x2={450 + Math.cos(rad) * 130}
+              y2={50 + Math.sin(rad) * 130}
+              stroke="#C58B35"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          );
+        })}
+      </svg>
+
+      {/* 底部流金律动水波纹 (呼应图二与枯山水) */}
+      <svg
+        className="absolute bottom-0 left-0 w-full opacity-[0.07] pointer-events-none"
         viewBox="0 0 1440 520"
         preserveAspectRatio="xMidYMid slice"
         fill="none"
@@ -93,19 +120,19 @@ function EventsBg() {
             cy={620 - i * 60}
             rx={340 + i * 60}
             ry={28 + i * 10}
-            stroke="#1b4965"
+            stroke="#8A7A5E"
             strokeWidth="1.2"
             fill="none"
           />
         ))}
         {/* 禅石 */}
-        <ellipse cx="260" cy="480" rx="60" ry="18" fill="#1b4965" opacity="0.25" />
-        <ellipse cx="1180" cy="460" rx="44" ry="13" fill="#c9a227" opacity="0.20" />
+        <ellipse cx="260" cy="480" rx="60" ry="18" fill="#5A7C59" opacity="0.3" />
+        <ellipse cx="1180" cy="460" rx="44" ry="13" fill="#C58B35" opacity="0.35" />
       </svg>
 
-      {/* 左上角飘落竹叶 */}
+      {/* 飘散竹叶与水墨禅韵 */}
       <svg
-        className="absolute left-8 top-24 opacity-[0.055]"
+        className="absolute left-8 top-24 opacity-[0.06] pointer-events-none"
         width="200"
         height="240"
         viewBox="0 0 200 240"
@@ -113,8 +140,8 @@ function EventsBg() {
       >
         {[0, 1, 2, 3].map((i) => (
           <g key={i} transform={`translate(${20 + i * 38}, ${i * 44}) rotate(${-30 + i * 18})`}>
-            <ellipse cx="0" cy="0" rx="10" ry="32" fill="#2d6a4f" />
-            <line x1="0" y1="-32" x2="0" y2="32" stroke="#40916c" strokeWidth="0.8" />
+            <ellipse cx="0" cy="0" rx="10" ry="32" fill="#3E5A44" />
+            <line x1="0" y1="-32" x2="0" y2="32" stroke="#5A7C59" strokeWidth="0.8" />
           </g>
         ))}
       </svg>

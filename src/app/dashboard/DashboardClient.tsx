@@ -849,21 +849,22 @@ export default function DashboardClient({
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md"
           >
             <div className="relative w-full h-full sm:w-[95vw] sm:max-w-5xl sm:h-[85vh] overflow-hidden rounded-none sm:rounded-3xl border-0 sm:border border-golden-deep/40 shadow-[0_0_50px_rgba(201,162,39,0.15)] bg-[#050505]">
-              {/* 关闭按钮 */}
+              {/* 右上角关闭按钮（带清晰退出标签与点击区域） */}
               <button
                 onClick={() => setShowLotusCanvas(false)}
-                className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top,0px))] z-50 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md transition-colors hover:bg-carmine/80 cursor-pointer"
-                title="关闭供灯"
-                aria-label="关闭供灯"
+                className="absolute right-4 top-[calc(1rem+env(safe-area-inset-top,0px))] z-50 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-xs font-semibold text-white/90 backdrop-blur-md transition-all hover:bg-carmine/80 hover:text-white cursor-pointer border border-white/20 shadow-lg active:scale-95"
+                title="退出供灯"
+                aria-label="退出供灯"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
+                <span className="text-xs">退出</span>
               </button>
 
               {/* 环境提示文本 */}
-              <div className="absolute left-1/2 top-[calc(1.1rem+env(safe-area-inset-top,0px))] z-40 -translate-x-1/2 rounded-full bg-black/50 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs tracking-wider sm:tracking-widest text-golden-rich backdrop-blur-md max-w-[calc(100vw-6rem)] truncate sm:max-w-none pointer-events-none">
-                双击水面缩放视角 · 点击心灯功德+1 · 每位同修限供一灯
+              <div className="absolute left-1/2 top-[calc(1.1rem+env(safe-area-inset-top,0px))] z-40 -translate-x-1/2 rounded-full bg-black/50 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs tracking-wider sm:tracking-widest text-golden-rich backdrop-blur-md max-w-[calc(100vw-12rem)] truncate sm:max-w-none pointer-events-none">
+                双击水面缩放 · 点击心灯功德+1
               </div>
               
               <LotusSeaCanvas 
@@ -871,6 +872,7 @@ export default function DashboardClient({
                 currentUserName={currentMember?.name ?? "同修"}
                 currentUserRole={(currentMember?.role as any) || "学员"}
                 maxLampsPerUser={1}
+                onClose={() => setShowLotusCanvas(false)}
                 onPlaceLamp={() => sonnerToast.success("已供上一盏心灯", { icon: "🪷" })}
                 onDedicate={() => sonnerToast.success("功德已回向", { icon: "✨" })}
                 onLimitReached={() => sonnerToast.warning("每位同修仅限供奉一盏莲灯", { duration: 4000 })}

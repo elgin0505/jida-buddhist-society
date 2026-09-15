@@ -32,7 +32,8 @@ export function getSharedLotusGeometry(): THREE.BufferGeometry {
 
 export function getSharedHaloGeometry(): THREE.BufferGeometry {
   if (!cachedHaloGeometry) {
-    const geom = new THREE.RingGeometry(0.1, 1.45, 16);
+    // 细分段数从 16 提升至 64，消除水面多边形光晕折角，呈现圆润光斑
+    const geom = new THREE.RingGeometry(0.1, 1.45, 64);
     geom.rotateX(-Math.PI / 2);
     cachedHaloGeometry = geom;
   }
@@ -61,7 +62,8 @@ export function createLotusPetalsGeometry(useCache = true): THREE.BufferGeometry
     yaw: number,
     colorHex: string
   ): THREE.BufferGeometry {
-    const geom = new THREE.PlaneGeometry(width, length, 3, 5);
+    // 细分精度从 3x5 提升至 8x12，曲面更丝滑圆润，消除手机端折角
+    const geom = new THREE.PlaneGeometry(width, length, 8, 12);
     const pos = geom.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
@@ -108,8 +110,8 @@ export function createLotusPetalsGeometry(useCache = true): THREE.BufferGeometry
     geoms.push(createPetal(0.55, 0.26, 0.08, 0.35, yaw, '#ff9800'));
   }
 
-  // 莲座底托（暗青绿荷座）
-  const baseGeom = new THREE.CylinderGeometry(0.32, 0.42, 0.08, 8);
+  // 莲座底托（暗青绿荷座：细分段数从 8 提升至 32，消除明显多边形八角形切面）
+  const baseGeom = new THREE.CylinderGeometry(0.32, 0.42, 0.08, 32);
   baseGeom.translate(0, 0.04, 0);
   baseGeom.computeVertexNormals();
   const baseColors = new Float32Array(baseGeom.attributes.position.count * 3);
@@ -206,13 +208,11 @@ const ProceduralLamp: React.FC<ProceduralLampProps> = ({
 
   useEffect(() => {
     return () => {
-      lotusGeometry.dispose();
-      haloGeometry.dispose();
       lotusMaterial.dispose();
       flameMaterial.dispose();
       haloMaterial.dispose();
     };
-  }, [lotusGeometry, haloGeometry, lotusMaterial, flameMaterial, haloMaterial]);
+  }, [lotusMaterial, flameMaterial, haloMaterial]);
 
   useEffect(() => {
     if (lotusMaterialRef.current && vfxStartTimeRef.current === null) {
@@ -333,14 +333,14 @@ const ProceduralLamp: React.FC<ProceduralLampProps> = ({
         onPointerDown={handlePointerDown}
       />
 
-      {/* 中心明亮烛芯火苗 */}
+      {/* 中心明亮烛芯火苗（16段光滑圆锥） */}
       <mesh
         ref={flameRef}
         material={flameMaterial}
         position={[0, 0.26, 0]}
         onPointerDown={handlePointerDown}
       >
-        <coneGeometry args={[0.13, 0.44, 8]} />
+        <coneGeometry args={[0.13, 0.44, 16]} />
       </mesh>
 
       {/* 水面倒影光晕（还原水波光晕） */}

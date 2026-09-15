@@ -643,13 +643,13 @@ const LampScene: React.FC<LampSceneProps> = ({
       {/* 空间金光粒子 */}
       <Sparkles count={250} scale={30} size={2} speed={0.2} color="#FBBF24" opacity={0.6} />
 
-      {/* 苍穹高能螺旋离子日轮（IonSun 天体发光特效）：移动端粒子数从 30000 压降至 5000 */}
+      {/* 苍穹高能螺旋离子日轮（IonSun 天体发光特效）：移动端 8,000 粒子精细呈现，同时确保 60fps 顺畅 */}
       <IonSun
         position={[0, 8, -38]}
         rotation={[0.35, 0, 0.15]}
         coreRadius={3.5}
         maxRadius={16}
-        particleCount={isMobile ? 5000 : 30000}
+        particleCount={isMobile ? 8000 : 30000}
         spiralArms={3}
       />
 
@@ -657,12 +657,12 @@ const LampScene: React.FC<LampSceneProps> = ({
       <ConcentricRings />
 
       {/* 边界粒子 */}
-      <GlowBoundary radius={OUTER_RADIUS} count={600} />
+      <GlowBoundary radius={OUTER_RADIUS} count={isMobile ? 400 : 600} />
 
-      {/* 水墨水面：移动端网格细分从 160x160 降至 40x40 */}
+      {/* 水墨水面：移动端 60x60 网格细分保证涟漪波纹细腻，GPU Shader 驱动无掉帧 */}
       <InkWater
         size={100}
-        segments={isMobile ? 40 : 160}
+        segments={isMobile ? 60 : 160}
         onWaterPointerDown={handleWaterPointerDown}
         onWaterMove={handleWaterMove}
         isPlacementMode={isPlacementMode}
@@ -726,6 +726,7 @@ export interface LotusSeaCanvasProps {
   onDedicate?: (lampId?: string) => void;
   onLimitReached?: (msg?: string) => void;
   onResetDaochang?: () => void;
+  onClose?: () => void;
 }
 
 const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
@@ -737,6 +738,7 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
   onDedicate,
   onLimitReached,
   onResetDaochang,
+  onClose,
 }) => {
   const [isPlacementMode, setIsPlacementMode] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
@@ -962,12 +964,12 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
       <Canvas
         shadows={!isMobile}
         camera={{ position: [0, 10, 18], fov: 50, near: 0.1, far: 200 }}
-        dpr={isMobile ? 1 : [1, 1.5]}
-        frameloop={!isVisible ? 'demand' : (isMobile ? 'demand' : 'always')}
+        dpr={isMobile ? [1, 1.5] : [1, 2]}
+        frameloop={!isVisible ? 'demand' : 'always'}
         gl={{
           powerPreference: "high-performance",
-          antialias: !isMobile,
-          precision: isMobile ? "lowp" : "highp",
+          antialias: true,
+          precision: isMobile ? "mediump" : "highp",
           alpha: true,
           preserveDrawingBuffer: false,
         }}
@@ -1026,17 +1028,42 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
       <div
         style={{
           position: 'absolute',
-          top: '20px',
-          left: '20px',
-          right: '20px',
+          top: 'calc(16px + env(safe-area-inset-top, 0px))',
+          left: '16px',
+          right: '16px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           pointerEvents: 'none',
-          zIndex: 10,
+          zIndex: 50,
         }}
       >
-        <div />
+        {/* 左侧：退出 / 返回按钮 */}
+        {onClose ? (
+          <button
+            onClick={onClose}
+            style={{
+              pointerEvents: 'auto',
+              backgroundColor: 'rgba(20, 20, 20, 0.75)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              color: '#FFFFFF',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              borderRadius: '9999px',
+              padding: '8px 16px',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <span>←</span> 退出供灯
+          </button>
+        ) : <div />}
 
         {/* 右侧：缩放状态下的快速复位按钮 */}
         {isZoomed && (

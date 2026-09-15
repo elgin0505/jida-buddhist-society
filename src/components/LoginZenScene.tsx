@@ -22,6 +22,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import SacredTrees from './SacredTrees';
 import SacredFlowers from './SacredFlowers';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useCanvasVisibility } from '@/hooks/useCanvasVisibility';
 
 // ==================== 时间状态类型 ====================
 export type TimeOfDay = 'day' | 'dusk' | 'night';
@@ -32,7 +33,10 @@ export interface LoginZenSceneProps {
 }
 
 // ==================== 场景光照控制器 ====================
-const SceneLighting: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
+const SceneLighting: React.FC<{ timeOfDay: TimeOfDay; isMobile?: boolean }> = ({
+  timeOfDay,
+  isMobile = false,
+}) => {
   const ambientRef = useRef<THREE.AmbientLight>(null);
   const dirLightRef = useRef<THREE.DirectionalLight>(null);
 
@@ -99,8 +103,8 @@ const SceneLighting: React.FC<{ timeOfDay: TimeOfDay }> = ({ timeOfDay }) => {
         ref={dirLightRef}
         position={[20, 30, 10]}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={isMobile ? 512 : 1024}
+        shadow-mapSize-height={isMobile ? 512 : 1024}
         shadow-camera-far={100}
         shadow-camera-left={-40}
         shadow-camera-right={40}
@@ -427,10 +431,13 @@ interface PavilionWithLanternsProps {
 }
 
 const PavilionWithLanterns: React.FC<PavilionWithLanternsProps> = ({ timeOfDay }) => {
-  const [lightIntensity, setLightIntensity] = useState(0.8);
+  const lightRef = useRef<THREE.PointLight>(null);
 
+  // 直接使用 Ref 突变 pointLight 强度，消除每秒 60 次的 React state dispatch 与组件重渲染
   useFrame(({ clock }) => {
-    setLightIntensity(0.7 + Math.sin(clock.elapsedTime * 0.5) * 0.3);
+    if (lightRef.current) {
+      lightRef.current.intensity = 0.7 + Math.sin(clock.elapsedTime * 0.5) * 0.3;
+    }
   });
 
   // 灯笼位置（保持不变）
@@ -507,8 +514,8 @@ const PavilionWithLanterns: React.FC<PavilionWithLanternsProps> = ({ timeOfDay }
         <primitive object={bodyMaterial} attach="material" />
       </mesh>
 
-      {/* 内部常明灯（保持不变） */}
-      <pointLight position={[0, 2.2, 0]} intensity={lightIntensity} color="#FFD28A" distance={10} decay={2} castShadow />
+      {/* 内部常明灯（直接通过 ref 动态调节光强，零 React 状态开销） */}
+      <pointLight ref={lightRef} position={[0, 2.2, 0]} intensity={0.8} color="#FFD28A" distance={10} decay={2} castShadow />
 
       {/* 灯笼（保持不变） */}
       {lanternPositions.map((pos, i) => (
@@ -1085,7 +1092,7 @@ const SceneContent: React.FC<{ timeOfDay: TimeOfDay; isMobile: boolean }> = ({ t
   return (
     <>
       {/* 昼夜光照与动态雾 */}
-      <SceneLighting timeOfDay={timeOfDay} />
+      <SceneLighting timeOfDay={timeOfDay} isMobile={isMobile} />
       <DynamicFog timeOfDay={timeOfDay} />
 
       {/* 涟漪水面与有机苔藓半岛（移动端降级反射） */}
@@ -1180,21 +1187,8 @@ const LoginZenScene: React.FC<LoginZenSceneProps> = ({ timeOfDay, timeMode }) =>
   const effectiveTime: TimeOfDay = timeOfDay || timeMode || 'day';
   const isMobile = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isInView, setIsInView] = useState(true);
+  const isVisible = useCanvasVisibility(containerRef);
   const [isContextLost, setIsContextLost] = useState(false);
-
-  // 离屏挂起检测：离开视口时自动暂停渲染循环 (frameloop="demand")，彻底释放 GPU 算力
-  useEffect(() => {
-    if (!containerRef.current || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInView(entry.isIntersecting);
-      },
-      { rootMargin: '200px' }
-    );
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
 
   // WebGL 显存崩溃防御与优雅降级
   const handleCreated = ({ gl }: { gl: THREE.WebGLRenderer }) => {
@@ -1230,7 +1224,7 @@ const LoginZenScene: React.FC<LoginZenSceneProps> = ({ timeOfDay, timeMode }) =>
           alpha: true,
           preserveDrawingBuffer: false,
         }}
-        frameloop={isMobile ? 'demand' : (isInView ? 'always' : 'demand')}
+        frameloop={!isVisible ? 'demand' : (isMobile ? 'demand' : 'always')}
         onCreated={handleCreated}
         style={{ width: '100%', height: '100%' }}
       >

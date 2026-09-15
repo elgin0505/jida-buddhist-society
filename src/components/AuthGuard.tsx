@@ -97,11 +97,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return <>{children}</>;
   }
 
-  // 私密页面鉴权中状态：展示禅意莲花加载动效
-  if (authorized === null || !authorized) {
+  // 私密页面：仅在客户端明确验证为未授权（authorized === false）时展示跳转过渡，绝不在服务端渲染（SSR）中剥离 children
+  if (authorized === false && !isPublicPage) {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center">
-        <LotusLoading text="正念觉照 · 正在验证修行者身份..." />
+        <LotusLoading text="正念觉照 · 正在跳转登录..." />
       </div>
     );
   }

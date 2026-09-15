@@ -1,5 +1,3 @@
-"use client";
-
 import { ReactNode, ReactElement } from "react";
 import Image from "next/image";
 

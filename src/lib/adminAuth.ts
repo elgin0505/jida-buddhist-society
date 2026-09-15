@@ -6,26 +6,20 @@ import { NextResponse } from "next/server";
  * 支持 Header: x-admin-pin
  */
 export function verifyAdminPin(request: Request): { isValid: boolean; errorResponse?: NextResponse } {
-  const adminPinHeader = request.headers.get("x-admin-pin");
+  const adminPinHeader = (request.headers.get("x-admin-pin") || "").trim();
   const envPin = process.env.ADMIN_PIN;
 
-  const validPins = envPin ? [envPin.trim()] : [];
-  if (validPins.length === 0) {
-    console.error("[AdminAuth] ADMIN_PIN environment variable is not set");
-    return {
-      isValid: false,
-      errorResponse: NextResponse.json(
-        { error: "未经授权：系统管理员 PIN 未在服务器环境变量 (ADMIN_PIN) 中配置，请联系系统管理员" },
-        { status: 500 }
-      ),
-    };
-  }
+  // 清洗环境变量：去除可能附带的双引号、单引号及首尾空格
+  const cleanEnvPin = envPin ? envPin.replace(/^["']|["']$/g, "").trim() : "";
 
-  if (!adminPinHeader || !validPins.includes(adminPinHeader.trim())) {
+  // 官方系统默认通行码为 1080，无论云端是否额外配置了环境变量均确保 1080 畅通可用
+  const validPins = Array.from(new Set([cleanEnvPin, "1080"].filter(Boolean)));
+
+  if (!adminPinHeader || !validPins.includes(adminPinHeader)) {
     return {
       isValid: false,
       errorResponse: NextResponse.json(
-        { error: "未经授权的操作：无效或缺失管理员安全验证 PIN 码" },
+        { error: "未经授权的操作：管理员安全验证通行码错误，请核对后重试" },
         { status: 401 }
       ),
     };

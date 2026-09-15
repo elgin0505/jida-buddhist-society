@@ -17,6 +17,22 @@ export function AdminPinLock({ children }: AdminPinLockProps) {
   const [isVerifying, setIsVerifying] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // 物理键盘按键监听 (支持 0-9、Backspace、Esc)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isAuthenticated || isVerifying || loading) return;
+      if (e.key >= "0" && e.key <= "9") {
+        handleKeyPress(e.key);
+      } else if (e.key === "Backspace") {
+        handleDelete();
+      } else if (e.key === "Escape") {
+        handleClear();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isAuthenticated, isVerifying, loading, pin]);
+
   useEffect(() => {
     // 检查当前 session 是否有保存验证码并向服务端确认有效性
     const sessionAuth = sessionStorage.getItem("jbs_admin_authenticated");
@@ -77,10 +93,16 @@ export function AdminPinLock({ children }: AdminPinLockProps) {
 
   const verifyPin = async (inputPin: string) => {
     setIsVerifying(true);
+    setError(false);
+    setErrorMessage("");
     try {
       const res = await fetch("/api/admin/verify-pin", {
         method: "POST",
-        headers: { "x-admin-pin": inputPin },
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": inputPin,
+        },
+        body: JSON.stringify({ pin: inputPin }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -98,7 +120,7 @@ export function AdminPinLock({ children }: AdminPinLockProps) {
         setTimeout(() => {
           setPin("");
           setError(false);
-        }, 600);
+        }, 1600);
       }
     } catch {
       setError(true);
@@ -106,7 +128,7 @@ export function AdminPinLock({ children }: AdminPinLockProps) {
       setTimeout(() => {
         setPin("");
         setError(false);
-      }, 600);
+      }, 1600);
     } finally {
       setIsVerifying(false);
     }
@@ -197,11 +219,23 @@ export function AdminPinLock({ children }: AdminPinLockProps) {
           })}
         </motion.div>
 
-        {/* 错误提示 */}
-        <div className="h-6 mb-2">
-          <AnimatePresence>
-            {error && (
+        {/* 校验与错误提示 */}
+        <div className="h-6 mb-2 flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            {isVerifying ? (
+              <motion.div
+                key="verifying"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-1.5 text-xs font-semibold text-golden-rich"
+              >
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-golden-deep border-t-transparent" />
+                <span>正在校验管理员通行码...</span>
+              </motion.div>
+            ) : error ? (
               <motion.p
+                key="error"
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
@@ -209,7 +243,7 @@ export function AdminPinLock({ children }: AdminPinLockProps) {
               >
                 {errorMessage || "通行码错误，请重新输入"}
               </motion.p>
-            )}
+            ) : null}
           </AnimatePresence>
         </div>
 
@@ -258,6 +292,7 @@ export function AdminPinLock({ children }: AdminPinLockProps) {
             </svg>
           </button>
         </div>
+
       </motion.div>
     </div>
   );

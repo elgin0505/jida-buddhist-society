@@ -19,6 +19,8 @@ import {
 } from 'three';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useCanvasVisibility } from '@/hooks/useCanvasVisibility';
+import { applyInkWaterShader } from './shaders/InkWaterShader';
 import ProceduralLamp, { createLotusPetalsGeometry } from './ProceduralLamp';
 import Ripple from './Ripple';
 import IonSun from './IonSun';
@@ -106,53 +108,27 @@ const InkWater: React.FC<InkWaterProps> = ({
   const meshRef = useRef<THREE.Mesh>(null);
   const geometryRef = useRef<PlaneGeometry>(null);
   const normalMap = useMemo(() => createInkNormalMap(), []);
+  const uniformsRef = useRef({ uTime: { value: 0 } });
 
-  const waterMaterial = useMemo(
-    () =>
-      new MeshPhysicalMaterial({
-        color: '#000000',
-        metalness: 0.7,
-        roughness: 0.2,
-        side: DoubleSide,
-        envMapIntensity: 1.2,
-        clearcoat: 0.3,
-        clearcoatRoughness: 0.1,
-        normalMap: normalMap,
-        normalScale: new THREE.Vector2(0.3, 0.3),
-      }),
-    [normalMap]
-  );
+  const waterMaterial = useMemo(() => {
+    const mat = new MeshPhysicalMaterial({
+      color: '#000000',
+      metalness: 0.7,
+      roughness: 0.2,
+      side: DoubleSide,
+      envMapIntensity: 1.2,
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.1,
+      normalMap: normalMap,
+      normalScale: new THREE.Vector2(0.3, 0.3),
+    });
+    applyInkWaterShader(mat, uniformsRef.current);
+    return mat;
+  }, [normalMap]);
 
-  // 波浪顶点动态动画
+  // 波浪顶点动态动画：完全卸载至 GPU 顶点着色器，消除每帧 25,921 次 CPU 循环与 77,000 次 Math.sin() 计算
   useFrame(({ clock }) => {
-    const time = clock.elapsedTime;
-    const geometry = geometryRef.current;
-    if (!geometry) return;
-
-    const positionAttribute = geometry.attributes.position;
-    const vertexCount = positionAttribute.count;
-    const positions = positionAttribute.array as Float32Array;
-
-    if (!geometry.userData.originalPositions) {
-      const original = new Float32Array(positions);
-      geometry.userData.originalPositions = original;
-    }
-    const original = geometry.userData.originalPositions as Float32Array;
-
-    for (let i = 0; i < vertexCount; i++) {
-      const x = original[i * 3];
-      const y = original[i * 3 + 1];
-      const waveX = x * 0.2;
-      const waveY = y * 0.2;
-      const z =
-        Math.sin(waveX + time * 0.4) * 0.12 +
-        Math.sin(waveY * 1.3 + time * 0.3) * 0.08 +
-        Math.sin((waveX + waveY) * 0.7 + time * 0.2) * 0.06;
-      positions[i * 3 + 2] = z;
-    }
-
-    positionAttribute.needsUpdate = true;
-    geometry.computeVertexNormals();
+    uniformsRef.current.uTime.value = clock.elapsedTime;
   });
 
   const handlePointerMove = (e: ThreeEvent<PointerEvent>) => {
@@ -402,6 +378,7 @@ interface LampSceneProps {
   onLimitReached?: (msg?: string) => void;
   cameraControlsRef: React.RefObject<CameraControls | null>;
   handlePray: (lampId: string) => void;
+  isMobile?: boolean;
 }
 
 const LampScene: React.FC<LampSceneProps> = ({
@@ -418,6 +395,7 @@ const LampScene: React.FC<LampSceneProps> = ({
   onLimitReached,
   cameraControlsRef,
   handlePray,
+  isMobile = false,
 }) => {
   const { camera } = useThree();
   const [ripples, setRipples] = useState<{ id: string; position: [number, number, number] }[]>([]);
@@ -665,13 +643,13 @@ const LampScene: React.FC<LampSceneProps> = ({
       {/* 空间金光粒子 */}
       <Sparkles count={250} scale={30} size={2} speed={0.2} color="#FBBF24" opacity={0.6} />
 
-      {/* 苍穹高能螺旋离子日轮（IonSun 天体发光特效） */}
+      {/* 苍穹高能螺旋离子日轮（IonSun 天体发光特效）：移动端粒子数从 30000 压降至 5000 */}
       <IonSun
         position={[0, 8, -38]}
         rotation={[0.35, 0, 0.15]}
         coreRadius={3.5}
         maxRadius={16}
-        particleCount={30000}
+        particleCount={isMobile ? 5000 : 30000}
         spiralArms={3}
       />
 
@@ -681,10 +659,10 @@ const LampScene: React.FC<LampSceneProps> = ({
       {/* 边界粒子 */}
       <GlowBoundary radius={OUTER_RADIUS} count={600} />
 
-      {/* 水墨水面 */}
+      {/* 水墨水面：移动端网格细分从 160x160 降至 40x40 */}
       <InkWater
         size={100}
-        segments={160}
+        segments={isMobile ? 40 : 160}
         onWaterPointerDown={handleWaterPointerDown}
         onWaterMove={handleWaterMove}
         isPlacementMode={isPlacementMode}
@@ -960,21 +938,8 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
       process.env.NODE_ENV !== 'production');
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isInView, setIsInView] = useState(true);
+  const isVisible = useCanvasVisibility(containerRef);
   const [isContextLost, setIsContextLost] = useState(false);
-
-  // 离屏挂起检测：离开视口时自动暂停渲染循环 (frameloop="demand")，彻底释放 GPU 算力
-  useEffect(() => {
-    if (!containerRef.current || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInView(entry.isIntersecting);
-      },
-      { rootMargin: '200px' }
-    );
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
 
   // WebGL 显存崩溃防御与优雅降级
   const handleCreated = ({ gl }: { gl: THREE.WebGLRenderer }) => {
@@ -998,7 +963,7 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
         shadows={!isMobile}
         camera={{ position: [0, 10, 18], fov: 50, near: 0.1, far: 200 }}
         dpr={isMobile ? 1 : [1, 1.5]}
-        frameloop={isMobile ? 'demand' : (isInView ? 'always' : 'demand')}
+        frameloop={!isVisible ? 'demand' : (isMobile ? 'demand' : 'always')}
         gl={{
           powerPreference: "high-performance",
           antialias: !isMobile,
@@ -1025,6 +990,7 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
             onLimitReached={onLimitReached}
             cameraControlsRef={cameraControlsRef}
             handlePray={handlePray}
+            isMobile={isMobile}
           />
           {/* 移动端物理隔离后期滤镜，释放 150MB+ 双重缓冲显存以防闪退 */}
           {!isMobile && (

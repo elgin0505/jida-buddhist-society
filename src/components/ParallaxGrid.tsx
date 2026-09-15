@@ -187,10 +187,10 @@ export const ParallaxGrid: React.FC<{ photos?: Photo[] }> = ({ photos = DEFAULT_
         <span className="inline-block rounded-full bg-warm-white/90 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-golden-rich shadow-sm md:backdrop-blur-md border border-ocher/20 mb-3 sm:mb-4">
           往年活动回顾 · 光影流年
         </span>
-        <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tight text-charcoal drop-shadow-sm">
+        <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]">
           每一刻，都是修行的足迹
         </h1>
-        <p className="mt-3 text-xs sm:text-sm text-charcoal/70 max-w-md mx-auto">
+        <p className="mt-3 text-xs sm:text-sm text-white/90 font-medium max-w-md mx-auto drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10">
           向下滚动，纵览技大佛学会历年青年共修、弘法讲座与温暖同行的美好光景
         </p>
       </motion.div>

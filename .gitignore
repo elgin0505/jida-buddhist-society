@@ -8,3 +8,4 @@ node_modules
 *.tsbuildinfo
 public/avatars/*
 !public/avatars/.gitkeep
+.agents

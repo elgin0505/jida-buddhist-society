@@ -1,7 +1,7 @@
 // src/components/FinalCTAAndFooter.tsx
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import Link from 'next/link';
 import {
   motion,
@@ -13,6 +13,7 @@ import {
 } from 'framer-motion';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { playSingingBowl } from '@/utils/zenAudio';
+import { IcyNebulaBackground } from '@/components/IcyNebulaBackground';
 
 // ==================== 磁性按钮 ====================
 interface MagneticButtonProps {
@@ -204,6 +205,23 @@ export const FinalCTAAndFooter: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // -------- 星云鼠标跟随（传给 IcyNebulaBackground） --------
+  const cardRef = useRef<HTMLDivElement>(null);
+  const nebulaRawX = useMotionValue(0.5);
+  const nebulaRawY = useMotionValue(0.5);
+
+  const handleCardMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (isMobile || !cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    nebulaRawX.set((e.clientX - rect.left) / rect.width);
+    nebulaRawY.set((e.clientY - rect.top)  / rect.height);
+  }, [isMobile, nebulaRawX, nebulaRawY]);
+
+  const handleCardMouseLeave = useCallback(() => {
+    nebulaRawX.set(0.5);
+    nebulaRawY.set(0.5);
+  }, [nebulaRawX, nebulaRawY]);
+
   return (
     <section
       ref={sectionRef}
@@ -221,35 +239,42 @@ export const FinalCTAAndFooter: React.FC = () => {
       />
 
       <div className="relative mx-auto max-w-5xl px-6">
-        {/* ==================== CTA 悬浮卡片 ==================== */}
+        {/* ==================== CTA 悬浮卡片 — 冰蓝星云版 ==================== */}
         <motion.div
+          ref={cardRef}
           style={{ y: cardY, scale: cardScale, willChange: isMobile ? undefined : 'transform' }}
-          className="relative rounded-3xl bg-[#FDFBF7] px-8 py-14 md:px-16 md:py-20
-                     shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]"
+          className="relative rounded-3xl overflow-hidden px-8 py-14 md:px-16 md:py-20
+                     shadow-[0_30px_80px_-20px_rgba(0,200,255,0.25),0_0_0_1px_rgba(0,200,255,0.12)]"
+          onMouseMove={handleCardMouseMove}
+          onMouseLeave={handleCardMouseLeave}
         >
-          {/* 卡片内层错落文字 */}
+          {/* 冰蓝星云壁纸层 */}
+          <IcyNebulaBackground borderRadius="rounded-3xl" interactive={!isMobile} />
+
+          {/* 卡片内容（z-10，浮于星云之上） */}
           <motion.div
             variants={textContainer}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.4 }}
-            className="relative mx-auto max-w-2xl text-center"
+            className="relative z-10 mx-auto max-w-2xl text-center"
           >
             {/* 顶部小标签 */}
             <div className="overflow-hidden">
               <motion.p
                 variants={textChild}
-                className="mb-4 text-xs font-semibold tracking-[0.4em] text-[#B8860B] uppercase"
+                className="mb-4 text-xs font-semibold tracking-[0.4em] text-cyan-300/90 uppercase"
               >
                 Join the Path
               </motion.p>
             </div>
 
-            {/* 主标题（分行）*/}
+            {/* 主标题 */}
             <div className="overflow-hidden">
               <motion.h2
                 variants={textChild}
-                className="text-3xl font-bold leading-tight text-[#1a1a1a] md:text-5xl font-serif"
+                className="text-3xl font-bold leading-tight text-white md:text-5xl font-serif
+                           drop-shadow-[0_0_24px_rgba(0,240,255,0.45)]"
               >
                 共修菩提，
               </motion.h2>
@@ -257,7 +282,8 @@ export const FinalCTAAndFooter: React.FC = () => {
             <div className="mt-2 overflow-hidden">
               <motion.h2
                 variants={textChild}
-                className="text-3xl font-bold leading-tight text-[#1a1a1a] md:text-5xl font-serif"
+                className="text-3xl font-bold leading-tight text-white md:text-5xl font-serif
+                           drop-shadow-[0_0_24px_rgba(0,240,255,0.45)]"
               >
                 心怀慈悲。
               </motion.h2>
@@ -267,7 +293,7 @@ export const FinalCTAAndFooter: React.FC = () => {
             <div className="mt-6 overflow-hidden">
               <motion.p
                 variants={textChild}
-                className="text-base leading-relaxed text-[#5a5a5a] md:text-lg"
+                className="text-base leading-relaxed text-cyan-100/70 md:text-lg"
               >
                 进入 3D 沉浸式灯海，点亮属于你的那盏心灯，
               </motion.p>
@@ -275,32 +301,29 @@ export const FinalCTAAndFooter: React.FC = () => {
             <div className="mt-1 overflow-hidden">
               <motion.p
                 variants={textChild}
-                className="text-base leading-relaxed text-[#5a5a5a] md:text-lg"
+                className="text-base leading-relaxed text-cyan-100/70 md:text-lg"
               >
                 与同修一同在佛法中安住当下。
               </motion.p>
             </div>
 
             {/* CTA 按钮 */}
-            <motion.div
-              variants={textChild}
-              className="mt-10 flex justify-center"
-            >
+            <motion.div variants={textChild} className="mt-10 flex justify-center">
               <MagneticButton isMobile={isMobile} href="/auth" strength={0.3}>
                 立即登入 / 注册
               </MagneticButton>
             </motion.div>
           </motion.div>
 
-          {/* 卡片角落装饰 */}
+          {/* 卡片边缘冰蓝星芒角落 */}
           <div
-            className="pointer-events-none absolute -top-3 -right-3 h-16 w-16
-                       rounded-full bg-[radial-gradient(circle,rgba(184,134,11,0.2),transparent_70%)]"
+            className="pointer-events-none absolute -top-4 -right-4 h-20 w-20 z-10
+                       rounded-full bg-[radial-gradient(circle,rgba(0,240,255,0.25),transparent_70%)] blur-md"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute -bottom-3 -left-3 h-20 w-20
-                       rounded-full bg-[radial-gradient(circle,rgba(184,134,11,0.15),transparent_70%)]"
+            className="pointer-events-none absolute -bottom-4 -left-4 h-24 w-24 z-10
+                       rounded-full bg-[radial-gradient(circle,rgba(0,120,255,0.20),transparent_70%)] blur-md"
             aria-hidden="true"
           />
         </motion.div>

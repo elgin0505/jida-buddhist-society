@@ -19,6 +19,26 @@ export interface ProceduralLampProps {
   prayerCount?: number;
 }
 
+// 模块级单例几何体缓存，彻底消除数十个心灯重复构建与显存重复占用
+let cachedLotusGeometry: THREE.BufferGeometry | null = null;
+let cachedHaloGeometry: THREE.BufferGeometry | null = null;
+
+export function getSharedLotusGeometry(): THREE.BufferGeometry {
+  if (!cachedLotusGeometry) {
+    cachedLotusGeometry = createLotusPetalsGeometry(false);
+  }
+  return cachedLotusGeometry;
+}
+
+export function getSharedHaloGeometry(): THREE.BufferGeometry {
+  if (!cachedHaloGeometry) {
+    const geom = new THREE.RingGeometry(0.1, 1.45, 16);
+    geom.rotateX(-Math.PI / 2);
+    cachedHaloGeometry = geom;
+  }
+  return cachedHaloGeometry;
+}
+
 /**
  * 构建高质感多层水上盛开莲花灯几何体（参考真实样本图 media_1788944003877.jpg）：
  * 1. 外层 10 瓣：宽展深绯红（#d32f2f），倾角 60°
@@ -26,7 +46,11 @@ export interface ProceduralLampProps {
  * 3. 内层 6 瓣：金橙暖色（#ff9800），倾角 20°
  * 4. 底托基座：暗青绿荷座（#2e4a22）
  */
-export function createLotusPetalsGeometry(): THREE.BufferGeometry {
+export function createLotusPetalsGeometry(useCache = true): THREE.BufferGeometry {
+  if (useCache && cachedLotusGeometry) {
+    return cachedLotusGeometry;
+  }
+
   const geoms: THREE.BufferGeometry[] = [];
 
   function createPetal(
@@ -98,7 +122,11 @@ export function createLotusPetalsGeometry(): THREE.BufferGeometry {
   baseGeom.setAttribute('color', new THREE.BufferAttribute(baseColors, 3));
   geoms.push(baseGeom);
 
-  return mergeGeometries(geoms, false);
+  const merged = mergeGeometries(geoms, false);
+  if (useCache) {
+    cachedLotusGeometry = merged;
+  }
+  return merged;
 }
 
 const ProceduralLamp: React.FC<ProceduralLampProps> = ({
@@ -129,15 +157,11 @@ const ProceduralLamp: React.FC<ProceduralLampProps> = ({
 
   const currentCount = prayerCount ?? dedications ?? 0;
 
-  // 莲花花瓣几何体
-  const lotusGeometry = useMemo(() => createLotusPetalsGeometry(), []);
+  // 莲花花瓣几何体：使用共享单例缓存，彻底消除多个心灯重复构建
+  const lotusGeometry = useMemo(() => getSharedLotusGeometry(), []);
 
-  // 水面泛光倒影几何体
-  const haloGeometry = useMemo(() => {
-    const geom = new THREE.RingGeometry(0.1, 1.45, 16);
-    geom.rotateX(-Math.PI / 2);
-    return geom;
-  }, []);
+  // 水面泛光倒影几何体：使用共享单例缓存
+  const haloGeometry = useMemo(() => getSharedHaloGeometry(), []);
 
   const baseEmissive = lightEnabled ? 1.4 : 0.8;
 

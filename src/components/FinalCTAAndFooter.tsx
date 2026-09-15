@@ -249,7 +249,12 @@ export const FinalCTAAndFooter: React.FC = () => {
           onMouseLeave={handleCardMouseLeave}
         >
           {/* 冰蓝星云壁纸层 */}
-          <IcyNebulaBackground borderRadius="rounded-3xl" interactive={!isMobile} />
+          <IcyNebulaBackground
+            borderRadius="rounded-3xl"
+            interactive={!isMobile}
+            rawX={nebulaRawX}
+            rawY={nebulaRawY}
+          />
 
           {/* 卡片内容（z-10，浮于星云之上） */}
           <motion.div

@@ -163,11 +163,16 @@ export function KaresansuiBackground() {
 
     resize();
     window.addEventListener("resize", resize);
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-    window.addEventListener("pointerleave", handlePointerUp);
-    window.addEventListener("touchmove", handleTouchMove, { passive: true });
-    window.addEventListener("touchend", handleTouchEnd);
+
+    // 移动端不监听指针波纹渲染，避免触控滑动网页时高频触发 Canvas 重绘导致掉帧
+    const isMobileDevice = window.innerWidth < 768 || window.matchMedia("(pointer: coarse)").matches;
+    if (!isMobileDevice) {
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+      window.addEventListener("pointerleave", handlePointerUp);
+      window.addEventListener("touchmove", handleTouchMove, { passive: true });
+      window.addEventListener("touchend", handleTouchEnd);
+    }
 
     return () => {
       window.removeEventListener("resize", resize);

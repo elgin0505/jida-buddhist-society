@@ -57,6 +57,10 @@ export function Dashboard3DMenu({
       dashboard.style.transform = `perspective(1000px) rotateY(0deg) rotateX(0deg)`;
     };
 
+    // 仅在非移动端 (Width >= 768px / 支持 hover 指针) 时监听全屏 3D 倾斜，避免手机端滑动拉卡掉帧
+    const isMobile = window.innerWidth < 768 || window.matchMedia("(pointer: coarse)").matches;
+    if (isMobile) return;
+
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("touchmove", handleTouchMove);
     window.addEventListener("touchend", handleReset);

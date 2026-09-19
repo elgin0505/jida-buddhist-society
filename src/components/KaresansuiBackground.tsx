@@ -185,14 +185,11 @@ export function KaresansuiBackground() {
     };
   }, [handlePointerMove, handlePointerUp, handleTouchMove, handleTouchEnd]);
 
-  // 背景色随主题切换
-  const bgColor = resolvedTheme === "dark" ? "#111110" : "#F5F5F0";
-
   return (
     <canvas
       ref={canvasRef}
       className="fixed inset-0 z-[-1] pointer-events-none"
-      style={{ backgroundColor: bgColor, transition: "background-color 0.8s ease" }}
+      style={{ backgroundColor: "transparent" }}
       aria-hidden="true"
     />
   );

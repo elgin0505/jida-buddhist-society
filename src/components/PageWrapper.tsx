@@ -20,14 +20,14 @@ function DashboardBg() {
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center opacity-[0.52] filter saturate-[1.25] brightness-[1.03] scale-100"
+          className="object-cover object-center opacity-60 sm:opacity-[0.52] filter saturate-[1.25] brightness-[1.03] scale-100"
         />
         {/* 细腻的半透明渐变，既让合照清晰，又衬托前景毛玻璃卡片 */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse at 50% 25%, rgba(250, 247, 242, 0.15) 0%, rgba(245, 237, 224, 0.45) 60%, rgba(240, 230, 214, 0.75) 100%)",
+              "radial-gradient(ellipse at 50% 25%, rgba(250, 247, 242, 0.1) 0%, rgba(245, 237, 224, 0.35) 60%, rgba(240, 230, 214, 0.6) 100%)",
           }}
         />
       </div>

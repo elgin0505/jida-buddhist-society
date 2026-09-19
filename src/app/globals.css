@@ -118,12 +118,6 @@
     }
   }
 
-  /* ── 主滚动容器与硬件加速合成图层 (Hardware Accelerated GPU Compositor Layer) ── */
-  main {
-    transform: translateZ(0);
-    will-change: transform;
-    -webkit-overflow-scrolling: touch;
-  }
 
   /* ── 3D 景深与指针适配 (Card3D & Hover/Pointer Media Query) ── */
   .card-3d-root {

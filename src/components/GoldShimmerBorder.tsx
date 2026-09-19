@@ -45,8 +45,8 @@ export function GoldShimmerBorder({
         className="shimmer-sweep absolute -inset-[100%] origin-center"
       />
 
-      {/* 内部主体内容（移动端使用不透明纯净实色 #FAF8F5 消除毛玻璃重绘，桌面端保留琉璃质感） */}
-      <div className="relative z-10 rounded-[22px] bg-[#FAF8F5] md:bg-gradient-to-br md:from-warm-white/95 md:via-warm-cream/90 md:to-ocher-light/40 md:backdrop-blur-xl">
+      {/* 内部主体内容（移动端使用温润 92% 暖白色消除毛玻璃高斯模糊重绘，桌面端保留琉璃质感） */}
+      <div className="relative z-10 rounded-[22px] bg-[#FAF8F5]/92 md:bg-gradient-to-br md:from-warm-white/95 md:via-warm-cream/90 md:to-ocher-light/40 md:backdrop-blur-xl">
         {children}
       </div>
     </div>

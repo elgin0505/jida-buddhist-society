@@ -349,20 +349,7 @@ export default function DashboardClient({
       {/* ── 枯山水沙地底层（Canvas 固定全屏，z-index: -1） ── */}
       <KaresansuiBackground />
 
-      {/* ── 卡通会员集体照壁纸（固定全屏底层） ── */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0"
-      >
-        <Image
-          src="/dashboard-wallpaper.jpg"
-          alt="技大佛学会会员集体照"
-          fill
-          className="object-cover object-center opacity-20 dark:opacity-10"
-          sizes="100vw"
-          priority={false}
-        />
-      </div>
+
 
       {showBirthdayConfetti && (
         <div className="fixed inset-0 z-50 pointer-events-none">
@@ -417,7 +404,7 @@ export default function DashboardClient({
       >
         <Card3D intensity={8} glow={true}>
           <GoldShimmerBorder glowOpacity={0.85}>
-            <div className="relative p-6 sm:p-8 overflow-hidden rounded-[22px] bg-[#FAF8F5] md:bg-gradient-to-br md:from-amber-50/60 md:via-warm-cream/70 md:to-amber-100/40">
+            <div className="relative p-6 sm:p-8 overflow-hidden rounded-[22px] bg-[#FAF8F5]/92 md:bg-gradient-to-br md:from-amber-50/60 md:via-warm-cream/70 md:to-amber-100/40">
               {/* ── 金色脉冲微光呼吸层 (仅桌面端启用，移动端隐藏避免昂贵的高斯模糊连续重绘) ── */}
               <motion.div
                 animate={{

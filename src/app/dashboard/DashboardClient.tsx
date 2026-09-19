@@ -85,6 +85,25 @@ export default function DashboardClient({
 
   useEffect(() => {
     setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+
+    // 滚动期间暂停无限循环 CSS 动画，释放移动端 GPU 算力保证 60/120fps 流畅
+    let scrollTimer: NodeJS.Timeout;
+    const onScroll = () => {
+      if (!document.body.classList.contains("is-scrolling")) {
+        document.body.classList.add("is-scrolling");
+      }
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        document.body.classList.remove("is-scrolling");
+      }, 150);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(scrollTimer);
+      document.body.classList.remove("is-scrolling");
+    };
   }, []);
 
   // 当外部传入 initialMemberId 时，若当前未指定 member 则自动对其匹配初始化
@@ -167,7 +186,7 @@ export default function DashboardClient({
   };
 
   // 客户端图像智能无损/高清压缩，兼容任意超大分辨率和手机照片格式 (HEIC/PNG/JPG/WebP)
-  const compressImageToDataUrl = (file: File, maxDim = 512, quality = 0.88): Promise<string> => {
+  const compressImageToDataUrl = (file: File, maxDim = 384, quality = 0.82): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -218,7 +237,7 @@ export default function DashboardClient({
 
     try {
       // 1. 客户端秒级压缩优化
-      const compressedDataUrl = await compressImageToDataUrl(file, 512, 0.88);
+      const compressedDataUrl = await compressImageToDataUrl(file, 384, 0.82);
 
       if (!compressedDataUrl) {
         throw new Error("图片读取失败");
@@ -242,14 +261,15 @@ export default function DashboardClient({
           icon: "🪷",
         });
         setUploadMsg("头像已更新！");
+        setTimeout(() => setUploadMsg(null), 3000);
       } else {
         sonnerToast.error(data.error || "上传失败");
-        setUploadMsg(data.error || "上传失败");
+        setUploadMsg(null);
       }
     } catch (err: any) {
       console.error("Avatar upload failed:", err);
       sonnerToast.error(err?.message || "上传失败，请稍后重试");
-      setUploadMsg("上传失败，请稍后重试");
+      setUploadMsg(null);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -387,17 +407,18 @@ export default function DashboardClient({
         )}
       </AnimatePresence>
 
-      {/* 会员信息卡 (3D 景深 + 鎏金流光边框) */}
+      {/* 会员信息卡 (3D 景深 + 鎏金流光边框 + GPU 独立合成层加速) */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="mb-8"
+        className="mb-8 will-change-transform transform-gpu"
+        style={{ transform: "translateZ(0)" }}
       >
         <Card3D intensity={8} glow={true}>
           <GoldShimmerBorder glowOpacity={0.85}>
-            <div className="relative p-6 sm:p-8 overflow-hidden rounded-[22px] bg-gradient-to-br from-amber-50/60 via-warm-cream/70 to-amber-100/40">
-              {/* ── 金色脉冲微光呼吸层 ── */}
+            <div className="relative p-6 sm:p-8 overflow-hidden rounded-[22px] bg-[#FAF8F5] md:bg-gradient-to-br md:from-amber-50/60 md:via-warm-cream/70 md:to-amber-100/40">
+              {/* ── 金色脉冲微光呼吸层 (仅桌面端启用，移动端隐藏避免昂贵的高斯模糊连续重绘) ── */}
               <motion.div
                 animate={{
                   opacity: [0.25, 0.45, 0.25],
@@ -408,7 +429,7 @@ export default function DashboardClient({
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
-                className="pointer-events-none absolute -inset-10 rounded-full bg-[radial-gradient(ellipse_at_top_right,rgba(251,191,36,0.35)_0%,rgba(245,158,11,0.15)_45%,transparent_70%)] blur-2xl"
+                className="pointer-events-none absolute -inset-10 rounded-full bg-[radial-gradient(ellipse_at_top_right,rgba(251,191,36,0.35)_0%,rgba(245,158,11,0.15)_45%,transparent_70%)] blur-2xl hidden md:block"
               />
 
               <div className="absolute -right-8 -top-8 h-40 w-40 opacity-[0.06]">
@@ -609,7 +630,7 @@ export default function DashboardClient({
                     repeat: Infinity,
                     ease: "easeInOut",
                   }}
-                  className="relative w-3.5 h-3.5 rounded-full bg-white shadow-[0_0_10px_3px_#ffffff,0_0_20px_6px_#fbbf24,0_0_35px_10px_#d97706]"
+                  className="shimmer-sweep relative w-3.5 h-3.5 rounded-full bg-white shadow-[0_0_10px_3px_#ffffff,0_0_20px_6px_#fbbf24,0_0_35px_10px_#d97706]"
                   style={{ willChange: "transform, opacity" }}
                 />
               </div>
@@ -645,7 +666,7 @@ export default function DashboardClient({
 
       {/* 视图切换 Tabs (3 栏切换) */}
       <div className="mb-6 flex justify-center">
-        <div className="inline-flex rounded-2xl bg-white/70 dark:bg-slate-800/80 p-1.5 shadow-sm border border-ocher/20 dark:border-white/10 backdrop-blur-md">
+        <div className="inline-flex rounded-2xl bg-[#FAF8F5] dark:bg-slate-800 md:bg-white/70 md:dark:bg-slate-800/80 p-1.5 shadow-sm border border-ocher/20 dark:border-white/10 md:backdrop-blur-md">
           <button
             onClick={() => setActiveTab("history")}
             className={`flex items-center gap-2 rounded-xl px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-bold transition-all ${

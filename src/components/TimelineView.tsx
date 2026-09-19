@@ -89,7 +89,7 @@ export function TimelineView({ attendances = [], redemptions = [] }: TimelineVie
               </div>
 
               {/* 右侧：卡片详情 */}
-              <div className="flex-1 rounded-2xl border-2 border-golden-deep/30 bg-gradient-to-r from-warm-white/95 via-warm-cream/90 to-ocher-light/35 p-4 shadow-sm backdrop-blur-md transition-all hover:border-golden-deep/60 hover:shadow-md">
+              <div className="flex-1 rounded-2xl border-2 border-golden-deep/30 bg-[#FAF8F5] md:bg-gradient-to-r md:from-warm-white/95 md:via-warm-cream/90 md:to-ocher-light/35 p-4 shadow-sm md:backdrop-blur-md transition-all hover:border-golden-deep/60 hover:shadow-md">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h4 className="text-sm font-bold text-charcoal">

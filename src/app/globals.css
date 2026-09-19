@@ -92,17 +92,108 @@
   /* ── 温暖金黄琉璃毛玻璃卡片 (Warm Golden Glassmorphism & GPU Acceleration) ── */
   .card {
     @apply rounded-2xl border-2 border-golden-deep/35 shadow-[0_12px_36px_-6px_rgba(201,162,39,0.22),0_4px_12px_-2px_rgba(201,162,39,0.1)] transform-gpu will-change-transform;
-    background: linear-gradient(135deg, rgba(255, 252, 245, 0.92) 0%, rgba(250, 243, 230, 0.88) 50%, rgba(245, 230, 184, 0.55) 100%);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background-color: #FAF8F5;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     transition: all 0.35s ease;
   }
   
   .dark .card {
     @apply rounded-2xl border-2 border-golden-deep/35 shadow-[0_12px_36px_-6px_rgba(201,162,39,0.22),0_4px_12px_-2px_rgba(201,162,39,0.1)] transform-gpu will-change-transform;
-    background: linear-gradient(135deg, rgba(255, 252, 245, 0.92) 0%, rgba(250, 243, 230, 0.88) 50%, rgba(245, 230, 184, 0.55) 100%);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background-color: #FAF8F5;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  @media (min-width: 768px) {
+    .card {
+      background: linear-gradient(135deg, rgba(255, 252, 245, 0.92) 0%, rgba(250, 243, 230, 0.88) 50%, rgba(245, 230, 184, 0.55) 100%);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .dark .card {
+      background: linear-gradient(135deg, rgba(255, 252, 245, 0.92) 0%, rgba(250, 243, 230, 0.88) 50%, rgba(245, 230, 184, 0.55) 100%);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+  }
+
+  /* ── 主滚动容器与硬件加速合成图层 (Hardware Accelerated GPU Compositor Layer) ── */
+  main {
+    transform: translateZ(0);
+    will-change: transform;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── 3D 景深与指针适配 (Card3D & Hover/Pointer Media Query) ── */
+  .card-3d-root {
+    perspective: none;
+  }
+  .card-3d-inner {
+    transform: translateZ(0);
+    will-change: transform;
+    transform-style: flat;
+  }
+  .card-3d-glare-desktop {
+    display: none;
+  }
+  .card-3d-glare-mobile {
+    display: block;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .card-3d-root {
+      perspective: 1200px;
+    }
+    .card-3d-inner {
+      transform-style: preserve-3d;
+    }
+    .card-3d-glare-desktop {
+      display: block;
+    }
+    .card-3d-glare-mobile {
+      display: none;
+    }
+  }
+
+  @media not all and (hover: hover) and (pointer: fine) {
+    .card-3d-root {
+      perspective: none !important;
+    }
+    .card-3d-inner {
+      transform: translateZ(0) !important;
+      transform-style: flat !important;
+    }
+    .card-3d-glare-desktop {
+      display: none !important;
+    }
+    .card-3d-glare-mobile {
+      display: block !important;
+    }
+    .dashboard-3d-menu-wrapper {
+      perspective: none !important;
+    }
+  }
+
+  /* ── 滚动时暂停无限循环 CSS 动画 (Pause Infinite Loops During Scroll) ── */
+  body.is-scrolling *,
+  body.is-scrolling *::before,
+  body.is-scrolling *::after {
+    animation-play-state: paused !important;
+  }
+
+  /* ── 移动端小视口停用/减少高消耗连续 Keyframe 动画 ── */
+  @media (max-width: 768px) {
+    .shimmer-sweep {
+      animation: none !important;
+      transform: none !important;
+    }
+    .candle-glow {
+      animation: none !important;
+    }
+    .candle-glow-subtle {
+      animation: none !important;
+    }
   }
 
   .card-hover {

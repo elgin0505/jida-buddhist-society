@@ -11,5 +11,12 @@ export function MainLayout({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  return <main className="mx-auto max-w-6xl px-4 pt-4 pb-28 sm:py-8 sm:px-6">{children}</main>;
+  return (
+    <main
+      className="mx-auto max-w-6xl px-4 pt-4 pb-28 sm:py-8 sm:px-6 will-change-transform transform-gpu"
+      style={{ transform: "translateZ(0)" }}
+    >
+      {children}
+    </main>
+  );
 }

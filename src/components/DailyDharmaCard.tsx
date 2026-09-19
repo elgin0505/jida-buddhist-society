@@ -286,7 +286,7 @@ export function DailyDharmaCard() {
                 backfaceVisibility: "hidden",
                 WebkitBackfaceVisibility: "hidden",
               }}
-              className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl border-2 border-golden-deep/40 bg-gradient-to-br from-warm-white via-ocher-light/30 to-golden-deep/20 dark:from-slate-800 dark:via-slate-800/80 dark:to-slate-900/60 p-6 shadow-lg backdrop-blur-xl text-center overflow-hidden"
+              className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl border-2 border-golden-deep/40 bg-[#FAF8F5] dark:bg-slate-800 md:bg-gradient-to-br md:from-warm-white md:via-ocher-light/30 md:to-golden-deep/20 dark:md:from-slate-800 dark:md:via-slate-800/80 dark:md:to-slate-900/60 p-6 shadow-lg md:backdrop-blur-xl text-center overflow-hidden"
             >
               {/* 祥云曼陀罗底纹 */}
               <div className="pointer-events-none absolute -right-10 -bottom-10 h-48 w-48 opacity-10">
@@ -322,7 +322,7 @@ export function DailyDharmaCard() {
                 backfaceVisibility: "hidden",
                 WebkitBackfaceVisibility: "hidden",
               }}
-              className="relative flex flex-col justify-between rounded-3xl border-2 border-golden-deep/40 bg-gradient-to-br from-warm-white/95 via-warm-cream/90 to-ocher-light/40 dark:from-slate-800 dark:via-slate-800/90 dark:to-slate-900/80 p-6 sm:p-7 shadow-[0_16px_40px_-8px_rgba(201,162,39,0.25)] dark:shadow-none backdrop-blur-2xl"
+              className="relative flex flex-col justify-between rounded-3xl border-2 border-golden-deep/40 bg-[#FAF8F5] dark:bg-slate-800 md:bg-gradient-to-br md:from-warm-white/95 md:via-warm-cream/90 md:to-ocher-light/40 dark:md:from-slate-800 dark:md:via-slate-800/90 dark:md:to-slate-900/80 p-6 sm:p-7 shadow-[0_16px_40px_-8px_rgba(201,162,39,0.25)] dark:shadow-none md:backdrop-blur-2xl"
             >
               <div>
                 {/* 顶栏信息 */}

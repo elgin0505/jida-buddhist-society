@@ -5,8 +5,9 @@ import { join } from "path";
  * 统一头像文件存储服务
  * 1. 优先检查 Vercel Blob (BLOB_READ_WRITE_TOKEN) -> 上传并返回 Vercel CDN URL
  * 2. 其次检查 Supabase Storage (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY) -> 上传并返回 Supabase CDN URL
- * 3. 本地开发环境 -> 写入 public/avatars/ 并返回可直接访问的静态资源相对路径 /avatars/...
- * 彻底杜绝在数据库 PostgreSQL text 列中存放 2MB Base64 字符串的弊端！
+ * 3. 本地开发环境 (具备可写文件系统) -> 写入 public/avatars/ 并返回 /avatars/...
+ * 4. Serverless 或只读文件系统 (如 Vercel 生产无 Blob Token 场景) -> 优雅降级为 Base64 Data URL 直接持久化
+ * 彻底消除 Serverless 环境下的 EROFS (read-only file system) 报错与临时磁盘头像丢失问题！
  */
 export async function uploadAvatarFile(
   fileName: string,
@@ -48,24 +49,49 @@ export async function uploadAvatarFile(
         return `${supabaseUrl.replace(/\/$/, "")}/storage/v1/object/public/avatars/${fileName}`;
       }
     } catch (err) {
-      console.warn("[Storage] Supabase Storage 上传失败，尝试本地写入:", err);
+      console.warn("[Storage] Supabase Storage 上传失败，尝试降级存储:", err);
     }
   }
 
-  // 3. 本地存储 (开发环境或具备持久化磁盘的环境)
-  const avatarDir = join(process.cwd(), "public", "avatars");
-  await mkdir(avatarDir, { recursive: true });
+  // 3. 检查是否在具备持久化且可写磁盘的本地开发环境
+  const isServerless =
+    Boolean(process.env.VERCEL) ||
+    Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME) ||
+    Boolean(process.env.LAMBDA_TASK_ROOT) ||
+    process.env.NODE_ENV === "production";
 
-  const filePath = join(avatarDir, fileName);
-  await writeFile(filePath, buffer);
+  if (!isServerless) {
+    try {
+      const avatarDir = join(process.cwd(), "public", "avatars");
+      await mkdir(avatarDir, { recursive: true });
 
-  return `/avatars/${fileName}`;
+      const filePath = join(avatarDir, fileName);
+      await writeFile(filePath, buffer);
+
+      return `/avatars/${fileName}`;
+    } catch (fsErr: any) {
+      console.warn("[Storage] 本地文件写入失败，自动降级为 Data URL:", fsErr?.message);
+    }
+  }
+
+  // 4. Serverless 或只读文件系统安全保底：转换为轻量 Data URL 直接存库
+  // 彻底杜绝 EROFS 错误与云端无持久化磁盘导致的头像丢失！
+  return `data:${contentType};base64,${buffer.toString("base64")}`;
 }
 
 /**
- * 清理本地旧头像文件
+ * 清理本地旧头像文件（仅在具备可写磁盘的本地环境生效）
  */
 export async function cleanupLocalOldAvatar(memberCode: string) {
+  if (
+    process.env.VERCEL ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.LAMBDA_TASK_ROOT ||
+    process.env.NODE_ENV === "production"
+  ) {
+    return;
+  }
+
   try {
     const avatarDir = join(process.cwd(), "public", "avatars");
     const safePrefix = memberCode.replace(/[^a-zA-Z0-9-_]/g, "_");

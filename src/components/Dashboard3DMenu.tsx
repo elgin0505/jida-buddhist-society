@@ -57,25 +57,23 @@ export function Dashboard3DMenu({
       dashboard.style.transform = `perspective(1000px) rotateY(0deg) rotateX(0deg)`;
     };
 
-    // 仅在非移动端 (Width >= 768px / 支持 hover 指针) 时监听全屏 3D 倾斜，避免手机端滑动拉卡掉帧
-    const isMobile = window.innerWidth < 768 || window.matchMedia("(pointer: coarse)").matches;
-    if (isMobile) return;
+    // 仅在桌面精细指针设备 (Width >= 768px 且支持 hover) 时监听 3D 倾斜，手机触控端完全禁用
+    const isDesktopPointer =
+      window.innerWidth >= 768 &&
+      window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (!isDesktopPointer) return;
 
     window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("touchmove", handleTouchMove);
-    window.addEventListener("touchend", handleReset);
     window.addEventListener("mouseleave", handleReset);
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", handleReset);
       window.removeEventListener("mouseleave", handleReset);
     };
   }, []);
 
   return (
-    <div className="w-full flex justify-center perspective-[1000px] mb-8">
+    <div className="w-full flex justify-center perspective-[1000px] mb-8 dashboard-3d-menu-wrapper">
       <div
         ref={containerRef}
         className="relative w-full max-w-[400px]"

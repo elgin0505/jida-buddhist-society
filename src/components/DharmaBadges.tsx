@@ -188,7 +188,7 @@ export function DharmaBadges({
   return (
     <div className="space-y-6">
       {/* ── 修持境界与升级进度 ── */}
-      <div className="rounded-3xl border border-white/80 dark:border-white/10 bg-gradient-to-br from-white/80 via-warm-cream/60 to-ocher-light/30 dark:from-slate-800 dark:via-slate-800/80 dark:to-slate-900/60 p-6 shadow-md backdrop-blur-xl">
+      <div className="rounded-3xl border border-white/80 dark:border-white/10 bg-[#FAF8F5] dark:bg-slate-800 md:bg-gradient-to-br md:from-white/80 md:via-warm-cream/60 md:to-ocher-light/30 dark:md:from-slate-800 dark:md:via-slate-800/80 dark:md:to-slate-900/60 p-6 shadow-md md:backdrop-blur-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div

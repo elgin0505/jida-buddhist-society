@@ -98,30 +98,46 @@ const contentVariants = {
 export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(true);
 
-  // -------- 加载状态管理 --------
+  // -------- 加载时长拉长至 3800ms（仪式感退场） --------
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 2200);
+    const timer = setTimeout(() => setIsLoading(false), 3800);
     return () => clearTimeout(timer);
   }, []);
 
-  // -------- 锁定 / 解锁 body 滚动 --------
+  // -------- 滚动锁：只有 isLoading 为 true 才锁 --------
+  // 注意：解锁交给 Preloader 的 onExitComplete 回调，保证退场动画（1.2s）全程不能滚动
   useEffect(() => {
     if (isLoading) {
       document.body.style.overflow = 'hidden';
       window.scrollTo(0, 0);
-    } else {
-      document.body.style.overflow = '';
     }
     return () => {
       document.body.style.overflow = '';
     };
   }, [isLoading]);
 
+  // Preloader 退场动画彻底结束时才解锁滚动
+  const handlePreloaderExitComplete = () => {
+    document.body.style.overflow = '';
+  };
+
+  const handleDismiss = () => {
+    setIsLoading(false);
+  };
+
   return (
     <>
-      {/* -------- 全局入场 技大佛学会 Logo 闪烁 Preloader -------- */}
+      {/* -------- 全局入场 Preloader -------- */}
       <AnimatePresence mode="wait">
-        {isLoading && <ZenPreloader key="landing-preloader" logoSrc="/logo.png" />}
+        {isLoading && (
+          <ZenPreloader
+            key="preloader"
+            logoSrc="/logo.png"
+            subtitle="技大佛学会"
+            onExitComplete={handlePreloaderExitComplete}
+            onDismiss={handleDismiss}
+          />
+        )}
       </AnimatePresence>
 
       {/* -------- 主页内容（随 Preloader 退场而浮现）-------- */}

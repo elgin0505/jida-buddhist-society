@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Card, PageHeader, EmptyState } from "@/components/ui";
 import { useMember } from "@/components/MemberContext";
 import { PageWrapper } from "@/components/PageWrapper";
-import { LotusLoading } from "@/components/LotusLoading";
 import { motion } from "framer-motion";
 import { RewardsStore } from "@/components/RewardsStore";
 
@@ -26,7 +25,16 @@ export default function RewardsPage() {
     fetch("/api/rewards")
       .then((res) => res.json())
       .then((data) => {
-        setRewards(Array.isArray(data) ? data : []);
+        const rawList = Array.isArray(data) ? data : [];
+        const seen = new Set<string>();
+        const uniqueList: Reward[] = [];
+        for (const item of rawList) {
+          if (!seen.has(item.name)) {
+            seen.add(item.name);
+            uniqueList.push(item);
+          }
+        }
+        setRewards(uniqueList);
       })
       .catch((err) => {
         console.error("Failed to load rewards:", err);
@@ -84,14 +92,6 @@ export default function RewardsPage() {
     setRewards(updated);
   };
 
-  if (loading) {
-    return (
-      <PageWrapper page="rewards">
-        <LotusLoading text="福慧增长 · 正在加载积分商城与结缘品..." />
-      </PageWrapper>
-    );
-  }
-
   return (
     <PageWrapper page="rewards">
       <PageHeader
@@ -123,7 +123,26 @@ export default function RewardsPage() {
         </motion.div>
       )}
 
-      {rewards.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="h-80 rounded-2xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-xs border border-amber-300/20 animate-pulse p-5 flex flex-col justify-between"
+            >
+              <div className="h-40 w-full rounded-xl bg-amber-200/30 animate-pulse" />
+              <div className="space-y-2 mt-4">
+                <div className="h-5 w-32 rounded-lg bg-amber-200/50 animate-pulse" />
+                <div className="h-3 w-48 rounded bg-amber-200/30 animate-pulse" />
+              </div>
+              <div className="flex justify-between items-center mt-4">
+                <div className="h-6 w-16 rounded-full bg-amber-200/40 animate-pulse" />
+                <div className="h-8 w-20 rounded-xl bg-amber-200/40 animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : rewards.length === 0 ? (
         <EmptyState
           icon={
             <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">

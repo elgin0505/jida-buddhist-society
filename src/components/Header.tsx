@@ -31,9 +31,10 @@ export function Header() {
               <Image
                 src="/logo.png"
                 alt="技大佛学会 Logo"
-                fill
+                width={40}
+                height={40}
                 priority
-                className="object-cover"
+                className="h-full w-full object-cover"
               />
             </div>
             <div className="shrink-0">

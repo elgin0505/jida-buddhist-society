@@ -124,7 +124,7 @@ const MagneticButton: React.FC<MagneticButtonProps> = ({
 const SOCIALS = [
   {
     name: 'Instagram',
-    href: 'https://instagram.com',
+    href: 'https://www.instagram.com/jidafoxuehui/?hl=en',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
         <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -135,7 +135,7 @@ const SOCIALS = [
   },
   {
     name: 'Telegram',
-    href: 'https://telegram.org',
+    href: 'https://t.me/jidafozuehuizixun',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
         <path d="M21 4L3 11l5 2 2 6 3-4 6 5z" strokeLinejoin="round" />

@@ -56,15 +56,22 @@ export function RewardsStore({
   const [modalSubmitting, setModalSubmitting] = useState(false);
   const [batchSubmitting, setBatchSubmitting] = useState(false);
 
-  // 自动分级逻辑
+  // 自动分级逻辑（防御性唯一去重，确保永不重复显示相同法宝）
   const tiers = useMemo(() => {
-    const tier1 = rewards.filter((r) => r.pointsRequired <= 50);
-    const tier2 = rewards.filter((r) => r.pointsRequired > 50 && r.pointsRequired <= 200);
-    const tier3 = rewards.filter((r) => r.pointsRequired > 200);
+    const seen = new Set<string>();
+    const uniqueRewards = rewards.filter((r) => {
+      if (seen.has(r.name)) return false;
+      seen.add(r.name);
+      return true;
+    });
+
+    const tier1 = uniqueRewards.filter((r) => r.pointsRequired <= 50);
+    const tier2 = uniqueRewards.filter((r) => r.pointsRequired > 50 && r.pointsRequired <= 200);
+    const tier3 = uniqueRewards.filter((r) => r.pointsRequired > 200);
     return [
-      { id: "tier1", title: "日常结缘", items: tier1 },
-      { id: "tier2", title: "精进修行", items: tier2 },
-      { id: "tier3", title: "圆满大赏", items: tier3 },
+      { id: "tier1", title: "日常结缘品", items: tier1 },
+      { id: "tier2", title: "精进修持品", items: tier2 },
+      { id: "tier3", title: "圆满珍藏品", items: tier3 },
     ].filter((t) => t.items.length > 0);
   }, [rewards]);
 
@@ -208,11 +215,14 @@ export function RewardsStore({
       {tiers.map((tier, tierIdx) => (
         <section key={tier.id}>
           <div className="mb-6 flex items-center gap-3">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-golden-rich animate-pulse shadow-[0_0_8px_rgba(201,162,39,0.6)]" />
-            <h2 className="text-2xl font-bold text-charcoal dark:text-white bg-clip-text text-transparent bg-gradient-to-r from-golden-deep to-ocher-light">
+            <span className="flex h-3 w-3 rounded-full bg-golden-rich shadow-[0_0_10px_rgba(201,162,39,0.7)] shrink-0" />
+            <h2 className="text-2xl sm:text-[26px] font-extrabold text-charcoal dark:text-amber-100 tracking-tight shrink-0">
               {tier.title}
             </h2>
-            <div className="h-px flex-1 bg-gradient-to-r from-golden-rich/30 to-transparent" />
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-golden-rich border border-amber-500/30 shrink-0">
+              {tier.items.length} 件
+            </span>
+            <div className="h-px flex-1 bg-gradient-to-r from-golden-rich/40 to-transparent" />
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -298,27 +308,34 @@ export function RewardsStore({
               </div>
 
               {/* 法宝信息预览 */}
-              <div className="my-4 flex items-center gap-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 p-3 border border-ocher/20">
-                <div className="relative h-16 w-16 shrink-0 rounded-xl overflow-hidden bg-ocher-light/20 flex items-center justify-center border border-ocher/20">
-                  {selectedRewardModal.image ? (
-                    <Image
-                      src={selectedRewardModal.image}
-                      alt={selectedRewardModal.name}
-                      fill
-                      sizes="64px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <span className="text-2xl">🎁</span>
-                  )}
+              <div className="my-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 p-3.5 border border-ocher/20 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="relative h-16 w-16 shrink-0 rounded-xl overflow-hidden bg-ocher-light/20 flex items-center justify-center border border-ocher/20">
+                    {selectedRewardModal.image ? (
+                      <Image
+                        src={selectedRewardModal.image}
+                        alt={selectedRewardModal.name}
+                        fill
+                        sizes="64px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl">🎁</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-sm text-charcoal dark:text-white truncate">{selectedRewardModal.name}</h4>
+                    <p className="text-xs text-golden-deep font-bold font-mono mt-0.5">
+                      {selectedRewardModal.pointsRequired} 积分 / 件
+                    </p>
+                    <p className="text-[11px] text-muted">当前库存: {selectedRewardModal.stock} 件</p>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-bold text-sm truncate">{selectedRewardModal.name}</h4>
-                  <p className="text-xs text-golden-deep font-bold font-mono mt-0.5">
-                    {selectedRewardModal.pointsRequired} 积分 / 件
+                {selectedRewardModal.description && (
+                  <p className="mt-2.5 pt-2.5 border-t border-ocher/15 text-xs leading-relaxed text-muted dark:text-stone-300 whitespace-pre-line max-h-36 overflow-y-auto pr-1 select-text">
+                    {selectedRewardModal.description}
                   </p>
-                  <p className="text-[11px] text-muted">当前库存: {selectedRewardModal.stock} 件</p>
-                </div>
+                )}
               </div>
 
               {/* 数量调节 Stepper */}
@@ -598,6 +615,7 @@ function RewardCard({
   delay: number;
 }) {
   const [imageError, setImageError] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const canAfford = userPoints >= reward.pointsRequired;
   const inStock = reward.stock > 0;
   const progressPercentage = Math.min(
@@ -635,9 +653,34 @@ function RewardCard({
       <div className="flex-1">
         <h4 className="text-lg font-bold text-charcoal">{reward.name}</h4>
         {reward.description && (
-          <p className="mt-1.5 text-sm leading-relaxed text-muted line-clamp-2">
-            {reward.description}
-          </p>
+          <div className="mt-1.5">
+            <p
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded((prev) => !prev);
+              }}
+              className={`text-sm leading-relaxed text-muted transition-colors cursor-pointer hover:text-charcoal ${
+                isExpanded
+                  ? "whitespace-pre-line text-charcoal dark:text-stone-200"
+                  : "line-clamp-2"
+              }`}
+              title={isExpanded ? "点击收起描述" : "点击展开完整描述"}
+            >
+              {reward.description}
+            </p>
+            {reward.description.length > 35 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded((prev) => !prev);
+                }}
+                className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-golden-rich hover:text-golden-deep transition-colors cursor-pointer select-none bg-golden-rich/10 hover:bg-golden-rich/15 px-2 py-0.5 rounded-md"
+              >
+                <span>{isExpanded ? "收起详情 ↑" : "展开详情 ↓"}</span>
+              </button>
+            )}
+          </div>
         )}
       </div>
 

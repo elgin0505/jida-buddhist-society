@@ -613,14 +613,35 @@ function formatImageUrl(rawUrl: any): string | null {
 /* ─────────────────────────────────────────────────────────────
  * 5. 从 Google Sheets 读取商城法宝列表 (Rewards 表 ➔ 网页)
  * ───────────────────────────────────────────────────────────── */
+let inFlightSyncRewardsPromise: Promise<any> | null = null;
+
 export async function syncRewardsFromGoogleSheet(forceRefresh = false) {
+  if (inFlightSyncRewardsPromise) {
+    return inFlightSyncRewardsPromise;
+  }
+  inFlightSyncRewardsPromise = executeSyncRewards(forceRefresh).finally(() => {
+    inFlightSyncRewardsPromise = null;
+  });
+  return inFlightSyncRewardsPromise;
+}
+
+async function executeSyncRewards(forceRefresh = false) {
   const now = Date.now();
 
-  // 1. 如果在缓存有效期内且非强制刷新，直接从本地数据库秒级返回
+  // 1. 如果在缓存有效期内且非强制刷新，直接从本地数据库秒级返回（并严格去重）
   if (!forceRefresh && now - lastRewardsFetchTime < CACHE_TTL_MS) {
-    return prisma.reward.findMany({
+    const cached = await prisma.reward.findMany({
       orderBy: { pointsRequired: "asc" },
     });
+    const unique: typeof cached = [];
+    const seen = new Set<string>();
+    for (const r of cached) {
+      if (!seen.has(r.name)) {
+        seen.add(r.name);
+        unique.push(r);
+      }
+    }
+    return unique;
   }
 
   const client = getGoogleSheetsClient();
@@ -707,13 +728,21 @@ export async function syncRewardsFromGoogleSheet(forceRefresh = false) {
       });
 
       for (const rw of rewardRows) {
-        const existing = await prisma.reward.findFirst({
+        const existing = await prisma.reward.findMany({
           where: { name: rw.name },
+          orderBy: { createdAt: "asc" },
         });
 
-        if (existing) {
+        if (existing.length > 0) {
+          const keepId = existing[0].id;
+          // 若存在因并发导致的同名多条记录，清理多余重复条目
+          if (existing.length > 1) {
+            await prisma.reward.deleteMany({
+              where: { name: rw.name, id: { not: keepId } },
+            });
+          }
           await prisma.reward.update({
-            where: { id: existing.id },
+            where: { id: keepId },
             data: {
               pointsRequired: rw.pointsRequired,
               stock: rw.stock,
@@ -740,8 +769,17 @@ export async function syncRewardsFromGoogleSheet(forceRefresh = false) {
     console.error("⚠️ [GoogleSheets] 从表格同步法宝失败 (将降级使用本地数据库):", err?.message || err);
   }
 
-  // 返回本地数据库中的奖品列表（按所需积分排序）
-  return prisma.reward.findMany({
+  // 返回本地数据库中的奖品列表（按所需积分排序，且进行全局唯一性校验）
+  const allRewards = await prisma.reward.findMany({
     orderBy: { pointsRequired: "asc" },
   });
+  const uniqueRewards: typeof allRewards = [];
+  const seenNames = new Set<string>();
+  for (const r of allRewards) {
+    if (!seenNames.has(r.name)) {
+      seenNames.add(r.name);
+      uniqueRewards.push(r);
+    }
+  }
+  return uniqueRewards;
 }

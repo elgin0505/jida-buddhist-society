@@ -1,111 +1,235 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 
 interface ZenPreloaderProps {
-  logoSrc?: string;      // Logo 图片路径
-  logoAlt?: string;      // 无障碍替代文本
-  duration?: number;     // 呼吸闪烁周期（秒）
+  logoSrc?: string;
+  logoAlt?: string;
+  subtitle?: string;
+  onExitComplete?: () => void; // 退场动画结束回调
+  onDismiss?: () => void;      // 点击直接跳过回调
 }
 
-/**
- * 🌟 技大佛学会 Logo 呼吸闪烁金色光晕 Preloader
- */
 const ZenPreloader: React.FC<ZenPreloaderProps> = ({
   logoSrc = '/logo.png',
   logoAlt = '技大佛学会',
-  duration = 1.8,
+  subtitle = '技大佛学会',
+  onExitComplete,
+  onDismiss,
 }) => {
-  // Logo 与主光晕呼吸闪烁关键帧
-  const breathingOpacity = [0.35, 1, 0.35];
-  const breathingScale = [0.94, 1.06, 0.94];
-
-  const breathingTransition = {
-    duration,
-    repeat: Infinity,
-    ease: 'easeInOut' as const,
-  };
+  // ============ 时间常量（统一管理，便于调优）============
+  const BREATH_DURATION = 3;      // 呼吸周期
+  const RIPPLE_DURATION = 3;      // 波纹扩散周期
+  const RIPPLE_DELAY = 0.5;       // 波纹间延迟
 
   return (
     <motion.div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-md"
-      initial={{ opacity: 1 }}
-      exit={{ opacity: 0, filter: 'blur(12px)' }}
-      transition={{ duration: 0.9, ease: [0.65, 0, 0.35, 1] }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md cursor-pointer select-none"
+      initial={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+      exit={{
+        opacity: 0,
+        scale: 1.1,
+        filter: 'blur(10px)',
+      }}
+      transition={{
+        duration: 1.2,
+        ease: [0.4, 0, 0.2, 1], // Material 式 ease，收势极缓
+      }}
+      onAnimationComplete={() => {
+        // 只有在退场动画彻底结束后才通知父组件恢复滚动
+        onExitComplete?.();
+      }}
+      onClick={onDismiss}
+      title="轻触任意处可跳过入场"
+      style={{
+        willChange: 'transform, opacity, filter',
+      }}
     >
-      {/* 中心 Logo 容器 */}
+      {/* ==================== 中心视觉层 ==================== */}
       <div className="relative flex flex-col items-center justify-center">
-        {/* ── 外层宏大金色光晕（与 Logo 同步呼吸闪烁） ── */}
-        <motion.div
-          className="absolute h-72 w-72 rounded-full bg-yellow-500/25 blur-3xl"
-          animate={{
-            opacity: breathingOpacity,
-            scale: breathingScale,
-          }}
-          transition={breathingTransition}
-          aria-hidden="true"
-        />
 
-        {/* ── 次级暖琥珀光晕（错频流动增加层次感） ── */}
-        <motion.div
-          className="absolute h-48 w-48 rounded-full bg-amber-400/35 blur-2xl"
-          animate={{
-            opacity: [0.25, 0.8, 0.25],
-            scale: [0.9, 1.12, 0.9],
-          }}
-          transition={{
-            duration: duration * 1.25,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          aria-hidden="true"
-        />
+        {/* ---------- 视觉核心容器（承载光晕 + 波纹 + Logo）---------- */}
+        <div className="relative flex h-72 w-72 items-center justify-center md:h-80 md:w-80">
 
-        {/* ── 核心微光环 ── */}
-        <motion.div
-          className="absolute h-36 w-36 rounded-full border border-yellow-400/40"
-          animate={{
-            scale: [0.98, 1.15, 0.98],
-            opacity: [0.2, 0.7, 0.2],
-          }}
-          transition={{
-            duration: duration * 1.1,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          aria-hidden="true"
-        />
+          {/* ========== ① 核心金色光晕（最底层）========== */}
+          <motion.div
+            className="pointer-events-none absolute h-56 w-56 rounded-full
+                       bg-[radial-gradient(circle,rgba(251,191,36,0.55),rgba(251,191,36,0.15)_50%,transparent_75%)]
+                       blur-2xl md:h-64 md:w-64"
+            animate={{
+              scale: [0.9, 1.2, 0.9],
+              opacity: [0.4, 0.8, 0.4],
+            }}
+            transition={{
+              duration: BREATH_DURATION,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+            style={{ willChange: 'transform, opacity' }}
+            aria-hidden="true"
+          />
 
-        {/* ── 技大佛学会 Logo 主体 ── */}
-        <motion.div
-          className="relative z-10 h-28 w-28 md:h-36 md:w-36 rounded-full overflow-hidden select-none pointer-events-none shadow-[0_0_50px_rgba(234,179,8,0.4)] ring-2 ring-yellow-400/50"
-          animate={{
-            opacity: breathingOpacity,
-            scale: breathingScale,
-          }}
-          transition={breathingTransition}
-        >
-          <Image
+          {/* ========== ② 次级内光晕（错峰呼吸，增加层次）========== */}
+          <motion.div
+            className="pointer-events-none absolute h-40 w-40 rounded-full
+                       bg-[radial-gradient(circle,rgba(255,215,120,0.6),transparent_70%)]
+                       blur-xl md:h-44 md:w-44"
+            animate={{
+              scale: [1.1, 0.85, 1.1],
+              opacity: [0.5, 0.9, 0.5],
+            }}
+            transition={{
+              duration: BREATH_DURATION * 1.15,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: 0.4,
+            }}
+            style={{ willChange: 'transform, opacity' }}
+            aria-hidden="true"
+          />
+
+          {/* ========== ③ 同心波纹环 · 第一圈 ========== */}
+          <motion.div
+            className="pointer-events-none absolute h-52 w-52 rounded-full
+                       border border-amber-400/60 shadow-[0_0_12px_rgba(251,191,36,0.25)] md:h-60 md:w-60"
+            initial={{ scale: 1, opacity: 0 }}
+            animate={{
+              scale: [1, 1.5],
+              opacity: [0.75, 0],
+            }}
+            transition={{
+              duration: RIPPLE_DURATION,
+              repeat: Infinity,
+              delay: 0,
+              ease: 'easeOut',
+            }}
+            style={{ willChange: 'transform, opacity' }}
+            aria-hidden="true"
+          />
+
+          {/* ========== ④ 同心波纹环 · 第二圈（错峰 0.5s）========== */}
+          <motion.div
+            className="pointer-events-none absolute h-52 w-52 rounded-full
+                       border border-amber-400/50 shadow-[0_0_10px_rgba(251,191,36,0.2)] md:h-60 md:w-60"
+            initial={{ scale: 1, opacity: 0 }}
+            animate={{
+              scale: [1, 1.5],
+              opacity: [0.65, 0],
+            }}
+            transition={{
+              duration: RIPPLE_DURATION,
+              repeat: Infinity,
+              delay: RIPPLE_DELAY,
+              ease: 'easeOut',
+            }}
+            style={{ willChange: 'transform, opacity' }}
+            aria-hidden="true"
+          />
+
+          {/* ========== ⑤ 同心波纹环 · 第三圈（错峰 1.0s，制造连续水波涟漪）========== */}
+          <motion.div
+            className="pointer-events-none absolute h-52 w-52 rounded-full
+                       border border-amber-400/40 shadow-[0_0_8px_rgba(251,191,36,0.15)] md:h-60 md:w-60"
+            initial={{ scale: 1, opacity: 0 }}
+            animate={{
+              scale: [1, 1.5],
+              opacity: [0.55, 0],
+            }}
+            transition={{
+              duration: RIPPLE_DURATION,
+              repeat: Infinity,
+              delay: RIPPLE_DELAY * 2,
+              ease: 'easeOut',
+            }}
+            style={{ willChange: 'transform, opacity' }}
+            aria-hidden="true"
+          />
+
+          {/* ========== ⑥ 内圈静态金环（稳定视觉锚点）========== */}
+          <div
+            className="pointer-events-none absolute h-28 w-28 rounded-full
+                       border border-yellow-500/40 md:h-32 md:w-32"
+            aria-hidden="true"
+          />
+
+          {/* ========== ⑦ Logo 主体（呼吸 + 悬浮）========== */}
+          <motion.img
             src={logoSrc}
             alt={logoAlt}
-            fill
-            priority
-            sizes="144px"
-            className="object-cover"
+            className="relative z-10 h-24 w-auto select-none pointer-events-none md:h-28"
+            animate={{
+              opacity: [0.7, 1, 0.7],
+              scale: [0.96, 1.04, 0.96],
+              y: [0, -6, 0],
+            }}
+            transition={{
+              duration: BREATH_DURATION,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
             draggable={false}
+            style={{ willChange: 'transform, opacity', maxHeight: 112 }}
+            onError={(e) => {
+              const target = e.currentTarget;
+              target.style.display = 'none';
+              const parent = target.parentElement;
+              if (parent && !parent.querySelector('.fallback-text')) {
+                const span = document.createElement('span');
+                span.className =
+                  'fallback-text relative z-10 text-3xl md:text-4xl font-bold text-amber-300 tracking-[0.3em] whitespace-nowrap';
+                span.textContent = '技大佛学会';
+                parent.appendChild(span);
+              }
+            }}
           />
-        </motion.div>
+        </div>
 
-        {/* ── 底部优雅文字 ── */}
+        {/* ==================== 标题（错峰浮现）==================== */}
         <motion.p
-          animate={{ opacity: [0.5, 0.9, 0.5] }}
-          transition={breathingTransition}
-          className="relative z-10 mt-6 text-xs sm:text-sm font-medium tracking-[0.25em] text-amber-200/80 select-none"
+          className="mt-8 text-sm font-medium tracking-[0.4em] text-amber-300/90 md:text-base select-none"
+          initial={{ opacity: 0, y: 15, letterSpacing: '0.25em' }}
+          animate={{
+            opacity: 1,
+            y: 0,
+            letterSpacing: '0.4em',
+          }}
+          transition={{
+            delay: 0.8,
+            duration: 1.5,
+            ease: 'easeOut',
+          }}
+          style={{ willChange: 'transform, opacity' }}
         >
-          技大佛学会 · 愿法喜充盈
+          {subtitle}
         </motion.p>
+
+        {/* ==================== 3 粒微光跳动 Loading 小点 ==================== */}
+        <motion.div
+          className="mt-5 flex items-center gap-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2, duration: 1.2, ease: 'easeOut' }}
+        >
+          {[0, 1, 2].map((i) => (
+            <motion.span
+              key={i}
+              className="h-1.5 w-1.5 rounded-full bg-amber-400/80 shadow-[0_0_8px_rgba(251,191,36,0.6)]"
+              animate={{
+                opacity: [0.3, 1, 0.3],
+                scale: [0.8, 1.25, 0.8],
+                y: [0, -3, 0],
+              }}
+              transition={{
+                duration: 1.4,
+                repeat: Infinity,
+                ease: 'easeInOut',
+                delay: i * 0.2,
+              }}
+              style={{ willChange: 'transform, opacity' }}
+            />
+          ))}
+        </motion.div>
       </div>
     </motion.div>
   );

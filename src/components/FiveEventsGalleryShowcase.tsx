@@ -22,6 +22,7 @@ export interface EventPhoto {
   alt: string;
   width: number;
   height: number;
+  isPlaceholder?: boolean;
 }
 
 export interface EventData {
@@ -50,75 +51,155 @@ export const DEFAULT_FIVE_EVENTS: EventData[] = [
     id: 'orientation',
     name: '迎新会',
     subtitle: 'Orientation · 欢喜结缘',
-    cover: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=80',
-    coverAlt: '迎新会合影与欢喜结缘',
+    cover: '/images/orientation/ori-3.jpg',
+    coverAlt: '迎新会同修大合照与欢喜结缘',
     photos: [
-      { id: 'ori-1', src: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=1200&q=80', alt: '迎新相聚 · 破冰破局', width: 1200, height: 800 },
-      { id: 'ori-2', src: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80', alt: '学长姐温情关怀', width: 1200, height: 800 },
-      { id: 'ori-3', src: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=1200&q=80', alt: '小组互动研讨', width: 1200, height: 800 },
-      { id: 'ori-4', src: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80', alt: '团队共聚一堂', width: 1200, height: 800 },
-      { id: 'ori-5', src: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=1200&q=80', alt: '新春与新生欢聚分享', width: 1200, height: 800 },
-      { id: 'ori-6', src: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=1200&q=80', alt: '温馨素食茶歇结缘', width: 1200, height: 800 },
+      { id: 'ori-1', src: '/images/orientation/ori-1.jpg', alt: '马六甲红屋古城 · 欢聚探索结缘', width: 1024, height: 683 },
+      { id: 'ori-2', src: '/images/orientation/ori-2.jpg', alt: '鸡场街力王铜像 · 青春活力满满', width: 1024, height: 683 },
+      { id: 'ori-3', src: '/images/orientation/ori-3.jpg', alt: '古树夜景大合照 · 菩提树下同心', width: 1024, height: 682 },
+      { id: 'ori-4', src: '/images/orientation/ori-4.jpg', alt: '圣保罗堂向善比心 · 携手青春同行', width: 1024, height: 683 },
+      { id: 'ori-5', src: '/images/orientation/ori-5.jpg', alt: '世界旅游日地标 · 青春欢喜结缘', width: 1024, height: 683 },
+      { id: 'ori-6', src: '/images/orientation/ori-6.jpg', alt: '圣保罗堂红石院 · 同修欢喜合影', width: 1024, height: 683 },
     ],
   },
   {
     id: 'joy-camp',
     name: '欢乐营',
     subtitle: 'Youth Joy Camp · 青春破冰',
-    cover: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1200&q=80',
-    coverAlt: '欢乐营大自然探索与团队拓展',
+    cover: '/gallery/joy_camp/joy_4.jpg',
+    coverAlt: '欢乐营全体同修大合照与青春破冰',
     photos: [
-      { id: 'joy-1', src: 'https://images.unsplash.com/photo-1533240332313-0db49b459ad6?auto=format&fit=crop&w=1200&q=80', alt: '户外破冰探索', width: 1200, height: 800 },
-      { id: 'joy-2', src: 'https://images.unsplash.com/photo-1527529482837-4698179dc6ce?auto=format&fit=crop&w=1200&q=80', alt: '创意晚会与法喜欢笑', width: 1200, height: 800 },
-      { id: 'joy-3', src: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80', alt: '青春跃动与团队默契', width: 1200, height: 800 },
-      { id: 'joy-4', src: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80', alt: '团队协作突破挑战', width: 1200, height: 800 },
-      { id: 'joy-5', src: 'https://images.unsplash.com/photo-1506869640319-fe1a24fd76dc?auto=format&fit=crop&w=1200&q=80', alt: '营员真诚互助合影', width: 1200, height: 800 },
-      { id: 'joy-6', src: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?auto=format&fit=crop&w=1200&q=80', alt: '朝阳晨光下的希望与活力', width: 1200, height: 800 },
+      {
+        id: 'joy-1',
+        src: '/gallery/joy_camp/joy_1.jpg',
+        alt: '破冰围坐 · 凝聚同修默契',
+        width: 1024,
+        height: 688,
+      },
+      {
+        id: 'joy-2',
+        src: '/gallery/joy_camp/joy_2.jpg',
+        alt: '找朋友玩 BINGO · 讲堂欢聚互动',
+        width: 1024,
+        height: 768,
+      },
+      {
+        id: 'joy-3',
+        src: '/gallery/joy_camp/joy_3.jpg',
+        alt: '手绘环保布袋 · 艺术专注创作',
+        width: 1024,
+        height: 690,
+      },
+      {
+        id: 'joy-4',
+        src: '/gallery/joy_camp/joy_4.jpg',
+        alt: '全体欢喜大合影 · 青春破冰圆满',
+        width: 1024,
+        height: 684,
+      },
+      {
+        id: 'joy-5',
+        src: '/gallery/joy_camp/joy_5.jpg',
+        alt: '马六甲寻味探索 · 营员主持分享',
+        width: 1024,
+        height: 684,
+      },
+      {
+        id: 'joy-6',
+        src: '/gallery/joy_camp/joy_6.jpg',
+        alt: '师长前辈开示 · 领航菩提心愿',
+        width: 1024,
+        height: 768,
+      },
     ],
   },
   {
     id: 'zen-camp',
     name: '静修营',
     subtitle: 'Zen Camp · 止语禅心',
-    cover: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1200&q=80',
-    coverAlt: '静修营止语坐禅与安住当下',
+    cover: '/gallery/zen_camp/zen_1.jpg',
+    coverAlt: '静修营全体同修大合照与止语安住',
     photos: [
-      { id: 'zen-1', src: 'https://images.unsplash.com/photo-1545205597-3d9d02c29597?auto=format&fit=crop&w=1200&q=80', alt: '晨曦坐禅觉照', width: 1200, height: 800 },
-      { id: 'zen-2', src: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=1200&q=80', alt: '禅茶一味 · 专注当下', width: 1200, height: 800 },
-      { id: 'zen-3', src: 'https://images.unsplash.com/photo-1508672019048-805c876b67e2?auto=format&fit=crop&w=1200&q=80', alt: '林间行禅与正念步伐', width: 1200, height: 800 },
-      { id: 'zen-4', src: 'https://images.unsplash.com/photo-1512438248247-f0f2a5a8b7f0?auto=format&fit=crop&w=1200&q=80', alt: '心香一瓣 · 凝神静虑', width: 1200, height: 800 },
-      { id: 'zen-5', src: 'https://images.unsplash.com/photo-1528715471579-d1bcf0ba5e83?auto=format&fit=crop&w=1200&q=80', alt: '清晨钟声与自性澄澈', width: 1200, height: 800 },
-      { id: 'zen-6', src: 'https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?auto=format&fit=crop&w=1200&q=80', alt: '静水流深之禅意意境', width: 1200, height: 800 },
+      {
+        id: 'zen-1',
+        src: '/gallery/zen_camp/zen_1.jpg',
+        alt: '全体欢喜合十 · 静修营大合照',
+        width: 1024,
+        height: 662,
+      },
+      {
+        id: 'zen-2',
+        src: '/gallery/zen_camp/zen_2.jpg',
+        alt: '停一停静一静 · 专注简报分享',
+        width: 1024,
+        height: 651,
+      },
+      {
+        id: 'zen-3',
+        src: '/gallery/zen_camp/zen_3.jpg',
+        alt: '次日晨起礼诵 · 蒲团修持安住',
+        width: 1024,
+        height: 643,
+      },
+      {
+        id: 'zen-4',
+        src: '/gallery/zen_camp/zen_4.jpg',
+        alt: '法师慈悲升座 · 智慧法语开示',
+        width: 1024,
+        height: 647,
+      },
+      {
+        id: 'zen-5',
+        src: '/gallery/zen_camp/zen_5.jpg',
+        alt: '大殿佛前法筵 · 聆听皈依讲座',
+        width: 1024,
+        height: 656,
+      },
+      {
+        id: 'zen-6',
+        src: '',
+        alt: '第 6 张精彩瞬间 · 静候同修载入',
+        width: 1024,
+        height: 683,
+        isPlaceholder: true,
+      },
     ],
   },
   {
     id: 'vesak-camp',
     name: '卫塞营',
     subtitle: 'Vesak Camp · 浴佛传灯',
-    cover: 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1200&q=80',
-    coverAlt: '卫塞节传灯祈福之夜',
+    cover: '/images/vesak/vesak-4.jpg',
+    coverAlt: '卫塞节佛光花车巡游与同修欢喜合影',
     photos: [
-      { id: 'vesak-1', src: 'https://images.unsplash.com/photo-1609137144820-22d7c2a71f0a?auto=format&fit=crop&w=1200&q=80', alt: '清净莲花供奉', width: 1200, height: 800 },
-      { id: 'vesak-2', src: 'https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1200&q=80', alt: '万盏心灯齐放光明', width: 1200, height: 800 },
-      { id: 'vesak-3', src: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80', alt: '虔诚发愿 · 功德回向', width: 1200, height: 800 },
-      { id: 'vesak-4', src: 'https://images.unsplash.com/photo-1473081556163-2a17de81fc97?auto=format&fit=crop&w=1200&q=80', alt: '庄严道场与吉祥法喜', width: 1200, height: 800 },
-      { id: 'vesak-5', src: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=1200&q=80', alt: '喜迎佛诞 · 三期同一庆', width: 1200, height: 800 },
-      { id: 'vesak-6', src: 'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?auto=format&fit=crop&w=1200&q=80', alt: '慈悲之光普照人间', width: 1200, height: 800 },
+      { id: 'vesak-1', src: '/images/vesak/vesak-1.jpg', alt: '花车街头巡游 · 青春同修欢喜前行', width: 1024, height: 683 },
+      { id: 'vesak-2', src: '/images/vesak/vesak-2.jpg', alt: '妙音法雨赞颂 · 青年乐团吉他弹唱', width: 1024, height: 683 },
+      { id: 'vesak-3', src: '/images/vesak/vesak-3.jpg', alt: '禅堂同修合十 · 师父慈悲开示领航', width: 1024, height: 683 },
+      { id: 'vesak-4', src: '/images/vesak/vesak-4.jpg', alt: '技大佛学花车 · 佛光普照夜巡合影', width: 1024, height: 683 },
+      { id: 'vesak-5', src: '/images/vesak/vesak-5.jpg', alt: '晚霞花车巡游 · 佛光初照祥云', width: 768, height: 1024 },
+      { id: 'vesak-6', src: '/images/vesak/vesak-6.jpg', alt: '师父慈悲开示 · 释迦院金身佛陀', width: 768, height: 1024 },
     ],
   },
   {
     id: 'heritage-camp',
     name: '传承营',
     subtitle: 'Heritage Camp · 薪火相传',
-    cover: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80',
-    coverAlt: '传承营骨干齐聚与薪火相传',
+    cover: '/images/heritage/her-5.jpg',
+    coverAlt: '传承营同修齐聚碧海蓝天合照 · 薪火相传',
     photos: [
-      { id: 'her-1', src: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1200&q=80', alt: '骨干同修领袖研讨会', width: 1200, height: 800 },
-      { id: 'her-2', src: 'https://images.unsplash.com/photo-1531497865144-0464ef8fb9a9?auto=format&fit=crop&w=1200&q=80', alt: '新老执委策划与交接', width: 1200, height: 800 },
-      { id: 'her-3', src: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80', alt: '正信佛法弘传规划', width: 1200, height: 800 },
-      { id: 'her-4', src: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=80', alt: '师长前辈智慧倾囊相授', width: 1200, height: 800 },
-      { id: 'her-5', src: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=1200&q=80', alt: '同修共勉 · 砥砺同行', width: 1200, height: 800 },
-      { id: 'her-6', src: 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=1200&q=80', alt: '携手筑梦 · 菩提道永续', width: 1200, height: 800 },
+      { id: 'her-1', src: '/images/heritage/her-1.jpg', alt: '佛法研习 · 《法华经》药草喻智慧分享', width: 1024, height: 683 },
+      { id: 'her-2', src: '/images/heritage/her-2.jpg', alt: '薪火相传 · 传承营同修庄严合十', width: 1024, height: 683 },
+      { id: 'her-3', src: '/images/heritage/her-3.jpg', alt: '团队破冰 · 平衡积木合作挑战', width: 1024, height: 683 },
+      { id: 'her-4', src: '/images/heritage/her-4.jpg', alt: '传灯祈愿 · 烛光映照菩提初心', width: 1024, height: 454 },
+      { id: 'her-5', src: '/images/heritage/her-5.jpg', alt: '海滩逐浪 · 青春同修碧海蓝天大合照', width: 1024, height: 682 },
+      {
+        id: 'her-6',
+        src: '',
+        alt: '第 6 张精彩瞬间 · 静候同修载入',
+        width: 1024,
+        height: 683,
+        isPlaceholder: true,
+      },
     ],
   },
 ];
@@ -150,8 +231,13 @@ export function FiveEventsGalleryShowcase({ events = DEFAULT_FIVE_EVENTS }: Prop
     return currentEvent.photos.find((p) => p.id === lightbox.photoId) ?? null;
   }, [currentEvent, lightbox]);
 
+  const activePhotos = useMemo(
+    () => currentEvent?.photos.filter((p) => !p.isPlaceholder) ?? [],
+    [currentEvent],
+  );
+
   const currentIndex = currentEvent && currentPhoto
-    ? currentEvent.photos.findIndex((p) => p.id === currentPhoto.id)
+    ? activePhotos.findIndex((p) => p.id === currentPhoto.id)
     : -1;
 
   /* ── 光箱控制 ── */
@@ -165,9 +251,11 @@ export function FiveEventsGalleryShowcase({ events = DEFAULT_FIVE_EVENTS }: Prop
       if (!prev) return prev;
       const ev = events.find((e) => e.id === prev.eventId);
       if (!ev) return prev;
-      const idx = ev.photos.findIndex((p) => p.id === prev.photoId);
-      const next = (idx + dir + ev.photos.length) % ev.photos.length;
-      return { ...prev, photoId: ev.photos[next].id };
+      const validPhotos = ev.photos.filter((p) => !p.isPlaceholder);
+      if (validPhotos.length === 0) return prev;
+      const idx = validPhotos.findIndex((p) => p.id === prev.photoId);
+      const next = (idx + dir + validPhotos.length) % validPhotos.length;
+      return { ...prev, photoId: validPhotos[next].id };
     });
   }, [events]);
 
@@ -252,7 +340,7 @@ export function FiveEventsGalleryShowcase({ events = DEFAULT_FIVE_EVENTS }: Prop
                 photo={currentPhoto}
                 eventName={currentEvent.name}
                 index={currentIndex}
-                total={currentEvent.photos.length}
+                total={activePhotos.length}
                 onClose={closeLightbox}
                 onPrev={() => step(-1)}
                 onNext={() => step(1)}
@@ -413,6 +501,25 @@ function PhotoTile({
   index: number;
   onClick: () => void;
 }) {
+  if (photo.isPlaceholder) {
+    return (
+      <div
+        className="group relative aspect-[4/3] w-full rounded-xl border border-dashed border-amber-200/30
+                   bg-white/[0.03] backdrop-blur-sm flex flex-col items-center justify-center p-3 text-center select-none"
+      >
+        <div className="w-10 h-10 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-200 mb-2 shadow-inner">
+          <span className="text-base">📷</span>
+        </div>
+        <span className="text-xs font-semibold text-amber-100/80 font-serif">
+          第 {index + 1} 张精彩瞬间
+        </span>
+        <span className="text-[10px] text-white/40 mt-1 tracking-wider">
+          静候同修载入
+        </span>
+      </div>
+    );
+  }
+
   return (
     <motion.button
       type="button"
@@ -422,7 +529,7 @@ function PhotoTile({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.04, ease: EASE_SOFT }}
       whileTap={{ scale: 0.985 }}
-      className="group relative aspect-square w-full cursor-pointer overflow-hidden rounded-xl
+      className="group relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-xl
                  ring-1 ring-white/10 transition-shadow duration-500
                  hover:ring-amber-200/50
                  hover:shadow-[0_10px_36px_-12px_rgba(247,220,138,0.35)]"
@@ -520,28 +627,46 @@ function MobileStack({
                                px-4 py-4 [scrollbar-width:none]
                                [&::-webkit-scrollbar]:hidden"
                   >
-                    {ev.photos.map((photo) => (
-                      <motion.button
-                        key={photo.id}
-                        type="button"
-                        layoutId={`photo-${photo.id}`}
-                        onClick={() => onPhotoOpen(ev.id, photo.id)}
-                        whileTap={{ scale: 0.97 }}
-                        className="relative h-40 w-32 shrink-0 snap-start overflow-hidden
-                                   rounded-xl ring-1 ring-white/10
-                                   transition-shadow duration-500
-                                   active:ring-amber-200/40"
-                        aria-label={photo.alt}
-                      >
-                        <Image
-                          src={photo.src}
-                          alt={photo.alt}
-                          fill
-                          sizes="128px"
-                          className="object-cover"
-                        />
-                      </motion.button>
-                    ))}
+                    {ev.photos.map((photo, i) => {
+                      if (photo.isPlaceholder) {
+                        return (
+                          <div
+                            key={photo.id}
+                            className="relative h-32 w-48 shrink-0 snap-start overflow-hidden
+                                       rounded-xl border border-dashed border-amber-200/30
+                                       bg-white/[0.03] backdrop-blur-sm flex flex-col items-center justify-center p-2 text-center select-none"
+                          >
+                            <span className="text-xl mb-1.5">📷</span>
+                            <span className="text-[11px] font-semibold text-amber-100/80 font-serif">
+                              第 {i + 1} 张照片
+                            </span>
+                            <span className="text-[9px] text-white/40 mt-0.5">待载入</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <motion.button
+                          key={photo.id}
+                          type="button"
+                          layoutId={`photo-${photo.id}`}
+                          onClick={() => onPhotoOpen(ev.id, photo.id)}
+                          whileTap={{ scale: 0.97 }}
+                          className="relative h-32 w-48 shrink-0 snap-start overflow-hidden
+                                     rounded-xl ring-1 ring-white/10
+                                     transition-shadow duration-500
+                                     active:ring-amber-200/40"
+                          aria-label={photo.alt}
+                        >
+                          <Image
+                            src={photo.src}
+                            alt={photo.alt}
+                            fill
+                            sizes="192px"
+                            className="object-cover"
+                          />
+                        </motion.button>
+                      );
+                    })}
                   </div>
                 </motion.div>
               )}

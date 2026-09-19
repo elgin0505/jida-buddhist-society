@@ -1088,20 +1088,22 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
         )}
       </div>
 
-      {/* 底部供灯按钮与提示 */}
+      {/* 底部供灯按钮与提示（手机端避让安全区与底部高度） */}
       <div
         style={{
           position: 'absolute',
-          bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+          bottom: isMobile
+            ? 'calc(24px + env(safe-area-inset-bottom, 0px))'
+            : 'calc(28px + env(safe-area-inset-bottom, 0px))',
           left: '50%',
           transform: 'translateX(-50%)',
-          zIndex: 10,
+          zIndex: 30,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           gap: '8px',
           width: 'max-content',
-          maxWidth: '92vw',
+          maxWidth: '94vw',
         }}
       >
         {isPlacementMode && (
@@ -1132,30 +1134,64 @@ const LotusSeaCanvas: React.FC<LotusSeaCanvasProps> = ({
           </div>
         )}
 
-        <button
-          onClick={handleTogglePlacement}
-          style={{
-            backgroundColor: isPlacementMode ? '#EF4444' : '#FBBF24',
-            color: '#050505',
-            border: 'none',
-            borderRadius: '9999px',
-            padding: '12px 28px',
-            fontSize: '16px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: '0 4px 20px rgba(251, 191, 36, 0.4)',
-            transition: 'all 0.3s ease',
-          }}
-        >
-          {isPlacementMode ? '取消供灯' : '＋ 供灯'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* 底部退出供灯按钮（手机端特别适配） */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              style={{
+                backgroundColor: 'rgba(28, 25, 23, 0.85)',
+                color: '#E5E7EB',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                borderRadius: '9999px',
+                padding: '12px 20px',
+                fontSize: '15px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.5)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.25s ease',
+              }}
+              title="退出供灯"
+              aria-label="退出供灯"
+            >
+              <svg style={{ width: '18px', height: '18px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+              </svg>
+              <span>退出</span>
+            </button>
+          )}
+
+          {/* 供灯 / 取消供灯按钮 */}
+          <button
+            onClick={handleTogglePlacement}
+            style={{
+              backgroundColor: isPlacementMode ? '#EF4444' : '#FBBF24',
+              color: '#050505',
+              border: 'none',
+              borderRadius: '9999px',
+              padding: '12px 28px',
+              fontSize: '16px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(251, 191, 36, 0.45)',
+              transition: 'all 0.3s ease',
+            }}
+          >
+            {isPlacementMode ? '取消供灯' : '＋ 供灯'}
+          </button>
+        </div>
         <span
           style={{
             fontSize: '12px',
             color: 'rgba(255, 255, 255, 0.75)',
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            backdropFilter: 'blur(4px)',
-            padding: '2px 10px',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(6px)',
+            padding: '2px 12px',
             borderRadius: '9999px',
           }}
         >

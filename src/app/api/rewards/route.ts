@@ -7,13 +7,29 @@ import { verifyAdminPin } from "@/lib/adminAuth";
 export async function GET() {
   try {
     const rewards = await syncRewardsFromGoogleSheet();
-    return NextResponse.json(rewards);
+    const unique: any[] = [];
+    const seen = new Set<string>();
+    for (const r of (Array.isArray(rewards) ? rewards : [])) {
+      if (!seen.has(r.name)) {
+        seen.add(r.name);
+        unique.push(r);
+      }
+    }
+    return NextResponse.json(unique);
   } catch (error) {
     console.error("Failed to fetch rewards:", error);
     const fallbackRewards = await prisma.reward.findMany({
       orderBy: { pointsRequired: "asc" },
     });
-    return NextResponse.json(fallbackRewards);
+    const uniqueFallback: any[] = [];
+    const seen = new Set<string>();
+    for (const r of fallbackRewards) {
+      if (!seen.has(r.name)) {
+        seen.add(r.name);
+        uniqueFallback.push(r);
+      }
+    }
+    return NextResponse.json(uniqueFallback);
   }
 }
 

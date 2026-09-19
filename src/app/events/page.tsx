@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { PageHeader, EmptyState } from '@/components/ui';
 import { PageWrapper } from '@/components/PageWrapper';
-import { LotusLoading } from '@/components/LotusLoading';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   InteractivePaperCalendar,
@@ -108,14 +107,6 @@ export default function EventsPage() {
       .filter((event) => event.status === 'upcoming')
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [calendarEvents]);
-
-  if (loading) {
-    return (
-      <PageWrapper page="events">
-        <LotusLoading text="莲花初绽 · 正在同步 Google 表格活动数据..." />
-      </PageWrapper>
-    );
-  }
 
   return (
     <PageWrapper page="events">

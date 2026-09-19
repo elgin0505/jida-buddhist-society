@@ -27,6 +27,8 @@ import {
   TrendingUp,
   Clock,
   Loader2,
+  RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
 
 interface Event {
@@ -93,6 +95,15 @@ export default function AdminDashboardPage() {
   const [detailMemberId, setDetailMemberId] = useState<string | null>(null);
   const [memberDetail, setMemberDetail] = useState<MemberDetailData | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // 积分归零确认
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  // 被选中要归零的会员 id 集合
+  const [selectedResetIds, setSelectedResetIds] = useState<Set<string>>(new Set());
+
+  // 签到成功青色圆圈动画
+  const [checkInRing, setCheckInRing] = useState<{ name: string; points: number } | null>(null);
 
   const fetchMembers = useCallback(() => {
     fetch("/api/members")
@@ -190,6 +201,9 @@ export default function AdminDashboardPage() {
         text: `✅ 签到成功！${member.name} (${member.memberId}) 已获得 +${points} 功德积分`,
       });
 
+      // 触发青色圆圈动画
+      setCheckInRing({ name: member.name, points });
+
       // 触发气泡通知
       setToast({
         memberName: member.name,
@@ -205,6 +219,41 @@ export default function AdminDashboardPage() {
       setMessage({ type: "error", text: "网络错误，签到失败" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 积分归零（支持选择指定会员）
+  const resetAllPoints = async () => {
+    setResetting(true);
+    try {
+      const adminPin =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("jbs_admin_pin") || localStorage.getItem("jbs_admin_custom_pin") || "1080"
+          : "1080";
+
+      const res = await fetch("/api/admin/reset-points", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-pin": adminPin,
+        },
+        body: JSON.stringify({
+          memberIds: Array.from(selectedResetIds),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ type: "success", text: `✅ ${data.message}` });
+        fetchMembers();
+        fetchAttendance();
+      } else {
+        setMessage({ type: "error", text: data.error || "归零失败，请重试" });
+      }
+    } catch {
+      setMessage({ type: "error", text: "网络错误，请稍后重试" });
+    } finally {
+      setResetting(false);
+      setShowResetConfirm(false);
     }
   };
 
@@ -431,14 +480,6 @@ export default function AdminDashboardPage() {
                     </button>
                   </div>
 
-                  <div className="pt-2 border-t border-ocher/20">
-                    <ManualLookup
-                      members={members}
-                      loading={loading}
-                      onSelectMember={executeCheckInForMember}
-                      onLookup={handleManualLookup}
-                    />
-                  </div>
                 </div>
 
                 {message && (
@@ -467,6 +508,42 @@ export default function AdminDashboardPage() {
             transition={{ duration: 0.35 }}
             className="space-y-6"
           >
+            {/* ── 活动选择器（名册页签到用） ── */}
+            <div className="rounded-2xl bg-gradient-to-r from-golden-deep/10 to-amber-50 border border-golden-deep/25 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex items-center gap-2 text-golden-rich shrink-0">
+                <CalendarCheck className="h-5 w-5" />
+                <span className="text-sm font-bold">当前签到活动</span>
+              </div>
+              <select
+                value={selectedEvent}
+                onChange={(e) => {
+                  setSelectedEvent(e.target.value);
+                  const event = events.find((ev) => ev.name === e.target.value);
+                  if (event) setCustomPoints(event.points);
+                }}
+                className="flex-1 rounded-xl border border-golden-deep/40 bg-white/90 px-4 py-2 text-sm text-charcoal font-semibold focus:border-golden-deep focus:outline-none focus:ring-2 focus:ring-golden-deep/20 shadow-xs"
+              >
+                {events.length === 0 ? (
+                  <option value="">暂无活动（请先在活动管理中添加）</option>
+                ) : (
+                  events.map((event) => (
+                    <option key={event.id} value={event.name}>
+                      {event.name} (+{event.points} 积分)
+                    </option>
+                  ))
+                )}
+              </select>
+              {selectedEvent ? (
+                <span className="text-xs font-bold text-jade bg-jade/10 border border-jade/25 px-3 py-1.5 rounded-full shrink-0 whitespace-nowrap">
+                  每人 +{customPoints || 1} 积分
+                </span>
+              ) : (
+                <span className="text-xs font-semibold text-carmine bg-carmine/10 border border-carmine/20 px-3 py-1.5 rounded-full shrink-0 whitespace-nowrap">
+                  请先选择活动
+                </span>
+              )}
+            </div>
+
             {/* 统计指标卡 */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="rounded-2xl bg-gradient-to-br from-warm-white to-warm-cream p-4 border-2 border-golden-deep/20 shadow-sm flex items-center gap-3.5">
@@ -563,6 +640,16 @@ export default function AdminDashboardPage() {
                     共 {filteredAndSortedMembers.length} 人
                   </span>
                 </div>
+                <button
+                  onClick={() => {
+                    setSelectedResetIds(new Set(members.map((m) => m.id)));
+                    setShowResetConfirm(true);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl border border-carmine/30 bg-carmine/8 px-3 py-1.5 text-xs font-bold text-carmine hover:bg-carmine/15 transition-all"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  积分全部归零
+                </button>
               </div>
 
               {filteredAndSortedMembers.length === 0 ? (
@@ -908,6 +995,203 @@ export default function AdminDashboardPage() {
             }}
           />
         )}
+
+        {/* ── 积分归零确认弹窗（含成员勾选） ── */}
+        <AnimatePresence>
+          {showResetConfirm && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+              onClick={() => !resetting && setShowResetConfirm(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.88, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.88, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-md rounded-3xl bg-warm-white dark:bg-slate-900 p-6 sm:p-7 shadow-2xl border-2 border-carmine/30"
+              >
+                <div className="text-center mb-5">
+                  <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-carmine/10 text-carmine">
+                    <AlertTriangle className="h-7 w-7" />
+                  </div>
+                  <h3 className="text-lg font-bold text-charcoal dark:text-white mb-1">选择归零对象</h3>
+                  <p className="text-xs text-muted">勾选要归零的会员，积分与出勤记录将被清空</p>
+                </div>
+
+                {/* 全选/取消全选 */}
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <button
+                    onClick={() => {
+                      if (selectedResetIds.size === members.length) {
+                        setSelectedResetIds(new Set());
+                      } else {
+                        setSelectedResetIds(new Set(members.map((m) => m.id)));
+                      }
+                    }}
+                    className="text-xs font-bold text-golden-rich hover:text-golden-deep transition-colors"
+                  >
+                    {selectedResetIds.size === members.length ? "取消全选" : "全选"}
+                  </button>
+                  <span className="text-xs text-muted font-mono">
+                    已选 <span className="font-bold text-carmine">{selectedResetIds.size}</span> / {members.length}
+                  </span>
+                </div>
+
+                {/* 会员列表 */}
+                <div className="max-h-56 overflow-y-auto rounded-2xl border border-ocher/20 bg-white/60 dark:bg-slate-800/60 divide-y divide-ocher/10">
+                  {members.map((m) => {
+                    const isChecked = selectedResetIds.has(m.id);
+                    return (
+                      <label
+                        key={m.id}
+                        className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                          isChecked ? "bg-carmine/5" : "hover:bg-amber-50/40"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            const next = new Set(selectedResetIds);
+                            if (isChecked) next.delete(m.id);
+                            else next.add(m.id);
+                            setSelectedResetIds(next);
+                          }}
+                          className="h-4 w-4 rounded border-ocher/40 text-carmine focus:ring-carmine/30 accent-carmine"
+                        />
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-golden-deep to-ocher-light text-white text-xs font-bold">
+                          {m.name.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-charcoal dark:text-white truncate">{m.name}</p>
+                          <p className="text-[10px] text-muted font-mono">{m.memberId}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-black font-mono text-golden-rich">{m.totalPoints}</p>
+                          <p className="text-[10px] text-muted">{m._count?.attendances ?? 0} 出勤</p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                <p className="text-[11px] text-carmine/70 font-semibold mt-3 text-center">⚠️ 操作无法撤销，请谨慎确认</p>
+
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={() => setShowResetConfirm(false)}
+                    disabled={resetting}
+                    className="flex-1 rounded-2xl border border-ocher/30 bg-warm-cream px-4 py-3 text-sm font-bold text-charcoal hover:bg-ocher-light/30 transition-all disabled:opacity-50"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={resetAllPoints}
+                    disabled={resetting || selectedResetIds.size === 0}
+                    className="flex-1 rounded-2xl bg-carmine px-4 py-3 text-sm font-bold text-white hover:bg-carmine/85 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {resetting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        归零中...
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw className="h-4 w-4" />
+                        归零 ({selectedResetIds.size}人)
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── 签到成功：青色勾 + 顺时针进度圈 ── */}
+        <AnimatePresence>
+          {checkInRing && (
+            <motion.div
+              key="check-in-ring"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.4 } }}
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+              onClick={() => setCheckInRing(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.6 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.8 }}
+                transition={{ type: "spring", stiffness: 280, damping: 22 }}
+                className="flex flex-col items-center gap-5"
+              >
+                {/* Ring + tick */}
+                <div className="relative h-36 w-36">
+                  {/* SVG progress ring */}
+                  <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 144 144">
+                    {/* background track */}
+                    <circle
+                      cx="72" cy="72" r="64"
+                      fill="none"
+                      stroke="rgba(20,184,166,0.18)"
+                      strokeWidth="8"
+                    />
+                    {/* animated fill */}
+                    <motion.circle
+                      cx="72" cy="72" r="64"
+                      fill="none"
+                      stroke="#14b8a6"
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 64}`}
+                      initial={{ strokeDashoffset: 2 * Math.PI * 64 }}
+                      animate={{ strokeDashoffset: 0 }}
+                      transition={{ duration: 2.2, ease: "easeInOut" }}
+                      onAnimationComplete={() => {
+                        setTimeout(() => setCheckInRing(null), 300);
+                      }}
+                    />
+                  </svg>
+
+                  {/* Teal circle bg + tick */}
+                  <div className="absolute inset-3 flex items-center justify-center rounded-full bg-teal-500/15 border-2 border-teal-400/30">
+                    <motion.svg
+                      viewBox="0 0 52 52"
+                      className="h-16 w-16"
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: 1 }}
+                      transition={{ delay: 0.15, duration: 0.55, ease: "easeOut" }}
+                    >
+                      <motion.path
+                        d="M14 27 L23 36 L38 18"
+                        fill="none"
+                        stroke="#14b8a6"
+                        strokeWidth="4.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ delay: 0.15, duration: 0.55, ease: "easeOut" }}
+                      />
+                    </motion.svg>
+                  </div>
+                </div>
+
+                {/* Label */}
+                <div className="text-center">
+                  <p className="text-xl font-bold text-white drop-shadow-md">签到成功</p>
+                  <p className="text-sm text-teal-200 font-medium mt-0.5">
+                    {checkInRing.name} · +{checkInRing.points} 积分
+                  </p>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </AdminPinLock>
     </PageWrapper>
   );

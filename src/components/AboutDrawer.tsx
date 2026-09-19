@@ -69,8 +69,9 @@ export function AboutDrawer({ isOpen, onClose }: AboutDrawerProps) {
                     <Image
                       src="/logo.png"
                       alt="技大佛学会 Logo"
-                      fill
-                      className="object-cover"
+                      width={40}
+                      height={40}
+                      className="h-full w-full object-cover"
                     />
                   </div>
                   <div>
@@ -133,7 +134,7 @@ export function AboutDrawer({ isOpen, onClose }: AboutDrawerProps) {
 
                 <div className="mt-3 grid grid-cols-2 gap-2.5">
                   <a
-                    href="https://t.me/jidabuddhistsociety"
+                    href="https://t.me/jidafozuehuizixun"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2.5 rounded-xl border border-ocher/20 bg-warm-white p-3 text-xs font-medium text-charcoal transition-all hover:border-golden-rich hover:bg-warm-cream/60 hover:shadow-sm"
@@ -146,7 +147,7 @@ export function AboutDrawer({ isOpen, onClose }: AboutDrawerProps) {
                   </a>
 
                   <a
-                    href="https://instagram.com/utem_buddhist"
+                    href="https://www.instagram.com/jidafoxuehui/?hl=en"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2.5 rounded-xl border border-ocher/20 bg-warm-white p-3 text-xs font-medium text-charcoal transition-all hover:border-golden-rich hover:bg-warm-cream/60 hover:shadow-sm"
